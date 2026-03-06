@@ -16,7 +16,14 @@ export default function Estudiantes() {
   const [error, setError] = useState('')
 
   useEffect(() => { cargarDatos() }, [])
-
+async function cambiarEstado(estudiante) {
+  const nuevoEstado = estudiante.estado === 'activo' ? 'inactivo' : 'activo'
+  if (!window.confirm(`¿Cambiar estado de ${estudiante.nombre} ${estudiante.apellido} a "${nuevoEstado}"?`)) return
+  await supabase.from('estudiantes')
+    .update({ estado: nuevoEstado })
+    .eq('id', estudiante.id)
+  cargarDatos()
+}
   async function cargarDatos() {
     setLoading(true)
     const [{ data: est }, { data: gra }] = await Promise.all([
@@ -124,13 +131,18 @@ export default function Estudiantes() {
                   </td>
                   <td style={s.td} >{e.genero || '—'}</td>
                   <td style={s.td}>
-                    <span style={{
-                      ...s.estadoBadge,
-                      background: e.estado === 'activo' ? '#dcfce7' : '#fee2e2',
-                      color: e.estado === 'activo' ? '#16a34a' : '#dc2626'
-                    }}>
-                      {e.estado}
-                    </span>
+                    <span
+  onClick={() => cambiarEstado(e)}
+  title="Clic para cambiar estado"
+  style={{
+    ...s.estadoBadge,
+    background: e.estado === 'activo' ? '#dcfce7' : '#fee2e2',
+    color: e.estado === 'activo' ? '#16a34a' : '#dc2626',
+    cursor: 'pointer',
+  }}
+>
+  {e.estado === 'activo' ? '✅ Activo' : '🔴 Inactivo'}
+</span>
                   </td>
                 </tr>
               ))}
