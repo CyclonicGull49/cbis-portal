@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import Layout from '../components/Layout'
 import Estudiantes from './Estudiantes'
 import Cobros from './Cobros'
+import Contabilidad from './Contabilidad.jsx'
 
 // Páginas placeholder por ahora
 function PaginaEnConstruccion({ nombre }) {
@@ -91,6 +92,7 @@ export default function Dashboard() {
       case 'dashboard': return <DashboardHome />
       case 'estudiantes': return <Estudiantes />
       case 'cobros': return <Cobros />
+      case 'contabilidad': return <Contabilidad />
       default: return <PaginaEnConstruccion nombre={pagina.charAt(0).toUpperCase() + pagina.slice(1)} />
     }
   }
