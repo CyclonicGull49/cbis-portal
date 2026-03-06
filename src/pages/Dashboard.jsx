@@ -4,6 +4,7 @@ import Layout from '../components/Layout'
 import Estudiantes from './Estudiantes'
 import Cobros from './Cobros'
 import Contabilidad from './Contabilidad.jsx'
+import Usuarios from './Usuarios'
 
 // Páginas placeholder por ahora
 function PaginaEnConstruccion({ nombre }) {
@@ -93,6 +94,7 @@ export default function Dashboard() {
       case 'estudiantes': return <Estudiantes />
       case 'cobros': return <Cobros />
       case 'contabilidad': return <Contabilidad />
+      case 'usuarios': return <Usuarios />
       default: return <PaginaEnConstruccion nombre={pagina.charAt(0).toUpperCase() + pagina.slice(1)} />
     }
   }
