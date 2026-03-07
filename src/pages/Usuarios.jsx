@@ -73,11 +73,19 @@ export default function Usuarios() {
   }
 
   async function toggleActivo(usuario) {
-    const nuevoEstado = !usuario.activo
-    if (!window.confirm(`¿${nuevoEstado ? 'Activar' : 'Desactivar'} a ${usuario.nombre} ${usuario.apellido}?`)) return
-    await supabase.from('perfiles').update({ activo: nuevoEstado }).eq('id', usuario.id)
-    cargarUsuarios()
-  }
+  const nuevoEstado = !usuario.activo
+  if (!window.confirm(`¿${nuevoEstado ? 'Activar' : 'Desactivar'} a ${usuario.nombre} ${usuario.apellido}?`)) return
+  const { error } = await supabase.from('perfiles')
+    .update({ activo: nuevoEstado })
+    .eq('id', usuario.id)
+  if (!error) await cargarUsuarios()
+}
+
+async function eliminarUsuario(usuario) {
+  if (!window.confirm(`¿Eliminar permanentemente a ${usuario.nombre} ${usuario.apellido}?\nEsta acción no se puede deshacer.`)) return
+  await supabase.from('perfiles').delete().eq('id', usuario.id)
+  cargarUsuarios()
+}
 
   function resetForm() {
     setForm({ nombre: '', apellido: '', email: '', rol: 'recepcion' })
@@ -131,10 +139,15 @@ export default function Usuarios() {
                     </span>
                   </td>
                   <td style={s.td}>
-                    <button onClick={() => toggleActivo(u)} style={u.activo ? s.btnDesactivar : s.btnActivar}>
-                      {u.activo ? 'Desactivar' : 'Activar'}
-                    </button>
-                  </td>
+  <div style={{ display: 'flex', gap: 6 }}>
+    <button onClick={() => toggleActivo(u)} style={u.activo ? s.btnDesactivar : s.btnActivar}>
+      {u.activo ? 'Desactivar' : 'Activar'}
+    </button>
+    <button onClick={() => eliminarUsuario(u)} style={s.btnEliminar}>
+      🗑️ Eliminar
+    </button>
+  </div>
+</td>
                 </tr>
               ))}
             </tbody>
@@ -225,6 +238,7 @@ const s = {
   btnSecondary: { padding: '10px 20px', borderRadius: 10, border: '1.5px solid #dde3ee', background: '#fff', color: '#555', fontWeight: 600, fontSize: 14, cursor: 'pointer' },
   btnActivar: { padding: '6px 14px', borderRadius: 8, border: 'none', background: '#dcfce7', color: '#16a34a', fontWeight: 700, fontSize: 12, cursor: 'pointer' },
   btnDesactivar: { padding: '6px 14px', borderRadius: 8, border: 'none', background: '#fee2e2', color: '#dc2626', fontWeight: 700, fontSize: 12, cursor: 'pointer' },
+  btnEliminar: { padding: '6px 14px', borderRadius: 8, border: 'none', background: '#1e3a5f', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer' },
   modalBg: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 16 },
   modalBox: { background: '#fff', borderRadius: 16, padding: '28px 24px', width: '100%', maxWidth: 480, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' },
   modalTitle: { color: '#1e3a5f', fontSize: 17, fontWeight: 800, marginBottom: 20 },
