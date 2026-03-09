@@ -13,19 +13,11 @@ const CBIS_COLORS = {
 
 function LogoCBIS({ size = 36 }) {
   return (
-    <div style={{
-      width: size, height: size, borderRadius: '50%',
-      background: CBIS_COLORS.purple,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      position: 'relative', flexShrink: 0,
-      boxShadow: '0 2px 8px rgba(91,45,142,0.4)'
-    }}>
-      <span style={{ color: '#fff', fontWeight: 900, fontSize: size * 0.5, fontFamily: 'system-ui' }}>C</span>
-      <div style={{ position: 'absolute', top: size * 0.05, left: size * 0.38, width: size * 0.14, height: size * 0.14, borderRadius: '50%', background: CBIS_COLORS.yellow }} />
-      <div style={{ position: 'absolute', top: size * 0.05, left: size * 0.57, width: size * 0.12, height: size * 0.12, borderRadius: '50%', background: CBIS_COLORS.teal }} />
-      <div style={{ position: 'absolute', top: size * 0.22, left: size * 0.22, width: size * 0.13, height: size * 0.13, borderRadius: '50%', background: CBIS_COLORS.pink }} />
-      <div style={{ position: 'absolute', top: size * 0.4, left: size * 0.18, width: size * 0.12, height: size * 0.12, borderRadius: '50%', background: CBIS_COLORS.orange }} />
-    </div>
+    <img 
+  src="/logo.png" 
+  alt="CBIS" 
+  style={{ width: size, height: size, objectFit: 'cover', borderRadius: '50%' }} 
+/>
   )
 }
 
@@ -50,7 +42,7 @@ export default function Layout({ pagina, setPagina, children }) {
   const menu = perfil?.rol === 'admin' ? menuAdmin : menuRecepcion
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#f4f0fa', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', width: '100vw', background: '#f4f0fa', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
 
       {/* Sidebar */}
       <div style={{

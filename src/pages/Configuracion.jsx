@@ -16,7 +16,7 @@ export default function Configuracion() {
 
   const nivelColor = {
     inicial: { bg: '#fdf4ff', color: '#7e22ce' },
-    primaria: { bg: '#eff6ff', color: '#1d4ed8' },
+    primaria: { bg: '#eff6ff', color: '#3d1f61' },
     secundaria: { bg: '#f0fdf4', color: '#166534' },
     bachillerato: { bg: '#fef3c7', color: '#92400e' },
   }
@@ -77,7 +77,7 @@ export default function Configuracion() {
   return (
     <div>
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ color: '#1e3a5f', fontSize: 20, fontWeight: 800, marginBottom: 4 }}>⚙️ Configuración</h1>
+        <h1 style={{ color: '#5B2D8E', fontSize: 20, fontWeight: 800, marginBottom: 4 }}>⚙️ Configuración</h1>
         <p style={{ color: '#888', fontSize: 13 }}>Gestión de grados y año escolar</p>
       </div>
 
@@ -136,7 +136,7 @@ export default function Configuracion() {
                     <span style={{ fontWeight: 700, color: '#888', fontSize: 13 }}>#{g.orden}</span>
                   </td>
                   <td style={s.td}>
-                    <b style={{ color: '#1e3a5f' }}>{g.nombre}</b>
+                    <b style={{ color: '#5B2D8E' }}>{g.nombre}</b>
                   </td>
                   <td style={s.td}>
                     <span style={{ ...s.badge, background: nivelColor[g.nivel]?.bg, color: nivelColor[g.nivel]?.color }}>
@@ -202,21 +202,21 @@ export default function Configuracion() {
 
 const s = {
   card: { background: '#fff', borderRadius: 14, boxShadow: '0 2px 12px rgba(0,0,0,0.07)', padding: 20 },
-  cardTitle: { color: '#1e3a5f', fontSize: 15, fontWeight: 800, marginBottom: 16 },
+  cardTitle: { color: '#5B2D8E', fontSize: 15, fontWeight: 800, marginBottom: 16 },
   table: { width: '100%', borderCollapse: 'collapse' },
   th: { padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #f0f4ff' },
   tr: { borderBottom: '1px solid #f8faff' },
   td: { padding: '10px 14px', fontSize: 14, color: '#333' },
   badge: { padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 },
-  btnPrimary: { padding: '10px 20px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #1e3a5f, #2563a8)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer' },
+  btnPrimary: { padding: '10px 20px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #5B2D8E, #3d1f61)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer' },
   btnSecondary: { padding: '10px 20px', borderRadius: 10, border: '1.5px solid #dde3ee', background: '#fff', color: '#555', fontWeight: 600, fontSize: 14, cursor: 'pointer' },
-  btnEditar: { padding: '6px 14px', borderRadius: 8, border: 'none', background: '#eff6ff', color: '#2563eb', fontWeight: 700, fontSize: 12, cursor: 'pointer' },
+  btnEditar: { padding: '6px 14px', borderRadius: 8, border: 'none', background: '#eff6ff', color: '#5B2D8E', fontWeight: 700, fontSize: 12, cursor: 'pointer' },
   btnEliminar: { padding: '6px 14px', borderRadius: 8, border: 'none', background: '#fee2e2', color: '#dc2626', fontWeight: 700, fontSize: 12, cursor: 'pointer' },
   modalBg: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 16 },
   modalBox: { background: '#fff', borderRadius: 16, padding: '28px 24px', width: '100%', maxWidth: 480, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' },
-  modalTitle: { color: '#1e3a5f', fontSize: 17, fontWeight: 800, marginBottom: 20 },
+  modalTitle: { color: '#5B2D8E', fontSize: 17, fontWeight: 800, marginBottom: 20 },
   grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 },
   field: { marginBottom: 14 },
-  label: { display: 'block', fontSize: 11, fontWeight: 700, color: '#1e3a5f', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
+  label: { display: 'block', fontSize: 11, fontWeight: 700, color: '#5B2D8E', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
   input: { width: '100%', padding: '10px 14px', borderRadius: 10, border: '1.5px solid #dde3ee', fontSize: 14, background: '#f8faff', color: '#222', boxSizing: 'border-box' },
 }

@@ -249,7 +249,7 @@ const totalHoy = cobros.filter(c => c.estado === 'pagado').reduce((a, c) => a + 
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div>
-          <h1 style={{ color: '#1e3a5f', fontSize: 20, fontWeight: 800, marginBottom: 4 }}>💰 Cobros</h1>
+          <h1 style={{ color: '#5B2D8E', fontSize: 20, fontWeight: 800, marginBottom: 4 }}>💰 Cobros</h1>
           <p style={{ color: '#888', fontSize: 13 }}>{cobros.length} cobros registrados</p>
         </div>
         <button onClick={() => setModalCobro(true)} style={s.btnPrimary}>+ Nuevo Cobro</button>
@@ -260,7 +260,7 @@ const totalHoy = cobros.filter(c => c.estado === 'pagado').reduce((a, c) => a + 
         {[
           { icon: '📋', val: `$${totalPendiente.toFixed(2)}`, label: 'Pendiente de cobro', color: '#f59e0b' },
           { icon: '✅', val: `$${totalHoy.toFixed(2)}`, label: 'Cobrado hoy', color: '#16a34a' },
-          { icon: '🧾', val: cobros.filter(c => c.estado === 'pendiente').length, label: 'Cobros pendientes', color: '#3b82f6' },
+          { icon: '🧾', val: cobros.filter(c => c.estado === 'pendiente').length, label: 'Cobros pendientes', color: '#7B4DB8' },
           { icon: '🚨', val: cobros.filter(c => c.estado === 'vencido').length, label: 'Cobros vencidos', color: '#ef4444' },
         ].map((k, i) => (
           <div key={i} style={{ background: '#fff', borderRadius: 14, padding: '16px 20px', boxShadow: '0 2px 12px rgba(0,0,0,0.07)', borderLeft: `4px solid ${k.color}` }}>
@@ -414,7 +414,7 @@ const totalHoy = cobros.filter(c => c.estado === 'pagado').reduce((a, c) => a + 
             <div style={{ background: '#fef9c3', borderRadius: 10, padding: 14, marginBottom: 20 }}>
               <div style={{ fontSize: 13, color: '#555', marginBottom: 4 }}>Monto original: <b>${parseFloat(cobroSeleccionado.monto).toFixed(2)}</b></div>
               <div style={{ fontSize: 13, color: '#dc2626', marginBottom: 4 }}>+ Mora (25%): <b>${(parseFloat(cobroSeleccionado.monto) * 0.25).toFixed(2)}</b></div>
-              <div style={{ fontSize: 16, fontWeight: 900, color: '#1e3a5f' }}>Total: <b>${(parseFloat(cobroSeleccionado.monto) * 1.25).toFixed(2)}</b></div>
+              <div style={{ fontSize: 16, fontWeight: 900, color: '#5B2D8E' }}>Total: <b>${(parseFloat(cobroSeleccionado.monto) * 1.25).toFixed(2)}</b></div>
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
               <button onClick={() => { setModalMora(false); setModalPago(true) }} style={s.btnSecondary}>
@@ -478,18 +478,18 @@ const s = {
   th: { padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #f0f4ff' },
   tr: { borderBottom: '1px solid #f8faff' },
   td: { padding: '12px 16px', fontSize: 14, color: '#333' },
-  gradoBadge: { background: '#eff6ff', color: '#2563eb', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 },
+  gradoBadge: { background: '#eff6ff', color: '#5B2D8E', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 },
   badge: { padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 },
-  btnPrimary: { padding: '10px 20px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #1e3a5f, #2563a8)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer' },
+  btnPrimary: { padding: '10px 20px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #5B2D8E, #3d1f61)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer' },
   btnSecondary: { padding: '10px 20px', borderRadius: 10, border: '1.5px solid #dde3ee', background: '#fff', color: '#555', fontWeight: 600, fontSize: 14, cursor: 'pointer' },
   btnPagar: { padding: '6px 14px', borderRadius: 8, border: 'none', background: '#dcfce7', color: '#16a34a', fontWeight: 700, fontSize: 12, cursor: 'pointer' },
   btnAnular: { padding: '6px 14px', borderRadius: 8, border: 'none', background: '#fee2e2', color: '#dc2626', fontWeight: 700, fontSize: 12, cursor: 'pointer' },
-  btnReimprimir: { padding: '6px 14px', borderRadius: 8, border: 'none', background: '#eff6ff', color: '#2563eb', fontWeight: 700, fontSize: 12, cursor: 'pointer' },
+  btnReimprimir: { padding: '6px 14px', borderRadius: 8, border: 'none', background: '#eff6ff', color: '#5B2D8E', fontWeight: 700, fontSize: 12, cursor: 'pointer' },
   modalBg: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 16 },
   modalBox: { background: '#fff', borderRadius: 16, padding: '28px 24px', width: '100%', maxWidth: 540, boxShadow: '0 20px 60px rgba(0,0,0,0.3)', maxHeight: '90vh', overflowY: 'auto' },
-  modalTitle: { color: '#1e3a5f', fontSize: 17, fontWeight: 800, marginBottom: 20 },
+  modalTitle: { color: '#5B2D8E', fontSize: 17, fontWeight: 800, marginBottom: 20 },
   grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 },
   field: { marginBottom: 14 },
-  label: { display: 'block', fontSize: 11, fontWeight: 700, color: '#1e3a5f', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
+  label: { display: 'block', fontSize: 11, fontWeight: 700, color: '#5B2D8E', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
   input: { width: '100%', padding: '10px 14px', borderRadius: 10, border: '1.5px solid #dde3ee', fontSize: 14, background: '#f8faff', color: '#222', boxSizing: 'border-box' },
 }

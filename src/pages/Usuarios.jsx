@@ -94,7 +94,7 @@ async function eliminarUsuario(usuario) {
 
   const rolColor = {
     admin: { bg: '#fef3c7', color: '#92400e' },
-    recepcion: { bg: '#eff6ff', color: '#1d4ed8' },
+    recepcion: { bg: '#eff6ff', color: '#3d1f61' },
     docente: { bg: '#f0fdf4', color: '#166534' },
     alumno: { bg: '#fdf4ff', color: '#7e22ce' },
     padre: { bg: '#fff7ed', color: '#c2410c' },
@@ -104,7 +104,7 @@ async function eliminarUsuario(usuario) {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div>
-          <h1 style={{ color: '#1e3a5f', fontSize: 20, fontWeight: 800, marginBottom: 4 }}>👥 Usuarios</h1>
+          <h1 style={{ color: '#5B2D8E', fontSize: 20, fontWeight: 800, marginBottom: 4 }}>👥 Usuarios</h1>
           <p style={{ color: '#888', fontSize: 13 }}>{usuarios.length} usuarios registrados</p>
         </div>
         <button onClick={() => setModalAbierto(true)} style={s.btnPrimary}>+ Nuevo Usuario</button>
@@ -210,9 +210,9 @@ async function eliminarUsuario(usuario) {
             </p>
             <div style={{ background: '#f0f9ff', border: '1.5px solid #bae6fd', borderRadius: 12, padding: 20, marginBottom: 20 }}>
               <div style={{ fontSize: 11, color: '#0369a1', fontWeight: 700, marginBottom: 8, textTransform: 'uppercase' }}>Correo</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#1e3a5f', marginBottom: 16 }}>{passwordGenerado.email}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#5B2D8E', marginBottom: 16 }}>{passwordGenerado.email}</div>
               <div style={{ fontSize: 11, color: '#0369a1', fontWeight: 700, marginBottom: 8, textTransform: 'uppercase' }}>Contraseña temporal</div>
-              <div style={{ fontSize: 28, fontWeight: 900, color: '#1e3a5f', letterSpacing: 3, fontFamily: 'monospace' }}>
+              <div style={{ fontSize: 28, fontWeight: 900, color: '#5B2D8E', letterSpacing: 3, fontFamily: 'monospace' }}>
                 {passwordGenerado.password}
               </div>
             </div>
@@ -234,16 +234,16 @@ const s = {
   tr: { borderBottom: '1px solid #f8faff' },
   td: { padding: '12px 16px', fontSize: 14, color: '#333' },
   badge: { padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 },
-  btnPrimary: { padding: '10px 20px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #1e3a5f, #2563a8)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer' },
+  btnPrimary: { padding: '10px 20px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #5B2D8E, #3d1f61)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer' },
   btnSecondary: { padding: '10px 20px', borderRadius: 10, border: '1.5px solid #dde3ee', background: '#fff', color: '#555', fontWeight: 600, fontSize: 14, cursor: 'pointer' },
   btnActivar: { padding: '6px 14px', borderRadius: 8, border: 'none', background: '#dcfce7', color: '#16a34a', fontWeight: 700, fontSize: 12, cursor: 'pointer' },
   btnDesactivar: { padding: '6px 14px', borderRadius: 8, border: 'none', background: '#fee2e2', color: '#dc2626', fontWeight: 700, fontSize: 12, cursor: 'pointer' },
-  btnEliminar: { padding: '6px 14px', borderRadius: 8, border: 'none', background: '#1e3a5f', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer' },
+  btnEliminar: { padding: '6px 14px', borderRadius: 8, border: 'none', background: '#5B2D8E', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer' },
   modalBg: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 16 },
   modalBox: { background: '#fff', borderRadius: 16, padding: '28px 24px', width: '100%', maxWidth: 480, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' },
-  modalTitle: { color: '#1e3a5f', fontSize: 17, fontWeight: 800, marginBottom: 20 },
+  modalTitle: { color: '#5B2D8E', fontSize: 17, fontWeight: 800, marginBottom: 20 },
   grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 },
   field: { marginBottom: 14 },
-  label: { display: 'block', fontSize: 11, fontWeight: 700, color: '#1e3a5f', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
+  label: { display: 'block', fontSize: 11, fontWeight: 700, color: '#5B2D8E', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
   input: { width: '100%', padding: '10px 14px', borderRadius: 10, border: '1.5px solid #dde3ee', fontSize: 14, background: '#f8faff', color: '#222', boxSizing: 'border-box' },
 }

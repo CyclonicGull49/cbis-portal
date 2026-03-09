@@ -62,7 +62,7 @@ export default function Contabilidad() {
   return (
     <div>
       <div style={{ marginBottom: 20 }}>
-        <h1 style={{ color: '#1e3a5f', fontSize: 20, fontWeight: 800, marginBottom: 4 }}>📋 Contabilidad</h1>
+        <h1 style={{ color: '#5B2D8E', fontSize: 20, fontWeight: 800, marginBottom: 4 }}>📋 Contabilidad</h1>
         <p style={{ color: '#888', fontSize: 13 }}>Historial de pagos e ingresos</p>
       </div>
 
@@ -84,9 +84,9 @@ export default function Contabilidad() {
           <div style={{ fontSize: 22, fontWeight: 900, color: '#16a34a', marginBottom: 4 }}>${totalFiltrado.toFixed(2)}</div>
           <div style={{ fontSize: 12, color: '#888', fontWeight: 600 }}>Total ingresado</div>
         </div>
-        <div style={{ ...s.kpi, borderLeft: '4px solid #3b82f6' }}>
+        <div style={{ ...s.kpi, borderLeft: '4px solid #7B4DB8' }}>
           <div style={{ fontSize: 24, marginBottom: 6 }}>🧾</div>
-          <div style={{ fontSize: 22, fontWeight: 900, color: '#3b82f6', marginBottom: 4 }}>{pagosFiltrados.length}</div>
+          <div style={{ fontSize: 22, fontWeight: 900, color: '#7B4DB8', marginBottom: 4 }}>{pagosFiltrados.length}</div>
           <div style={{ fontSize: 12, color: '#888', fontWeight: 600 }}>Pagos registrados</div>
         </div>
       </div>
@@ -101,7 +101,7 @@ export default function Contabilidad() {
             Object.entries(porConcepto).map(([tipo, monto]) => (
               <div key={tipo} style={s.conceptoRow}>
                 <span style={{ fontSize: 13, color: '#555' }}>{tipoLabel[tipo] || tipo}</span>
-                <span style={{ fontWeight: 800, color: '#1e3a5f' }}>${monto.toFixed(2)}</span>
+                <span style={{ fontWeight: 800, color: '#5B2D8E' }}>${monto.toFixed(2)}</span>
               </div>
             ))
           )}
@@ -115,7 +115,7 @@ export default function Contabilidad() {
             Object.entries(porMes).map(([mes, monto]) => (
               <div key={mes} style={s.conceptoRow}>
                 <span style={{ fontSize: 13, color: '#555' }}>📅 {mes}</span>
-                <span style={{ fontWeight: 800, color: '#1e3a5f' }}>${monto.toFixed(2)}</span>
+                <span style={{ fontWeight: 800, color: '#5B2D8E' }}>${monto.toFixed(2)}</span>
               </div>
             ))
           )}
@@ -147,7 +147,7 @@ export default function Contabilidad() {
                   <td style={s.td}>{p.cobros?.conceptos_cobro?.nombre || '—'}</td>
                   <td style={s.td}>{p.cobros?.mes || '—'}</td>
                   <td style={s.td}>
-                    <span style={{ ...s.badge, background: '#eff6ff', color: '#2563eb' }}>
+                    <span style={{ ...s.badge, background: '#eff6ff', color: '#5B2D8E' }}>
                       {p.metodo}
                     </span>
                   </td>
@@ -164,7 +164,7 @@ export default function Contabilidad() {
 
 const s = {
   card: { background: '#fff', borderRadius: 14, boxShadow: '0 2px 12px rgba(0,0,0,0.07)', padding: 20, marginBottom: 0 },
-  cardTitle: { color: '#1e3a5f', fontSize: 14, fontWeight: 800, marginBottom: 16 },
+  cardTitle: { color: '#5B2D8E', fontSize: 14, fontWeight: 800, marginBottom: 16 },
   kpi: { background: '#fff', borderRadius: 14, padding: '16px 20px', boxShadow: '0 2px 12px rgba(0,0,0,0.07)' },
   filtro: { padding: '10px 14px', borderRadius: 10, border: '1.5px solid #dde3ee', fontSize: 14, background: '#fff', color: '#333', cursor: 'pointer' },
   conceptoRow: { display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0f4ff' },
@@ -172,6 +172,6 @@ const s = {
   th: { padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #f0f4ff' },
   tr: { borderBottom: '1px solid #f8faff' },
   td: { padding: '10px 14px', fontSize: 13, color: '#333' },
-  gradoBadge: { background: '#eff6ff', color: '#2563eb', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 },
+  gradoBadge: { background: '#eff6ff', color: '#5B2D8E', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 },
   badge: { padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 },
 }
