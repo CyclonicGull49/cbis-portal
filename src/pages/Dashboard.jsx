@@ -169,7 +169,7 @@ export default function Dashboard() {
   }
 
   return (
-    <Layout paginaActiva={pagina} setPagina={setPagina}>
+    <Layout pagina={pagina} setPagina={setPagina}>
       {renderPagina()}
     </Layout>
   )
