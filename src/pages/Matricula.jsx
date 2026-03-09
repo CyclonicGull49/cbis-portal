@@ -37,7 +37,7 @@ export default function Matricula() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    supabase.from('grados').select('id, nombre').order('id').then(({ data }) => setGrados(data || []))
+    supabase.from('grados').select('id, nombre').order('orden').then(({ data }) => setGrados(data || []))
   }, [])
 
   function set(campo, valor) {

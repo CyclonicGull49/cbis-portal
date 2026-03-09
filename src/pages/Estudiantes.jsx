@@ -23,29 +23,39 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion }) {
   )
 
   async function verificarYEliminar() {
-    setVerificandoEliminar(true)
-    const { data: cobrosEst } = await supabase.from('cobros').select('id').eq('estudiante_id', estudiante.id)
-    const cobrosIds = cobrosEst?.map(c => c.id) || []
+  setVerificandoEliminar(true)
+  const { data: cobrosEst } = await supabase.from('cobros').select('id').eq('estudiante_id', estudiante.id)
+  const cobrosIds = cobrosEst?.map(c => c.id) || []
 
-    if (cobrosIds.length > 0) {
-      const { data: pagos } = await supabase.from('pagos').select('id').in('cobro_id', cobrosIds)
-      if (pagos?.length > 0) {
-        setTienePagos(true)
-        setVerificandoEliminar(false)
-        return
-      }
+  if (cobrosIds.length > 0) {
+    const { data: pagos } = await supabase.from('pagos')
+      .select('id')
+      .in('cobro_id', cobrosIds)
+      .neq('anulado', true)
+    
+    if (pagos?.length > 0) {
+      setTienePagos(true)
+      setVerificandoEliminar(false)
+      return
     }
-    setTienePagos(false)
-    setModalEliminar(true)
-    setVerificandoEliminar(false)
   }
+  setTienePagos(false)
+  setModalEliminar(true)
+  setVerificandoEliminar(false)
+}
 
   async function ejecutarEliminar() {
+  const { data: cobrosEst } = await supabase.from('cobros').select('id').eq('estudiante_id', estudiante.id)
+  const cobrosIds = cobrosEst?.map(c => c.id) || []
+  
+  if (cobrosIds.length > 0) {
+    await supabase.from('pagos').delete().in('cobro_id', cobrosIds)
     await supabase.from('cobros').delete().eq('estudiante_id', estudiante.id)
-    await supabase.from('estudiantes').delete().eq('id', estudiante.id)
-    toast.success('Estudiante eliminado')
-    onDelete()
   }
+  await supabase.from('estudiantes').delete().eq('id', estudiante.id)
+  toast.success('Estudiante eliminado')
+  onDelete()
+}
 
   return (
     <div>
