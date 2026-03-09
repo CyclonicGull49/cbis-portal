@@ -230,7 +230,7 @@ export default function Usuarios() {
         </div>
       )}
 
-      {/* Modal confirmaci\u00f3n */}
+      {/* Modal confirmación */}
       {modalConfirm && (
         <div style={s.modalBg} onClick={() => setModalConfirm(null)}>
           <div style={{ ...s.modalBox, maxWidth: 400, textAlign: 'center' }} onClick={e => e.stopPropagation()}>
@@ -239,7 +239,7 @@ export default function Usuarios() {
             </h2>
             <p style={{ color: '#555', fontSize: 13, marginBottom: 20, lineHeight: 1.6 }}>
               {modalConfirm.tipo === 'eliminar'
-                ? <>Eliminar permanentemente a <b>{modalConfirm.usuario.nombre} {modalConfirm.usuario.apellido}</b>? Esta acci\u00f3n no se puede deshacer.</>
+                ? <>Eliminar permanentemente a <b>{modalConfirm.usuario.nombre} {modalConfirm.usuario.apellido}</b>? Esta Acción no se puede deshacer.</>
                 : <>{modalConfirm.usuario.activo ? 'Desactivar' : 'Activar'} a <b>{modalConfirm.usuario.nombre} {modalConfirm.usuario.apellido}</b>?</>
               }
             </p>

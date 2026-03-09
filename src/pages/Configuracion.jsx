@@ -207,7 +207,7 @@ export default function Configuracion() {
           <div style={{ ...s.modalBox, maxWidth: 400, textAlign: 'center' }} onClick={e => e.stopPropagation()}>
             <h2 style={{ ...s.modalTitle, color: '#dc2626' }}>Eliminar grado</h2>
             <p style={{ color: '#555', fontSize: 13, marginBottom: 20, lineHeight: 1.6 }}>
-              Eliminar el grado <b>"{modalEliminar.nombre}"</b>? Los estudiantes asignados a este grado perder\u00e1n su asignaci\u00f3n.
+              Eliminar el grado <b>"{modalEliminar.nombre}"</b>? Los estudiantes asignados a este grado perderán su asignación.
             </p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
               <button onClick={() => setModalEliminar(null)} style={s.btnSecondary}>Cancelar</button>

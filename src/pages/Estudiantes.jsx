@@ -67,17 +67,17 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion }) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 24px' }}>
           <Dato label="NIE" val={estudiante.nie} />
           <Dato label="Grado" val={estudiante.grados?.nombre} />
-          <Dato label="G\u00e9nero" val={estudiante.genero} />
+          <Dato label="Género" val={estudiante.genero} />
           <Dato label="Fecha de nacimiento" val={estudiante.fecha_nacimiento ? new Date(estudiante.fecha_nacimiento + 'T12:00:00').toLocaleDateString('es-SV') : null} />
           <Dato label="Nacionalidad" val={estudiante.nacionalidad} />
           <Dato label="Lugar de nacimiento" val={estudiante.lugar_nacimiento} />
           <Dato label="Partida de nacimiento" val={estudiante.partida_nacimiento} />
           <Dato label="Folio" val={estudiante.folio_partida} />
-          <Dato label="N\u00ba de libro" val={estudiante.libro_partida} />
+          <Dato label="Nº de libro" val={estudiante.libro_partida} />
           <Dato label="Tipo de ingreso" val={estudiante.tipo_ingreso} />
           <Dato label="Correo institucional" val={estudiante.correo_institucional} />
-          <Dato label="Instituci\u00f3n de procedencia" val={estudiante.institucion_procedencia} />
-          <Dato label="Direcci\u00f3n" val={estudiante.direccion} />
+          <Dato label="Institución de procedencia" val={estudiante.institucion_procedencia} />
+          <Dato label="Dirección" val={estudiante.direccion} />
           <Dato label="Municipio" val={estudiante.municipio} />
           <Dato label="Departamento" val={estudiante.departamento} />
           <Dato label="Zona" val={estudiante.zona} />
@@ -93,10 +93,10 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion }) {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 24px' }}>
               <Dato label="Nombre" val={estudiante.nombre_padre} />
               <Dato label="DUI" val={estudiante.dui_padre} />
-              <Dato label="Tel\u00e9fono" val={estudiante.telefono_padre} />
+              <Dato label="Teléfono" val={estudiante.telefono_padre} />
               <Dato label="Correo" val={estudiante.correo_padre} />
               <Dato label="Lugar de trabajo" val={estudiante.trabajo_padre} />
-              <Dato label="Direcci\u00f3n" val={estudiante.direccion_padre} />
+              <Dato label="Dirección" val={estudiante.direccion_padre} />
             </div>
           </div>
           <div style={{ marginBottom: 20 }}>
@@ -104,10 +104,10 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion }) {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 24px' }}>
               <Dato label="Nombre" val={estudiante.nombre_madre} />
               <Dato label="DUI" val={estudiante.dui_madre} />
-              <Dato label="Tel\u00e9fono" val={estudiante.telefono_madre} />
+              <Dato label="Teléfono" val={estudiante.telefono_madre} />
               <Dato label="Correo" val={estudiante.correo_madre} />
               <Dato label="Lugar de trabajo" val={estudiante.trabajo_madre} />
-              <Dato label="Direcci\u00f3n" val={estudiante.direccion_madre} />
+              <Dato label="Dirección" val={estudiante.direccion_madre} />
             </div>
           </div>
           <div style={{ marginBottom: 20 }}>
@@ -115,17 +115,17 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion }) {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 24px' }}>
               <Dato label="Nombre" val={estudiante.nombre_tutor} />
               <Dato label="DUI" val={estudiante.dui_tutor} />
-              <Dato label="Tel\u00e9fono" val={estudiante.telefono_tutor} />
+              <Dato label="Teléfono" val={estudiante.telefono_tutor} />
               <Dato label="Correo" val={estudiante.correo_tutor} />
               <Dato label="Lugar de trabajo" val={estudiante.trabajo_tutor} />
-              <Dato label="Direcci\u00f3n" val={estudiante.direccion_tutor} />
+              <Dato label="Dirección" val={estudiante.direccion_tutor} />
             </div>
           </div>
           <div style={{ background: '#fff4f0', borderRadius: 10, padding: '12px 16px' }}>
             <div style={{ fontSize: 13, fontWeight: 800, color: '#E8573A', marginBottom: 8 }}>Contacto de emergencia</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 24px' }}>
               <Dato label="Persona" val={estudiante.contacto_emergencia} />
-              <Dato label="Tel\u00e9fono" val={estudiante.telefono_emergencia} />
+              <Dato label="Teléfono" val={estudiante.telefono_emergencia} />
             </div>
           </div>
           <div style={{ marginTop: 12 }}>
@@ -187,7 +187,7 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion }) {
 
           {tienePagos && (
             <div style={{ background: '#fef9c3', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: '#854d0e', lineHeight: 1.6 }}>
-              <b>{estudiante.nombre}</b> tiene historial de pagos registrado. Para eliminar un estudiante con historial, primero c\u00e1mbialo a "Inactivo".
+              <b>{estudiante.nombre}</b> tiene historial de pagos registrado. Para eliminar un estudiante con historial, primero cámbialo a "Inactivo".
             </div>
           )}
         </div>
@@ -224,7 +224,7 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion }) {
             <h2 style={{ ...s.modalTitle, color: '#dc2626' }}>Eliminar estudiante</h2>
             <p style={{ color: '#555', fontSize: 13, marginBottom: 20, lineHeight: 1.6 }}>
               Eliminar permanentemente a <b>{estudiante.nombre} {estudiante.apellido}</b>?<br/>
-              Esta acci\u00f3n no se puede deshacer.
+              Esta Acción no se puede deshacer.
             </p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
               <button onClick={() => setModalEliminar(false)} style={s.btnSecondary}>Cancelar</button>
@@ -279,7 +279,7 @@ export default function Estudiantes() {
 
   async function guardarEstudiante() {
     if (!form.nombre || !form.apellido || !form.grado_id || !form.genero) {
-      setError('Nombres, apellidos, g\u00e9nero y grado son obligatorios')
+      setError('Nombres, apellidos, género y grado son obligatorios')
       return
     }
     setGuardando(true)
@@ -323,7 +323,7 @@ export default function Estudiantes() {
 
   function descargarPlantilla() {
     const headers = ['nombres', 'apellidos', 'fecha_nacimiento', 'genero', 'nie', 'correo', 'direccion', 'grado']
-    const ejemplo = ['Camilo Ary\u00e9h', 'Velis Figueroa', '2015-03-10', 'masculino', '12345678', 'camilo@cbis.edu.sv', 'Sonsonate, El Salvador', 'Secci\u00f3n 4']
+    const ejemplo = ['Camilo Aryéh', 'Velis Figueroa', '2015-03-10', 'masculino', '12345678', 'camilo@cbis.edu.sv', 'Sonsonate, El Salvador', 'Sección 4']
     const csv = [headers.join(','), ejemplo.join(',')].join('\n')
     const BOM = '\uFEFF'
     const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' })
@@ -356,7 +356,7 @@ export default function Estudiantes() {
     const filas = lineas.slice(1)
 
     if (filas.length === 0) {
-      toast.error('El archivo est\u00e1 vac\u00edo')
+      toast.error('El archivo está vacío')
       ev.target.value = ''
       return
     }
@@ -369,7 +369,7 @@ export default function Estudiantes() {
       return obj
     })
 
-    // Validar NIEs en el CSV (duplicados entre s\u00ed)
+    // Validar NIEs en el CSV (duplicados entre sí)
     const niesCSV = datos.map(e => e.nie)
     const duplicadosInternos = niesCSV.filter((nie, i) => niesCSV.indexOf(nie) !== i)
     if (duplicadosInternos.length > 0) {
@@ -453,7 +453,7 @@ export default function Estudiantes() {
               </label>
             </>
           )}
-          
+
         </div>
       </div>
 
@@ -471,13 +471,13 @@ export default function Estudiantes() {
           <p style={{ textAlign: 'center', color: '#aaa', padding: 40 }}>Cargando...</p>
         ) : filtrados.length === 0 ? (
           <p style={{ textAlign: 'center', color: '#aaa', padding: 40 }}>
-            {busqueda ? 'No se encontraron resultados' : 'No hay estudiantes registrados a\u00fan'}
+            {busqueda ? 'No se encontraron resultados' : 'No hay estudiantes registrados aún'}
           </p>
         ) : (
           <table style={s.table}>
             <thead>
               <tr>
-                {['Nombre', 'Apellido', 'Grado', 'NIE', 'G\u00e9nero', 'Estado'].map(h => (
+                {['Nombre', 'Apellido', 'Grado', 'NIE', 'Género', 'Estado'].map(h => (
                   <th key={h} style={s.th}>{h}</th>
                 ))}
               </tr>
@@ -545,7 +545,7 @@ export default function Estudiantes() {
               </div>
               {form.tipo_ingreso === 'nuevo' && (
                 <p style={{ fontSize: 11, color: '#aaa', marginTop: 6 }}>
-                  * El NIE puede dejarse vac\u00edo si el estudiante a\u00fan no lo tiene asignado
+                  * El NIE puede dejarse vacío si el estudiante aún no lo tiene asignado
                 </p>
               )}
             </div>
@@ -566,7 +566,7 @@ export default function Estudiantes() {
               </div>
             </div>
 
-            {/* Fecha y g\u00e9nero */}
+            {/* Fecha y género */}
             <div style={s.grid2}>
               <div style={s.field}>
                 <label style={s.label}>Fecha de nacimiento</label>
@@ -574,7 +574,7 @@ export default function Estudiantes() {
                   onChange={e => setForm({ ...form, fecha_nacimiento: e.target.value })}/>
               </div>
               <div style={s.field}>
-                <label style={s.label}>G\u00e9nero *</label>
+                <label style={s.label}>Género *</label>
                 <select style={s.input} value={form.genero}
                   onChange={e => setForm({ ...form, genero: e.target.value })}>
                   <option value="">— Seleccione —</option>
@@ -600,12 +600,12 @@ export default function Estudiantes() {
                 placeholder="estudiante@cbis.edu.sv"/>
             </div>
 
-            {/* Direcci\u00f3n */}
+            {/* Dirección */}
             <div style={s.field}>
-              <label style={s.label}>Direcci\u00f3n</label>
+              <label style={s.label}>Dirección</label>
               <input style={s.input} value={form.direccion}
                 onChange={e => setForm({ ...form, direccion: e.target.value })}
-                placeholder="Direcci\u00f3n de residencia"/>
+                placeholder="Dirección de residencia"/>
             </div>
 
             {/* Grado */}
@@ -666,7 +666,7 @@ export default function Estudiantes() {
               <button onClick={() => setEstudianteDetalle(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#aaa' }}>&#10005;</button>
             </div>
 
-            {/* Pesta\u00f1as */}
+            {/* Pestañas */}
             <FichaTabs
               estudiante={estudianteDetalle}
               esRecepcion={esRecepcion}

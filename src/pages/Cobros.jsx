@@ -449,7 +449,7 @@ export default function Cobros() {
               <div style={s.card}>
                 <table style={s.table}>
                   <thead>
-                    <tr>{['Concepto','Mes','Monto','Estado','Acci\u00f3n'].map(h =>
+                    <tr>{['Concepto','Mes','Monto','Estado','Acción'].map(h =>
                       <th key={h} style={s.th}>{h}</th>)}
                     </tr>
                   </thead>
@@ -570,7 +570,7 @@ export default function Cobros() {
           ) : (
             <table style={s.table}>
               <thead>
-                <tr>{['Estudiante','Grado','Concepto','Mes','Monto','Vencimiento','Estado','Acci\u00f3n'].map(h =>
+                <tr>{['Estudiante','Grado','Concepto','Mes','Monto','Vencimiento','Estado','Acción'].map(h =>
                   <th key={h} style={s.th}>{h}</th>)}
                 </tr>
               </thead>
@@ -666,12 +666,12 @@ export default function Cobros() {
               <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 10, padding: '10px 14px', marginBottom: 14, fontSize: 13, color: '#0369a1' }}>
                 Fecha de vencimiento: <b>10 de {form.mes} {form.year_escolar}</b>
                 {hayMora(form.mes, form.year_escolar) && (
-                  <span style={{ color: '#dc2626', fontWeight: 700, marginLeft: 8 }}>Ya venci\u00f3 — aplica mora</span>
+                  <span style={{ color: '#dc2626', fontWeight: 700, marginLeft: 8 }}>Ya venció — aplica mora</span>
                 )}
               </div>
             )}
             <div style={s.field}>
-              <label style={s.label}>A\u00f1o escolar</label>
+              <label style={s.label}>Año escolar</label>
               <input style={s.input} type="number" value={form.year_escolar}
                 onChange={e => setForm({ ...form, year_escolar: parseInt(e.target.value) })}/>
             </div>
@@ -692,7 +692,7 @@ export default function Cobros() {
           <div style={{ ...s.modalBox, maxWidth: 400, textAlign: 'center' }} onClick={e => e.stopPropagation()}>
             <h2 style={{ ...s.modalTitle, color: '#dc2626' }}>Este cobro tiene mora</h2>
             <p style={{ color: '#555', fontSize: 13, marginBottom: 8, lineHeight: 1.7 }}>
-              El plazo de pago venci\u00f3 el <b>10 de {cobroSeleccionado.mes}</b>.<br/>
+              El plazo de pago venció el <b>10 de {cobroSeleccionado.mes}</b>.<br/>
               Aplica un recargo del <b>25%</b> por atraso.
             </p>
             <div style={{ background: '#fef9c3', borderRadius: 10, padding: 14, marginBottom: 20 }}>
@@ -760,12 +760,12 @@ export default function Cobros() {
               </p>
             </div>
             <div style={s.field}>
-              <label style={s.label}>Motivo de anulaci\u00f3n *</label>
+              <label style={s.label}>Motivo de anulación *</label>
               <textarea
                 style={{ ...s.input, minHeight: 80, resize: 'vertical' }}
                 value={motivoAnulacion}
                 onChange={e => setMotivoAnulacion(e.target.value)}
-                placeholder="Ej: Pago duplicado, Error de monto, Devoluci\u00f3n solicitada..."
+                placeholder="Ej: Pago duplicado, Error de monto, Devolución solicitada..."
               />
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
@@ -773,7 +773,7 @@ export default function Cobros() {
                 Cancelar
               </button>
               <button onClick={confirmarAnulacion} style={{ ...s.btnPrimary, background: '#dc2626' }} disabled={guardando || !motivoAnulacion.trim()}>
-                {guardando ? 'Anulando...' : 'Confirmar anulaci\u00f3n'}
+                {guardando ? 'Anulando...' : 'Confirmar anulación'}
               </button>
             </div>
           </div>
