@@ -7,6 +7,7 @@ import Cobros from './Cobros'
 import Contabilidad from './Contabilidad'
 import Usuarios from './Usuarios'
 import Configuracion from './Configuracion'
+import Matricula from './Matricula'
 
 function DashboardHome() {
   const { perfil } = useAuth()
@@ -155,6 +156,7 @@ export default function Dashboard() {
       case 'contabilidad': return <Contabilidad />
       case 'usuarios': return <Usuarios />
       case 'configuracion': return <Configuracion />
+      case 'matricula': return <Matricula />
       default: return <DashboardHome />
     }
   }

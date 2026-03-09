@@ -3,6 +3,7 @@ import { supabase } from '../supabase'
 
 export default function Estudiantes() {
   const [estudianteDetalle, setEstudianteDetalle] = useState(null)
+  const [tabActiva, setTabActiva] = useState('general')
   const [estudiantes, setEstudiantes] = useState([])
   const [grados, setGrados] = useState([])
   const [loading, setLoading] = useState(true)
@@ -15,6 +16,170 @@ export default function Estudiantes() {
   })
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
+
+function FichaTabs({ estudiante, onUpdate, onDelete }) {
+  const [tab, setTab] = useState(0)
+
+  const tabs = ['📋 General', '👨‍👩‍👧 Familia', '🏥 Salud', '⚙️ Acciones']
+
+  const Dato = ({ label, val }) => (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>{label}</div>
+      <div style={{ fontSize: 14, color: val ? '#222' : '#ccc', fontWeight: val ? 600 : 400 }}>{val || '—'}</div>
+    </div>
+  )
+
+  return (
+    <div>
+      {/* Tab nav */}
+      <div style={{ display: 'flex', borderBottom: '2px solid #f3eeff', marginBottom: 20 }}>
+        {tabs.map((t, i) => (
+          <button key={i} onClick={() => setTab(i)} style={{
+            padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer',
+            fontSize: 13, fontWeight: tab === i ? 800 : 500,
+            color: tab === i ? '#5B2D8E' : '#aaa',
+            borderBottom: tab === i ? '2px solid #5B2D8E' : '2px solid transparent',
+            marginBottom: -2
+          }}>{t}</button>
+        ))}
+      </div>
+
+      {/* Tab General */}
+      {tab === 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 24px' }}>
+          <Dato label="NIE" val={estudiante.nie} />
+          <Dato label="Grado" val={estudiante.grados?.nombre} />
+          <Dato label="Género" val={estudiante.genero} />
+          <Dato label="Fecha de nacimiento" val={estudiante.fecha_nacimiento ? new Date(estudiante.fecha_nacimiento + 'T12:00:00').toLocaleDateString('es-SV') : null} />
+          <Dato label="Nacionalidad" val={estudiante.nacionalidad} />
+          <Dato label="Lugar de nacimiento" val={estudiante.lugar_nacimiento} />
+          <Dato label="Partida de nacimiento" val={estudiante.partida_nacimiento} />
+          <Dato label="Folio" val={estudiante.folio_partida} />
+          <Dato label="Nº de libro" val={estudiante.libro_partida} />
+          <Dato label="Tipo de ingreso" val={estudiante.tipo_ingreso} />
+          <Dato label="Correo institucional" val={estudiante.correo_institucional} />
+          <Dato label="Institución de procedencia" val={estudiante.institucion_procedencia} />
+          <Dato label="Dirección" val={estudiante.direccion} />
+          <Dato label="Municipio" val={estudiante.municipio} />
+          <Dato label="Departamento" val={estudiante.departamento} />
+          <Dato label="Zona" val={estudiante.zona} />
+          <Dato label="Registrado" val={estudiante.creado_en ? new Date(estudiante.creado_en).toLocaleDateString('es-SV') : null} />
+        </div>
+      )}
+
+      {/* Tab Familia */}
+      {tab === 1 && (
+        <div>
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#3d1f61', marginBottom: 12, paddingBottom: 6, borderBottom: '1px solid #f3eeff' }}>👨 Padre</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 24px' }}>
+              <Dato label="Nombre" val={estudiante.nombre_padre} />
+              <Dato label="DUI" val={estudiante.dui_padre} />
+              <Dato label="Teléfono" val={estudiante.telefono_padre} />
+              <Dato label="Correo" val={estudiante.correo_padre} />
+              <Dato label="Lugar de trabajo" val={estudiante.trabajo_padre} />
+              <Dato label="Dirección" val={estudiante.direccion_padre} />
+            </div>
+          </div>
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#3d1f61', marginBottom: 12, paddingBottom: 6, borderBottom: '1px solid #f3eeff' }}>👩 Madre</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 24px' }}>
+              <Dato label="Nombre" val={estudiante.nombre_madre} />
+              <Dato label="DUI" val={estudiante.dui_madre} />
+              <Dato label="Teléfono" val={estudiante.telefono_madre} />
+              <Dato label="Correo" val={estudiante.correo_madre} />
+              <Dato label="Lugar de trabajo" val={estudiante.trabajo_madre} />
+              <Dato label="Dirección" val={estudiante.direccion_madre} />
+            </div>
+          </div>
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#3d1f61', marginBottom: 12, paddingBottom: 6, borderBottom: '1px solid #f3eeff' }}>👤 Tutor/Encargado</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 24px' }}>
+              <Dato label="Nombre" val={estudiante.nombre_tutor} />
+              <Dato label="DUI" val={estudiante.dui_tutor} />
+              <Dato label="Teléfono" val={estudiante.telefono_tutor} />
+              <Dato label="Correo" val={estudiante.correo_tutor} />
+              <Dato label="Lugar de trabajo" val={estudiante.trabajo_tutor} />
+              <Dato label="Dirección" val={estudiante.direccion_tutor} />
+            </div>
+          </div>
+          <div style={{ background: '#fff4f0', borderRadius: 10, padding: '12px 16px' }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#E8573A', marginBottom: 8 }}>🚨 Contacto de emergencia</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 24px' }}>
+              <Dato label="Persona" val={estudiante.contacto_emergencia} />
+              <Dato label="Teléfono" val={estudiante.telefono_emergencia} />
+            </div>
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <Dato label="Convivencia familiar" val={estudiante.convivencia} />
+            <Dato label="Iglesia" val={estudiante.iglesia} />
+          </div>
+        </div>
+      )}
+
+      {/* Tab Salud */}
+      {tab === 2 && (
+        <div>
+          <div style={{ background: '#faf8ff', borderRadius: 12, padding: '16px 20px', marginBottom: 16 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>🤧 Enfermedades o alergias</div>
+            <div style={{ fontSize: 14, color: estudiante.enfermedades_alergias ? '#222' : '#ccc' }}>
+              {estudiante.enfermedades_alergias || 'Ninguna registrada'}
+            </div>
+          </div>
+          <div style={{ background: '#faf8ff', borderRadius: 12, padding: '16px 20px' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>💊 Medicamento prescrito permanente</div>
+            <div style={{ fontSize: 14, color: estudiante.medicamento_permanente ? '#222' : '#ccc' }}>
+              {estudiante.medicamento_permanente || 'Ninguno registrado'}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab Acciones */}
+      {tab === 3 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <button
+            onClick={async () => {
+              const nuevo = prompt('Nuevo correo institucional:', estudiante.correo_institucional || '')
+              if (nuevo === null) return
+              await supabase.from('estudiantes').update({ correo_institucional: nuevo }).eq('id', estudiante.id)
+              onUpdate({ ...estudiante, correo_institucional: nuevo })
+            }}
+            style={{ padding: '12px 18px', borderRadius: 10, border: '1.5px solid #e0d6f0', background: '#faf8ff', color: '#5B2D8E', fontWeight: 700, fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+            ✏️ Editar correo institucional
+          </button>
+          <button
+            onClick={async () => {
+              const nuevoEstado = estudiante.estado === 'activo' ? 'inactivo' : 'activo'
+              await supabase.from('estudiantes').update({ estado: nuevoEstado }).eq('id', estudiante.id)
+              onUpdate({ ...estudiante, estado: nuevoEstado })
+            }}
+            style={{
+              padding: '12px 18px', borderRadius: 10, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13, textAlign: 'left',
+              background: estudiante.estado === 'activo' ? '#fee2e2' : '#dcfce7',
+              color: estudiante.estado === 'activo' ? '#dc2626' : '#16a34a'
+            }}>
+            {estudiante.estado === 'activo' ? '⛔ Desactivar estudiante' : '✅ Activar estudiante'}
+          </button>
+          <button
+            onClick={async () => {
+              if (!confirm(`¿Eliminar permanentemente a ${estudiante.nombre} ${estudiante.apellido}? Esta acción no se puede deshacer.`)) return
+              const { data: cobros } = await supabase.from('cobros').select('id').eq('estudiante_id', estudiante.id)
+              if (cobros?.length > 0) {
+                await supabase.from('pagos').delete().in('cobro_id', cobros.map(c => c.id))
+                await supabase.from('cobros').delete().eq('estudiante_id', estudiante.id)
+              }
+              await supabase.from('estudiantes').delete().eq('id', estudiante.id)
+              onDelete()
+            }}
+            style={{ padding: '12px 18px', borderRadius: 10, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13, background: '#dc2626', color: '#fff', textAlign: 'left' }}>
+            🗑️ Eliminar estudiante permanentemente
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
 
   useEffect(() => { cargarDatos() }, [])
 async function cambiarEstado(estudiante) {
@@ -380,10 +545,10 @@ if (!gradoMap[gradoNombre]) gradosInvalidos.push(est.grado)
 
 {estudianteDetalle && (
   <div style={s.modalBg} onClick={() => setEstudianteDetalle(null)}>
-    <div style={{ ...s.modalBox, maxWidth: 560 }} onClick={e => e.stopPropagation()}>
-      
+    <div style={{ ...s.modalBox, maxWidth: 620, maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{
             width: 56, height: 56, borderRadius: '50%',
@@ -394,93 +559,34 @@ if (!gradoMap[gradoNombre]) gradosInvalidos.push(est.grado)
             {estudianteDetalle.nombre?.charAt(0)}{estudianteDetalle.apellido?.charAt(0)}
           </div>
           <div>
-            <h2 style={{ color: '#3d1f61', fontSize: 18, fontWeight: 900, marginBottom: 2 }}>
+            <h2 style={{ color: '#3d1f61', fontSize: 18, fontWeight: 900, marginBottom: 4 }}>
               {estudianteDetalle.nombre} {estudianteDetalle.apellido}
             </h2>
-            <span style={{
-              padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700,
-              background: estudianteDetalle.estado === 'activo' ? '#dcfce7' : '#fee2e2',
-              color: estudianteDetalle.estado === 'activo' ? '#16a34a' : '#dc2626'
-            }}>
-              {estudianteDetalle.estado === 'activo' ? '✅ Activo' : '⛔ Inactivo'}
-            </span>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <span style={{
+                padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700,
+                background: estudianteDetalle.estado === 'activo' ? '#dcfce7' : '#fee2e2',
+                color: estudianteDetalle.estado === 'activo' ? '#16a34a' : '#dc2626'
+              }}>
+                {estudianteDetalle.estado === 'activo' ? '✅ Activo' : '⛔ Inactivo'}
+              </span>
+              <span style={{ fontSize: 12, color: '#888' }}>{estudianteDetalle.grados?.nombre}</span>
+            </div>
           </div>
         </div>
         <button onClick={() => setEstudianteDetalle(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#aaa' }}>✕</button>
       </div>
 
-      {/* Datos */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 24 }}>
-        {[
-          { label: 'NIE', val: estudianteDetalle.nie || 'Sin NIE', icon: '🪪' },
-          { label: 'Grado', val: estudianteDetalle.grados?.nombre || '—', icon: '🎓' },
-          { label: 'Género', val: estudianteDetalle.genero || '—', icon: '👤' },
-          { label: 'Fecha de nacimiento', val: estudianteDetalle.fecha_nacimiento ? new Date(estudianteDetalle.fecha_nacimiento).toLocaleDateString('es-SV') : '—', icon: '🎂' },
-{ label: 'Correo institucional', val: estudianteDetalle.correo_institucional || '—', icon: '📧' },
-          { label: 'Tipo matrícula', val: estudianteDetalle.tipo_ingreso || '—', icon: '📋' },
-          { label: 'Dirección', val: estudianteDetalle.direccion || '—', icon: '📍' },
-          { label: 'Registrado', val: estudianteDetalle.created_at ? new Date(estudianteDetalle.created_at).toLocaleDateString('es-SV') : '—', icon: '📅' },
-        ].map((item, i) => (
-          <div key={i} style={{ background: '#faf8ff', borderRadius: 10, padding: '10px 14px' }}>
-            <div style={{ fontSize: 11, color: '#5B2D8E', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
-              {item.icon} {item.label}
-            </div>
-            <div style={{ fontSize: 14, color: '#333', fontWeight: 600 }}>{item.val}</div>
-          </div>
-        ))}
-      </div>
+      {/* Pestañas */}
+      {(() => {
+        const [tabActiva, setTabActiva] = window._tabState || [0, () => {}]
+        return null
+      })()}
+      <FichaTabs estudiante={estudianteDetalle} onUpdate={(updated) => {
+        setEstudianteDetalle(updated)
+        cargarDatos()
+      }} onDelete={() => { setEstudianteDetalle(null); cargarDatos() }} />
 
-      {/* Acciones */}
-      <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', borderTop: '1px solid #f3eeff', paddingTop: 16 }}>
-       <button
-  onClick={async () => {
-    const nuevo = prompt('Nuevo correo institucional:', estudianteDetalle.correo_institucional || '')
-    if (nuevo === null) return
-    await supabase.from('estudiantes').update({ correo_institucional: nuevo }).eq('id', estudianteDetalle.id)
-    setEstudianteDetalle({ ...estudianteDetalle, correo_institucional: nuevo })
-    cargarDatos()
-  }}
-  style={{ padding: '9px 18px', borderRadius: 10, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13, background: '#f3eeff', color: '#5B2D8E' }}>
-  ✏️ Editar correo
-</button>
-        <button
-          onClick={async () => {
-            const nuevoEstado = estudianteDetalle.estado === 'activo' ? 'inactivo' : 'activo'
-            await supabase.from('estudiantes').update({ estado: nuevoEstado }).eq('id', estudianteDetalle.id)
-            setEstudianteDetalle({ ...estudianteDetalle, estado: nuevoEstado })
-            cargarDatos()
-          }}
-          style={{
-            padding: '9px 18px', borderRadius: 10, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13,
-            background: estudianteDetalle.estado === 'activo' ? '#fee2e2' : '#dcfce7',
-            color: estudianteDetalle.estado === 'activo' ? '#dc2626' : '#16a34a'
-          }}>
-          {estudianteDetalle.estado === 'activo' ? '⛔ Desactivar' : '✅ Activar'}
-        </button>
-        <button
-          onClick={async () => {
-  if (!confirm(`¿Eliminar permanentemente a ${estudianteDetalle.nombre} ${estudianteDetalle.apellido}? Esta acción no se puede deshacer.`)) return
-  
-  // Primero eliminar registros relacionados
-  const { data: cobros } = await supabase.from('cobros').select('id').eq('estudiante_id', estudianteDetalle.id)
-  if (cobros?.length > 0) {
-    const cobrosIds = cobros.map(c => c.id)
-    await supabase.from('pagos').delete().in('cobro_id', cobrosIds)
-    await supabase.from('cobros').delete().eq('estudiante_id', estudianteDetalle.id)
-  }
-  
-  const { error } = await supabase.from('estudiantes').delete().eq('id', estudianteDetalle.id)
-  if (error) {
-    alert(`❌ Error al eliminar: ${error.message}`)
-  } else {
-    setEstudianteDetalle(null)
-    cargarDatos()
-  }
-}}
-          style={{ padding: '9px 18px', borderRadius: 10, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13, background: '#dc2626', color: '#fff' }}>
-          🗑️ Eliminar estudiante
-        </button>
-      </div>
     </div>
   </div>
 )}
