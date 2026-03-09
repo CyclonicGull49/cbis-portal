@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
+import { useAuth } from '../context/AuthContext'
 
 export default function Estudiantes() {
+  const { perfil } = useAuth()
+  const esRecepcion = perfil?.rol === 'recepcion'
   const [estudianteDetalle, setEstudianteDetalle] = useState(null)
   const [tabActiva, setTabActiva] = useState('general')
   const [estudiantes, setEstudiantes] = useState([])
@@ -17,10 +20,11 @@ export default function Estudiantes() {
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
 
-function FichaTabs({ estudiante, onUpdate, onDelete }) {
+function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion }) {
   const [tab, setTab] = useState(0)
-
-  const tabs = ['📋 General', '👨‍👩‍👧 Familia', '🏥 Salud', '⚙️ Acciones']
+  const tabs = esRecepcion 
+    ? ['📋 General', '👨‍👩‍👧 Familia', '🏥 Salud']
+    : ['📋 General', '👨‍👩‍👧 Familia', '🏥 Salud', '⚙️ Acciones']
 
   const Dato = ({ label, val }) => (
     <div style={{ marginBottom: 12 }}>
@@ -287,6 +291,15 @@ async function importarCSV(e) {
   if (filas.length === 0) {
     alert('❌ El archivo está vacío.')
     return
+    {!esRecepcion && (
+  <>
+    <button onClick={descargarPlantilla} style={s.btnSecondary}>📥 Descargar plantilla</button>
+    <label style={{ ...s.btnSecondary, cursor: 'pointer' }}>
+      📂 Importar CSV
+      <input type="file" accept=".csv" style={{ display: 'none' }} onChange={importarCSV} />
+    </label>
+  </>
+)}
   }
 
   // Parsear filas
@@ -594,7 +607,12 @@ if (!gradoMap[gradoNombre]) gradosInvalidos.push(est.grado)
         setEstudianteDetalle(updated)
         cargarDatos()
       }} onDelete={() => { setEstudianteDetalle(null); cargarDatos() }} />
-
+<FichaTabs 
+  estudiante={estudianteDetalle} 
+  esRecepcion={esRecepcion}
+  onUpdate={(updated) => { setEstudianteDetalle(updated); cargarDatos() }} 
+  onDelete={() => { setEstudianteDetalle(null); cargarDatos() }} 
+/>
     </div>
   </div>
 )}

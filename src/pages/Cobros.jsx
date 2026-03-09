@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 
+
 // ── COMPONENTE DE IMPRESIÓN TÉRMICA ──
 function TicketTérmico({ cobro, pago, onClose }) {
   const printRef = useRef()
@@ -91,6 +92,7 @@ function TicketTérmico({ cobro, pago, onClose }) {
 
 export default function Cobros() {
   const { perfil } = useAuth()
+  const esRecepcion = perfil?.rol === 'recepcion' 
   const [estudiantes, setEstudiantes] = useState([])
   const [conceptos, setConceptos] = useState([])
   const [cobros, setCobros] = useState([])
@@ -263,7 +265,9 @@ const totalHoy = cobros.filter(c => c.estado === 'pagado').reduce((a, c) => a + 
           <h1 style={{ color: '#5B2D8E', fontSize: 20, fontWeight: 800, marginBottom: 4 }}>💰 Cobros</h1>
           <p style={{ color: '#888', fontSize: 13 }}>{cobros.length} cobros registrados</p>
         </div>
-        <button onClick={() => setModalCobro(true)} style={s.btnPrimary}>+ Nuevo Cobro</button>
+        <button onClick={() => setModalAbierto(true)} style={s.btnPrimary}>
+  {esRecepcion ? '+ Registrar cobro' : '+ Nuevo Cobro'}
+</button>
       </div>
 
       {/* KPIs */}
@@ -314,23 +318,22 @@ const totalHoy = cobros.filter(c => c.estado === 'pagado').reduce((a, c) => a + 
                   </td>
                   <td style={s.td}>
   <div style={{ display: 'flex', gap: 6 }}>
-    {c.estado === 'pendiente' && (
-      <button onClick={() => iniciarPago(c)} style={s.btnPagar}>
-        💵 Registrar pago
-      </button>
-    )}
-    {c.estado === 'pendiente' && (
-      <button onClick={() => anularCobro(c)} style={s.btnAnular}>
-
-        🚫 Anular
-      </button>
-    )}
-    {c.estado === 'pagado' && (
+ {c.estado === 'pendiente' && (
+  <button onClick={() => iniciarPago(c)} style={s.btnPagar}>
+    💵 Registrar pago
+  </button>
+)}
+{c.estado === 'pendiente' && !esRecepcion && (
+  <button onClick={() => anularCobro(c)} style={s.btnAnular}>
+    Anular
+  </button>
+)}
+{c.estado === 'pagado' && (
   <button onClick={() => { setCobroSeleccionado(c); setTicketVisible(true) }} style={s.btnReimprimir}>
     🖨️ Reimprimir
   </button>
 )}
-{c.estado === 'pagado' && (
+{c.estado === 'pagado' && !esRecepcion && (
   <button onClick={() => anularCobro(c)} style={s.btnAnular}>
     🚫 Anular
   </button>

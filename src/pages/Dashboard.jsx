@@ -8,6 +8,7 @@ import Contabilidad from './Contabilidad'
 import Usuarios from './Usuarios'
 import Configuracion from './Configuracion'
 import Matricula from './Matricula'
+import Reportes from './Reportes'
 
 function DashboardHome() {
   const { perfil } = useAuth()
@@ -66,7 +67,6 @@ function DashboardHome() {
     { icon: '📅', label: 'Cobrado este mes', val: `$${stats.totalMes.toFixed(2)}`, sub: 'ingresos del mes', color: '#D4A017', bg: '#fffbeb' },
     { icon: '⏳', label: 'Pendiente de cobro', val: `$${stats.totalPendiente.toFixed(2)}`, sub: `${stats.cobrosPendientes} cobros`, color: '#E8573A', bg: '#fff4f0' },
     { icon: '🚨', label: 'Cobros vencidos', val: stats.cobrosVencidos, sub: 'requieren atención', color: '#dc2626', bg: '#fff0f0' },
-    { icon: '↩️', label: 'Anulado este mes', val: `$${stats.anuladosMes?.toFixed(2) || '0.00'}`, sub: 'no incluido en total', color: '#888', bg: '#f5f5f5' },
     { icon: '↩️', label: 'Anulado este mes', val: `$${stats.anuladosMes?.toFixed(2) || '0.00'}`, sub: 'no incluido en total', color: '#888', bg: '#f5f5f5' },
   ]
 
@@ -155,6 +155,7 @@ export default function Dashboard() {
 
   function renderPagina() {
     switch (pagina) {
+      case 'reportes': return <Reportes />
       case 'dashboard': return <DashboardHome />
       case 'estudiantes': return <Estudiantes />
       case 'cobros': return <Cobros />
@@ -163,6 +164,7 @@ export default function Dashboard() {
       case 'configuracion': return <Configuracion />
       case 'matricula': return <Matricula />
       default: return <DashboardHome />
+      
     }
   }
 

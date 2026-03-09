@@ -32,14 +32,16 @@ export default function Layout({ pagina, setPagina, children }) {
     { id: 'usuarios', label: 'Usuarios', icon: '👥' },
     { id: 'configuracion', label: 'Configuración', icon: '⚙️' },
     { id: 'matricula', label: 'Matrícula', icon: '📋' },
+    { id: 'reportes', label: 'Reportes', icon: '📄' },
   ]
 
   const menuRecepcion = [
-    { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-    { id: 'estudiantes', label: 'Estudiantes', icon: '🎓' },
-    { id: 'cobros', label: 'Cobros', icon: '💰' },
-    { id: 'matricula', label: 'Matrícula', icon: '📋' },
-  ]
+  { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+  { id: 'cobros', label: 'Cobros', icon: '💰' },
+  { id: 'estudiantes', label: 'Estudiantes', icon: '🎓' },
+  { id: 'matricula', label: 'Matrícula', icon: '📋' },
+  { id: 'reportes', label: 'Reportes', icon: '📄' },
+]
 
   const menu = perfil?.rol === 'admin' ? menuAdmin : menuRecepcion
 
