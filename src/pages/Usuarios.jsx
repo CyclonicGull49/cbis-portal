@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
+import toast from 'react-hot-toast'
 
 export default function Usuarios() {
   const [usuarios, setUsuarios] = useState([])
   const [loading, setLoading] = useState(true)
   const [modalAbierto, setModalAbierto] = useState(false)
+  const [modalConfirm, setModalConfirm] = useState(null) // { tipo, usuario }
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
   const [passwordGenerado, setPasswordGenerado] = useState(null)
@@ -73,19 +75,23 @@ export default function Usuarios() {
   }
 
   async function toggleActivo(usuario) {
-  const nuevoEstado = !usuario.activo
-  if (!window.confirm(`¿${nuevoEstado ? 'Activar' : 'Desactivar'} a ${usuario.nombre} ${usuario.apellido}?`)) return
-  const { error } = await supabase.from('perfiles')
-    .update({ activo: nuevoEstado })
-    .eq('id', usuario.id)
-  if (!error) await cargarUsuarios()
-}
+    const nuevoEstado = !usuario.activo
+    const { error } = await supabase.from('perfiles')
+      .update({ activo: nuevoEstado })
+      .eq('id', usuario.id)
+    if (!error) {
+      toast.success(`Usuario ${nuevoEstado ? 'activado' : 'desactivado'}`)
+      await cargarUsuarios()
+    }
+    setModalConfirm(null)
+  }
 
-async function eliminarUsuario(usuario) {
-  if (!window.confirm(`¿Eliminar permanentemente a ${usuario.nombre} ${usuario.apellido}?\nEsta acción no se puede deshacer.`)) return
-  await supabase.from('perfiles').delete().eq('id', usuario.id)
-  cargarUsuarios()
-}
+  async function eliminarUsuario(usuario) {
+    await supabase.from('perfiles').delete().eq('id', usuario.id)
+    toast.success('Usuario eliminado')
+    cargarUsuarios()
+    setModalConfirm(null)
+  }
 
   function resetForm() {
     setForm({ nombre: '', apellido: '', email: '', rol: 'recepcion' })
@@ -140,11 +146,11 @@ async function eliminarUsuario(usuario) {
                   </td>
                   <td style={s.td}>
   <div style={{ display: 'flex', gap: 6 }}>
-    <button onClick={() => toggleActivo(u)} style={u.activo ? s.btnDesactivar : s.btnActivar}>
+    <button onClick={() => setModalConfirm({ tipo: 'toggle', usuario: u })} style={u.activo ? s.btnDesactivar : s.btnActivar}>
       {u.activo ? 'Desactivar' : 'Activar'}
     </button>
-    <button onClick={() => eliminarUsuario(u)} style={s.btnEliminar}>
-      🗑️ Eliminar
+    <button onClick={() => setModalConfirm({ tipo: 'eliminar', usuario: u })} style={s.btnEliminar}>
+      Eliminar
     </button>
   </div>
 </td>
@@ -219,7 +225,31 @@ async function eliminarUsuario(usuario) {
             <p style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700, marginBottom: 20 }}>
               ⚠️ Esta contraseña no se volverá a mostrar
             </p>
-            <button onClick={() => setPasswordGenerado(null)} style={s.btnPrimary}>✅ Entendido</button>
+            <button onClick={() => setPasswordGenerado(null)} style={s.btnPrimary}>Entendido</button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal confirmaci\u00f3n */}
+      {modalConfirm && (
+        <div style={s.modalBg} onClick={() => setModalConfirm(null)}>
+          <div style={{ ...s.modalBox, maxWidth: 400, textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+            <h2 style={{ ...s.modalTitle, color: modalConfirm.tipo === 'eliminar' ? '#dc2626' : '#5B2D8E' }}>
+              {modalConfirm.tipo === 'eliminar' ? 'Eliminar usuario' : `${modalConfirm.usuario.activo ? 'Desactivar' : 'Activar'} usuario`}
+            </h2>
+            <p style={{ color: '#555', fontSize: 13, marginBottom: 20, lineHeight: 1.6 }}>
+              {modalConfirm.tipo === 'eliminar'
+                ? <>Eliminar permanentemente a <b>{modalConfirm.usuario.nombre} {modalConfirm.usuario.apellido}</b>? Esta acci\u00f3n no se puede deshacer.</>
+                : <>{modalConfirm.usuario.activo ? 'Desactivar' : 'Activar'} a <b>{modalConfirm.usuario.nombre} {modalConfirm.usuario.apellido}</b>?</>
+              }
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              <button onClick={() => setModalConfirm(null)} style={s.btnSecondary}>Cancelar</button>
+              <button onClick={() => modalConfirm.tipo === 'eliminar' ? eliminarUsuario(modalConfirm.usuario) : toggleActivo(modalConfirm.usuario)}
+                style={{ ...s.btnPrimary, background: modalConfirm.tipo === 'eliminar' ? '#dc2626' : undefined }}>
+                Confirmar
+              </button>
+            </div>
           </div>
         </div>
       )}

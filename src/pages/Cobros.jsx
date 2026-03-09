@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
+import toast from 'react-hot-toast'
 
 
 // ── COMPONENTE DE IMPRESIÓN TÉRMICA ──
@@ -36,7 +37,7 @@ function TicketTérmico({ cobro, pago, onClose }) {
   return (
     <div style={s.modalBg}>
       <div style={{ ...s.modalBox, maxWidth: 420 }}>
-        <h2 style={s.modalTitle}>🖨️ Vista previa del recibo</h2>
+        <h2 style={s.modalTitle}>Vista previa del recibo</h2>
         <div ref={printRef} style={{ fontFamily: 'Courier New', fontSize: 12, border: '1px dashed #ccc', padding: 16, borderRadius: 8, background: '#fffef8', maxWidth: 280, margin: '0 auto' }}>
           <div className="center" style={{ textAlign: 'center', marginBottom: 8 }}>
             <div className="titulo bold" style={{ fontWeight: 900, fontSize: 13, lineHeight: 1.4 }}>
@@ -76,14 +77,14 @@ function TicketTérmico({ cobro, pago, onClose }) {
           </div>
           <div className="divider" style={{ borderTop: '1px dashed #000', margin: '6px 0' }}/>
           <div style={{ textAlign: 'center', fontSize: 9, color: '#555', marginTop: 8 }}>
-            <div className="bold" style={{ fontWeight: 900 }}>✓ PAGO REGISTRADO</div>
+            <div className="bold" style={{ fontWeight: 900 }}>PAGO REGISTRADO</div>
             <div style={{ marginTop: 4 }}>Conserve este comprobante</div>
-            <div>— CBIS —</div>
+            <div>-- CBIS --</div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 20 }}>
           <button onClick={onClose} style={s.btnSecondary}>Cerrar</button>
-          <button onClick={imprimir} style={s.btnPrimary}>🖨️ Imprimir</button>
+          <button onClick={imprimir} style={s.btnPrimary}>Imprimir</button>
         </div>
       </div>
     </div>
@@ -92,15 +93,19 @@ function TicketTérmico({ cobro, pago, onClose }) {
 
 export default function Cobros() {
   const { perfil } = useAuth()
-  const esRecepcion = perfil?.rol === 'recepcion' 
+  const esRecepcion = perfil?.rol === 'recepcion'
   const [estudiantes, setEstudiantes] = useState([])
   const [conceptos, setConceptos] = useState([])
   const [cobros, setCobros] = useState([])
   const [loading, setLoading] = useState(true)
   const [busqueda, setBusqueda] = useState('')
+  const [estudianteSeleccionado, setEstudianteSeleccionado] = useState(null)
+  const [vista, setVista] = useState('estudiantes') // 'estudiantes' | 'todos'
   const [modalCobro, setModalCobro] = useState(false)
   const [modalPago, setModalPago] = useState(false)
   const [modalMora, setModalMora] = useState(false)
+  const [modalAnulacion, setModalAnulacion] = useState(false)
+  const [motivoAnulacion, setMotivoAnulacion] = useState('')
   const [ticketVisible, setTicketVisible] = useState(false)
   const [cobroSeleccionado, setCobroSeleccionado] = useState(null)
   const [guardando, setGuardando] = useState(false)
@@ -118,7 +123,7 @@ export default function Cobros() {
   async function cargarDatos() {
     setLoading(true)
     const [{ data: est }, { data: con }, { data: cob }] = await Promise.all([
-      supabase.from('estudiantes').select('id, nombre, apellido, grados(nombre)').order('apellido'),
+      supabase.from('estudiantes').select('id, nombre, apellido, grado_id, grados(nombre)').eq('estado', 'activo').order('apellido'),
       supabase.from('conceptos_cobro').select('*').eq('activo', true).order('tipo'),
       supabase.from('cobros').select(`
         *, estudiantes(nombre, apellido, grados(nombre)),
@@ -136,7 +141,6 @@ export default function Cobros() {
     setForm({ ...form, concepto_id, monto: concepto?.monto || '' })
   }
 
-  // Calcular fecha de vencimiento automática (día 10 del mes seleccionado)
   function calcularVencimiento(mes, year) {
     if (!mes) return null
     const idxMes = meses.indexOf(mes)
@@ -144,7 +148,6 @@ export default function Cobros() {
     return new Date(year, idxMes, 10).toISOString().split('T')[0]
   }
 
-  // Detectar si hoy ya pasó el día 10 del mes seleccionado
   function hayMora(mes, year) {
     if (!mes) return false
     const hoy = new Date()
@@ -153,7 +156,8 @@ export default function Cobros() {
   }
 
   async function guardarCobro() {
-    if (!form.estudiante_id || !form.concepto_id || !form.monto) {
+    const estId = estudianteSeleccionado?.id || form.estudiante_id
+    if (!estId || !form.concepto_id || !form.monto) {
       setError('Estudiante, concepto y monto son obligatorios')
       return
     }
@@ -161,7 +165,7 @@ export default function Cobros() {
     setError('')
     const vencimiento = calcularVencimiento(form.mes, form.year_escolar)
     const { error } = await supabase.from('cobros').insert([{
-      estudiante_id: parseInt(form.estudiante_id),
+      estudiante_id: parseInt(estId),
       concepto_id: parseInt(form.concepto_id),
       monto: parseFloat(form.monto),
       fecha_vencimiento: vencimiento,
@@ -174,6 +178,7 @@ export default function Cobros() {
     } else {
       setModalCobro(false)
       resetForm()
+      toast.success('Cobro registrado exitosamente')
       cargarDatos()
     }
     setGuardando(false)
@@ -181,7 +186,6 @@ export default function Cobros() {
 
   function iniciarPago(cobro) {
     setCobroSeleccionado(cobro)
-    // Detectar si hay mora aplicable
     const esMensualidad = cobro.conceptos_cobro?.tipo === 'mensualidad'
     if (esMensualidad && hayMora(cobro.mes, cobro.year_escolar)) {
       setModalMora(true)
@@ -191,56 +195,78 @@ export default function Cobros() {
   }
 
   async function registrarPago(conMora = false) {
-  if (!cobroSeleccionado) return
-  setGuardando(true)
+    if (!cobroSeleccionado) return
+    setGuardando(true)
 
-  const montoBase = parseFloat(cobroSeleccionado.monto)
-  const montoFinal = conMora ? parseFloat((montoBase * 1.25).toFixed(2)) : montoBase
+    const montoBase = parseFloat(cobroSeleccionado.monto)
+    const montoFinal = conMora ? parseFloat((montoBase * 1.25).toFixed(2)) : montoBase
 
-  const { error } = await supabase.from('pagos').insert([{
-    cobro_id: cobroSeleccionado.id,
-    estudiante_id: cobroSeleccionado.estudiante_id,
-    monto_pagado: montoFinal,
-    metodo: 'presencial',
-    recibido_por: perfil.id,
-    fecha_pago: new Date().toISOString()
-  }])
+    const { error } = await supabase.from('pagos').insert([{
+      cobro_id: cobroSeleccionado.id,
+      estudiante_id: cobroSeleccionado.estudiante_id,
+      monto_pagado: montoFinal,
+      metodo: 'presencial',
+      recibido_por: perfil.id,
+      fecha_pago: new Date().toISOString()
+    }])
 
-  if (!error) {
+    if (!error) {
+      await supabase.from('cobros')
+        .update({ estado: 'pagado', monto: montoFinal })
+        .eq('id', cobroSeleccionado.id)
+
+      setCobroSeleccionado({ ...cobroSeleccionado, monto: montoFinal })
+      setModalMora(false)
+      setModalPago(false)
+      toast.success('Pago registrado exitosamente')
+      await cargarDatos()
+      setTicketVisible(true)
+    } else {
+      toast.error('Error al registrar pago: ' + error.message)
+    }
+    setGuardando(false)
+  }
+
+  function iniciarAnulacion(cobro) {
+    setCobroSeleccionado(cobro)
+    setMotivoAnulacion('')
+    setModalAnulacion(true)
+  }
+
+  async function confirmarAnulacion() {
+    if (!motivoAnulacion.trim()) {
+      toast.error('Debes ingresar un motivo para anular el cobro')
+      return
+    }
+    setGuardando(true)
+
     await supabase.from('cobros')
-      .update({ estado: 'pagado', monto: montoFinal })
+      .update({ estado: 'anulado', motivo_anulacion: motivoAnulacion })
       .eq('id', cobroSeleccionado.id)
 
-    const cobroActualizado = cobros.find(c => c.id === cobroSeleccionado.id)
-setCobroSeleccionado({ ...cobroSeleccionado, ...cobroActualizado, monto: montoFinal })
-    setModalMora(false)
-    setModalPago(false)
-    await cargarDatos()
-    setTicketVisible(true)
-  }
-  setGuardando(false)
-}
-async function anularCobro(cobro) {
-  const motivo = window.prompt(`¿Motivo de anulación del cobro de ${cobro.estudiantes?.nombre} ${cobro.estudiantes?.apellido} por $${parseFloat(cobro.monto).toFixed(2)}?\n\nEjemplo: Pago duplicado, Error de monto, Devolución solicitada...`)
-  if (motivo === null) return
-  if (!motivo.trim()) {
-    alert('❌ Debes ingresar un motivo para anular el cobro.')
-    return
+    await supabase.from('pagos')
+      .update({ anulado: true, motivo_anulacion: motivoAnulacion })
+      .eq('cobro_id', cobroSeleccionado.id)
+
+    setModalAnulacion(false)
+    setCobroSeleccionado(null)
+    setMotivoAnulacion('')
+    toast.success('Cobro anulado correctamente')
+    cargarDatos()
+    setGuardando(false)
   }
 
-  await supabase.from('cobros')
-    .update({ estado: 'anulado', motivo_anulacion: motivo })
-    .eq('id', cobro.id)
-  
-  await supabase.from('pagos')
-    .update({ anulado: true, motivo_anulacion: motivo })
-    .eq('cobro_id', cobro.id)
-
-  cargarDatos()
-}
   function resetForm() {
     setForm({ estudiante_id: '', concepto_id: '', monto: '', mes: '', year_escolar: new Date().getFullYear() })
     setError('')
+  }
+
+  function abrirNuevoCobro() {
+    resetForm()
+    if (estudianteSeleccionado) {
+      setForm(f => ({ ...f, estudiante_id: estudianteSeleccionado.id }))
+    }
+    setModalCobro(true)
   }
 
   const estadoColor = {
@@ -250,33 +276,61 @@ async function anularCobro(cobro) {
     anulado: { bg: '#f3f4f6', color: '#6b7280' },
   }
 
-  const filtrados = cobros.filter(c => {
+  // Filtros
+  const estudiantesFiltrados = estudiantes.filter(e => {
+    const nombre = `${e.nombre} ${e.apellido}`.toLowerCase()
+    return nombre.includes(busqueda.toLowerCase()) ||
+      e.grados?.nombre?.toLowerCase().includes(busqueda.toLowerCase())
+  })
+
+  const cobrosEstudiante = estudianteSeleccionado
+    ? cobros.filter(c => c.estudiante_id === estudianteSeleccionado.id)
+    : []
+
+  const cobrosPendientesEst = cobrosEstudiante.filter(c => c.estado === 'pendiente')
+  const cobrosHistorialEst = cobrosEstudiante.filter(c => c.estado !== 'pendiente')
+
+  const filtradosTodos = cobros.filter(c => {
     const nombre = `${c.estudiantes?.nombre} ${c.estudiantes?.apellido}`.toLowerCase()
     return nombre.includes(busqueda.toLowerCase()) ||
       c.conceptos_cobro?.nombre?.toLowerCase().includes(busqueda.toLowerCase())
   })
 
-const totalPendiente = cobros.filter(c => c.estado === 'pendiente').reduce((a, c) => a + parseFloat(c.monto), 0)
-const totalHoy = cobros.filter(c => c.estado === 'pagado').reduce((a, c) => a + parseFloat(c.monto), 0)
+  // KPIs
+  const hoyStr = new Date().toISOString().split('T')[0]
+  const totalPendiente = cobros.filter(c => c.estado === 'pendiente').reduce((a, c) => a + parseFloat(c.monto), 0)
+  const cobrosHoy = cobros.filter(c => c.estado === 'pagado' && c.fecha_pago?.startsWith(hoyStr))
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div>
-          <h1 style={{ color: '#5B2D8E', fontSize: 20, fontWeight: 800, marginBottom: 4 }}>💰 Cobros</h1>
-          <p style={{ color: '#888', fontSize: 13 }}>{cobros.length} cobros registrados</p>
+          <h1 style={{ color: '#5B2D8E', fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Cobros</h1>
+          <p style={{ color: '#888', fontSize: 13 }}>
+            {estudianteSeleccionado
+              ? `${cobrosEstudiante.length} cobros de ${estudianteSeleccionado.nombre} ${estudianteSeleccionado.apellido}`
+              : `${cobros.length} cobros registrados`
+            }
+          </p>
         </div>
-        <button onClick={() => setModalAbierto(true)} style={s.btnPrimary}>
-  {esRecepcion ? '+ Registrar cobro' : '+ Nuevo Cobro'}
-</button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          {estudianteSeleccionado && (
+            <button onClick={() => setEstudianteSeleccionado(null)} style={s.btnSecondary}>
+              Volver a lista
+            </button>
+          )}
+          <button onClick={abrirNuevoCobro} style={s.btnPrimary}>
+            {esRecepcion ? '+ Registrar cobro' : '+ Nuevo Cobro'}
+          </button>
+        </div>
       </div>
 
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginBottom: 20 }}>
         {[
           { icon: '📋', val: `$${totalPendiente.toFixed(2)}`, label: 'Pendiente de cobro', color: '#f59e0b' },
-          { icon: '✅', val: `$${totalHoy.toFixed(2)}`, label: 'Cobrado hoy', color: '#16a34a' },
           { icon: '🧾', val: cobros.filter(c => c.estado === 'pendiente').length, label: 'Cobros pendientes', color: '#7B4DB8' },
-          { icon: '🚨', val: cobros.filter(c => c.estado === 'vencido').length, label: 'Cobros vencidos', color: '#ef4444' },
+          { icon: '🚨', val: cobros.filter(c => c.estado === 'pendiente' && c.fecha_vencimiento && new Date(c.fecha_vencimiento) < new Date()).length, label: 'Cobros vencidos', color: '#ef4444' },
         ].map((k, i) => (
           <div key={i} style={{ background: '#fff', borderRadius: 14, padding: '16px 20px', boxShadow: '0 2px 12px rgba(0,0,0,0.07)', borderLeft: `4px solid ${k.color}` }}>
             <div style={{ fontSize: 24, marginBottom: 6 }}>{k.icon}</div>
@@ -286,82 +340,300 @@ const totalHoy = cobros.filter(c => c.estado === 'pagado').reduce((a, c) => a + 
         ))}
       </div>
 
-      <input style={s.search} placeholder="🔍 Buscar por estudiante o concepto..."
+      {/* Tabs de vista: Por estudiante / Todos */}
+      {!estudianteSeleccionado && !esRecepcion && (
+        <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
+          {[
+            { id: 'estudiantes', label: 'Por estudiante' },
+            { id: 'todos', label: 'Todos los cobros' },
+          ].map(v => (
+            <button key={v.id} onClick={() => setVista(v.id)} style={{
+              padding: '8px 18px', borderRadius: 8, border: 'none', cursor: 'pointer',
+              background: vista === v.id ? '#5B2D8E' : '#fff',
+              color: vista === v.id ? '#fff' : '#5B2D8E',
+              fontWeight: 700, fontSize: 13,
+              boxShadow: vista === v.id ? 'none' : '0 1px 4px rgba(0,0,0,0.08)',
+            }}>{v.label}</button>
+          ))}
+        </div>
+      )}
+
+      {/* Buscador */}
+      <input style={s.search}
+        placeholder={estudianteSeleccionado ? 'Buscar en cobros...' : (vista === 'estudiantes' ? 'Buscar estudiante por nombre o grado...' : 'Buscar por estudiante o concepto...')}
         value={busqueda} onChange={e => setBusqueda(e.target.value)}/>
 
-      {/* Tabla */}
-      <div style={s.card}>
-        {loading ? (
-          <p style={{ textAlign: 'center', color: '#aaa', padding: 40 }}>Cargando...</p>
-        ) : filtrados.length === 0 ? (
-          <p style={{ textAlign: 'center', color: '#aaa', padding: 40 }}>No hay cobros registrados aún</p>
-        ) : (
-          <table style={s.table}>
-            <thead>
-              <tr>{['Estudiante','Grado','Concepto','Mes','Monto','Vencimiento','Estado','Acción'].map(h =>
-                <th key={h} style={s.th}>{h}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {filtrados.map(c => (
-                <tr key={c.id} style={s.tr}>
-                  <td style={s.td}>{c.estudiantes?.nombre} {c.estudiantes?.apellido}</td>
-                  <td style={s.td}><span style={s.gradoBadge}>{c.estudiantes?.grados?.nombre || '—'}</span></td>
-                  <td style={s.td}>{c.conceptos_cobro?.nombre}</td>
-                  <td style={s.td}>{c.mes || '—'}</td>
-                  <td style={s.td}><b>${parseFloat(c.monto).toFixed(2)}</b></td>
-                  <td style={s.td}>{c.fecha_vencimiento ? new Date(c.fecha_vencimiento + 'T12:00:00').toLocaleDateString('es-SV') : '—'}</td>
-                  <td style={s.td}>
-                    <span style={{ ...s.badge, background: estadoColor[c.estado]?.bg, color: estadoColor[c.estado]?.color }}>
-                      {c.estado}
-                    </span>
-                  </td>
-                  <td style={s.td}>
-  <div style={{ display: 'flex', gap: 6 }}>
- {c.estado === 'pendiente' && (
-  <button onClick={() => iniciarPago(c)} style={s.btnPagar}>
-    💵 Registrar pago
-  </button>
-)}
-{c.estado === 'pendiente' && !esRecepcion && (
-  <button onClick={() => anularCobro(c)} style={s.btnAnular}>
-    Anular
-  </button>
-)}
-{c.estado === 'pagado' && (
-  <button onClick={() => { setCobroSeleccionado(c); setTicketVisible(true) }} style={s.btnReimprimir}>
-    🖨️ Reimprimir
-  </button>
-)}
-{c.estado === 'pagado' && !esRecepcion && (
-  <button onClick={() => anularCobro(c)} style={s.btnAnular}>
-    🚫 Anular
-  </button>
-)}
-  </div>
-</td>
+      {/* ── VISTA: Estudiante seleccionado (sus cobros) ── */}
+      {estudianteSeleccionado && (
+        <div>
+          {/* Info del estudiante */}
+          <div style={{ background: '#fff', borderRadius: 14, padding: '18px 22px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.07)' }}>
+            <div style={{
+              width: 48, height: 48, borderRadius: '50%',
+              background: 'linear-gradient(135deg, #3d1f61, #5B2D8E)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff', fontWeight: 900, fontSize: 18, flexShrink: 0
+            }}>
+              {estudianteSeleccionado.nombre?.charAt(0)}{estudianteSeleccionado.apellido?.charAt(0)}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#3d1f61' }}>
+                {estudianteSeleccionado.nombre} {estudianteSeleccionado.apellido}
+              </div>
+              <div style={{ fontSize: 13, color: '#888' }}>{estudianteSeleccionado.grados?.nombre}</div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 11, color: '#888', fontWeight: 600, textTransform: 'uppercase' }}>Total pendiente</div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: cobrosPendientesEst.length > 0 ? '#f59e0b' : '#16a34a' }}>
+                ${cobrosPendientesEst.reduce((a, c) => a + parseFloat(c.monto), 0).toFixed(2)}
+              </div>
+            </div>
+          </div>
+
+          {/* Cobros pendientes */}
+          {cobrosPendientesEst.length > 0 && (
+            <div style={{ marginBottom: 20 }}>
+              <h3 style={{ color: '#5B2D8E', fontSize: 14, fontWeight: 800, marginBottom: 10 }}>Cobros pendientes ({cobrosPendientesEst.length})</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {cobrosPendientesEst.map(c => {
+                  const vencido = c.fecha_vencimiento && new Date(c.fecha_vencimiento) < new Date()
+                  return (
+                    <div key={c.id} style={{
+                      background: '#fff', borderRadius: 12, padding: '16px 20px',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                      borderLeft: `4px solid ${vencido ? '#ef4444' : '#f59e0b'}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#333', marginBottom: 4 }}>
+                          {c.conceptos_cobro?.nombre}
+                        </div>
+                        <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#888' }}>
+                          {c.mes && <span>{c.mes} {c.year_escolar}</span>}
+                          {c.fecha_vencimiento && (
+                            <span style={{ color: vencido ? '#dc2626' : '#888' }}>
+                              Vence: {new Date(c.fecha_vencimiento + 'T12:00:00').toLocaleDateString('es-SV')}
+                              {vencido && ' (vencido)'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ fontSize: 18, fontWeight: 900, color: '#3d1f61', marginRight: 8 }}>
+                          ${parseFloat(c.monto).toFixed(2)}
+                        </div>
+                        <button onClick={() => iniciarPago(c)} style={s.btnPagar}>Pagar</button>
+                        {!esRecepcion && (
+                          <button onClick={() => iniciarAnulacion(c)} style={s.btnAnular}>Anular</button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {cobrosPendientesEst.length === 0 && (
+            <div style={{ background: '#f0fdf4', borderRadius: 12, padding: '24px', textAlign: 'center', marginBottom: 20, border: '1px solid #bbf7d0' }}>
+              <div style={{ fontSize: 32, marginBottom: 8 }}>&#10003;</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#16a34a' }}>Sin cobros pendientes</div>
+              <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>Este estudiante no tiene cobros por pagar</div>
+            </div>
+          )}
+
+          {/* Historial */}
+          {cobrosHistorialEst.length > 0 && (
+            <div>
+              <h3 style={{ color: '#888', fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Historial ({cobrosHistorialEst.length})</h3>
+              <div style={s.card}>
+                <table style={s.table}>
+                  <thead>
+                    <tr>{['Concepto','Mes','Monto','Estado','Acci\u00f3n'].map(h =>
+                      <th key={h} style={s.th}>{h}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cobrosHistorialEst.map(c => (
+                      <tr key={c.id} style={s.tr}>
+                        <td style={s.td}>{c.conceptos_cobro?.nombre}</td>
+                        <td style={s.td}>{c.mes || '—'}</td>
+                        <td style={s.td}><b>${parseFloat(c.monto).toFixed(2)}</b></td>
+                        <td style={s.td}>
+                          <span style={{ ...s.badge, background: estadoColor[c.estado]?.bg, color: estadoColor[c.estado]?.color }}>
+                            {c.estado}
+                          </span>
+                          {c.estado === 'anulado' && c.motivo_anulacion && (
+                            <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>{c.motivo_anulacion}</div>
+                          )}
+                        </td>
+                        <td style={s.td}>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            {c.estado === 'pagado' && (
+                              <button onClick={() => { setCobroSeleccionado(c); setTicketVisible(true) }} style={s.btnReimprimir}>
+                                Reimprimir
+                              </button>
+                            )}
+                            {c.estado === 'pagado' && !esRecepcion && (
+                              <button onClick={() => iniciarAnulacion(c)} style={s.btnAnular}>
+                                Anular
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── VISTA: Lista de estudiantes (flujo principal) ── */}
+      {!estudianteSeleccionado && (vista === 'estudiantes' || esRecepcion) && (
+        <div style={s.card}>
+          {loading ? (
+            <p style={{ textAlign: 'center', color: '#aaa', padding: 40 }}>Cargando...</p>
+          ) : estudiantesFiltrados.length === 0 ? (
+            <p style={{ textAlign: 'center', color: '#aaa', padding: 40 }}>No se encontraron estudiantes</p>
+          ) : (
+            <table style={s.table}>
+              <thead>
+                <tr>{['Estudiante','Grado','Pendientes','Total pendiente',''].map(h =>
+                  <th key={h} style={s.th}>{h}</th>)}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+              </thead>
+              <tbody>
+                {estudiantesFiltrados.map(e => {
+                  const pendientes = cobros.filter(c => c.estudiante_id === e.id && c.estado === 'pendiente')
+                  const totalPend = pendientes.reduce((a, c) => a + parseFloat(c.monto), 0)
+                  const tieneVencidos = pendientes.some(c => c.fecha_vencimiento && new Date(c.fecha_vencimiento) < new Date())
+                  return (
+                    <tr key={e.id} style={{ ...s.tr, cursor: 'pointer' }}
+                      onClick={() => { setEstudianteSeleccionado(e); setBusqueda('') }}>
+                      <td style={s.td}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div style={{
+                            width: 34, height: 34, borderRadius: '50%',
+                            background: 'linear-gradient(135deg, #3d1f61, #5B2D8E)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            color: '#fff', fontWeight: 800, fontSize: 12, flexShrink: 0
+                          }}>
+                            {e.nombre?.charAt(0)}{e.apellido?.charAt(0)}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 700, color: '#333' }}>{e.nombre} {e.apellido}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={s.td}><span style={s.gradoBadge}>{e.grados?.nombre || '—'}</span></td>
+                      <td style={s.td}>
+                        {pendientes.length > 0 ? (
+                          <span style={{
+                            ...s.badge,
+                            background: tieneVencidos ? '#fee2e2' : '#fef9c3',
+                            color: tieneVencidos ? '#dc2626' : '#854d0e'
+                          }}>
+                            {pendientes.length} pendiente{pendientes.length > 1 ? 's' : ''}
+                            {tieneVencidos && ' (vencidos)'}
+                          </span>
+                        ) : (
+                          <span style={{ ...s.badge, background: '#dcfce7', color: '#16a34a' }}>Al d\u00eda</span>
+                        )}
+                      </td>
+                      <td style={s.td}>
+                        <b style={{ color: totalPend > 0 ? '#f59e0b' : '#16a34a' }}>
+                          ${totalPend.toFixed(2)}
+                        </b>
+                      </td>
+                      <td style={s.td}>
+                        <span style={{ color: '#aaa', fontSize: 18 }}>&#8250;</span>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
+      {/* ── VISTA: Todos los cobros (admin) ── */}
+      {!estudianteSeleccionado && vista === 'todos' && !esRecepcion && (
+        <div style={s.card}>
+          {loading ? (
+            <p style={{ textAlign: 'center', color: '#aaa', padding: 40 }}>Cargando...</p>
+          ) : filtradosTodos.length === 0 ? (
+            <p style={{ textAlign: 'center', color: '#aaa', padding: 40 }}>No hay cobros registrados</p>
+          ) : (
+            <table style={s.table}>
+              <thead>
+                <tr>{['Estudiante','Grado','Concepto','Mes','Monto','Vencimiento','Estado','Acci\u00f3n'].map(h =>
+                  <th key={h} style={s.th}>{h}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {filtradosTodos.map(c => (
+                  <tr key={c.id} style={s.tr}>
+                    <td style={s.td}>{c.estudiantes?.nombre} {c.estudiantes?.apellido}</td>
+                    <td style={s.td}><span style={s.gradoBadge}>{c.estudiantes?.grados?.nombre || '—'}</span></td>
+                    <td style={s.td}>{c.conceptos_cobro?.nombre}</td>
+                    <td style={s.td}>{c.mes || '—'}</td>
+                    <td style={s.td}><b>${parseFloat(c.monto).toFixed(2)}</b></td>
+                    <td style={s.td}>{c.fecha_vencimiento ? new Date(c.fecha_vencimiento + 'T12:00:00').toLocaleDateString('es-SV') : '—'}</td>
+                    <td style={s.td}>
+                      <span style={{ ...s.badge, background: estadoColor[c.estado]?.bg, color: estadoColor[c.estado]?.color }}>
+                        {c.estado}
+                      </span>
+                    </td>
+                    <td style={s.td}>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        {c.estado === 'pendiente' && (
+                          <button onClick={() => iniciarPago(c)} style={s.btnPagar}>Pagar</button>
+                        )}
+                        {c.estado === 'pendiente' && (
+                          <button onClick={() => iniciarAnulacion(c)} style={s.btnAnular}>Anular</button>
+                        )}
+                        {c.estado === 'pagado' && (
+                          <button onClick={() => { setCobroSeleccionado(c); setTicketVisible(true) }} style={s.btnReimprimir}>Reimprimir</button>
+                        )}
+                        {c.estado === 'pagado' && (
+                          <button onClick={() => iniciarAnulacion(c)} style={s.btnAnular}>Anular</button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
 
       {/* Modal nuevo cobro */}
       {modalCobro && (
-        <div style={s.modalBg}>
-          <div style={s.modalBox}>
-            <h2 style={s.modalTitle}>➕ Nuevo Cobro</h2>
-            <div style={s.field}>
-              <label style={s.label}>Estudiante *</label>
-              <select style={s.input} value={form.estudiante_id}
-                onChange={e => setForm({ ...form, estudiante_id: e.target.value })}>
-                <option value="">— Seleccione un estudiante —</option>
-                {estudiantes.map(e => (
-                  <option key={e.id} value={e.id}>{e.apellido}, {e.nombre} — {e.grados?.nombre}</option>
-                ))}
-              </select>
-            </div>
+        <div style={s.modalBg} onClick={() => { setModalCobro(false); resetForm() }}>
+          <div style={s.modalBox} onClick={e => e.stopPropagation()}>
+            <h2 style={s.modalTitle}>Nuevo Cobro</h2>
+            {!estudianteSeleccionado && (
+              <div style={s.field}>
+                <label style={s.label}>Estudiante *</label>
+                <select style={s.input} value={form.estudiante_id}
+                  onChange={e => setForm({ ...form, estudiante_id: e.target.value })}>
+                  <option value="">— Seleccione un estudiante —</option>
+                  {estudiantes.map(e => (
+                    <option key={e.id} value={e.id}>{e.apellido}, {e.nombre} — {e.grados?.nombre}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {estudianteSeleccionado && (
+              <div style={{ background: '#f3eeff', borderRadius: 10, padding: '10px 14px', marginBottom: 14, fontSize: 13, color: '#5B2D8E', fontWeight: 600 }}>
+                Estudiante: {estudianteSeleccionado.nombre} {estudianteSeleccionado.apellido} — {estudianteSeleccionado.grados?.nombre}
+              </div>
+            )}
             <div style={s.field}>
               <label style={s.label}>Concepto *</label>
               <select style={s.input} value={form.concepto_id} onChange={e => onConceptoChange(e.target.value)}>
@@ -390,17 +662,16 @@ const totalHoy = cobros.filter(c => c.estado === 'pagado').reduce((a, c) => a + 
                 </select>
               </div>
             </div>
-            {/* Mostrar fecha de vencimiento calculada automáticamente */}
             {form.mes && (
               <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 10, padding: '10px 14px', marginBottom: 14, fontSize: 13, color: '#0369a1' }}>
-                📅 Fecha de vencimiento: <b>10 de {form.mes} {form.year_escolar}</b>
+                Fecha de vencimiento: <b>10 de {form.mes} {form.year_escolar}</b>
                 {hayMora(form.mes, form.year_escolar) && (
-                  <span style={{ color: '#dc2626', fontWeight: 700, marginLeft: 8 }}>⚠️ Ya venció — aplica mora</span>
+                  <span style={{ color: '#dc2626', fontWeight: 700, marginLeft: 8 }}>Ya venci\u00f3 — aplica mora</span>
                 )}
               </div>
             )}
             <div style={s.field}>
-              <label style={s.label}>Año escolar</label>
+              <label style={s.label}>A\u00f1o escolar</label>
               <input style={s.input} type="number" value={form.year_escolar}
                 onChange={e => setForm({ ...form, year_escolar: parseInt(e.target.value) })}/>
             </div>
@@ -408,7 +679,7 @@ const totalHoy = cobros.filter(c => c.estado === 'pagado').reduce((a, c) => a + 
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button onClick={() => { setModalCobro(false); resetForm() }} style={s.btnSecondary}>Cancelar</button>
               <button onClick={guardarCobro} style={s.btnPrimary} disabled={guardando}>
-                {guardando ? 'Guardando...' : '💾 Guardar'}
+                {guardando ? 'Guardando...' : 'Guardar'}
               </button>
             </div>
           </div>
@@ -417,12 +688,11 @@ const totalHoy = cobros.filter(c => c.estado === 'pagado').reduce((a, c) => a + 
 
       {/* Modal: ¿Aplicar mora? */}
       {modalMora && cobroSeleccionado && (
-        <div style={s.modalBg}>
-          <div style={{ ...s.modalBox, maxWidth: 400, textAlign: 'center' }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>⚠️</div>
+        <div style={s.modalBg} onClick={() => setModalMora(false)}>
+          <div style={{ ...s.modalBox, maxWidth: 400, textAlign: 'center' }} onClick={e => e.stopPropagation()}>
             <h2 style={{ ...s.modalTitle, color: '#dc2626' }}>Este cobro tiene mora</h2>
             <p style={{ color: '#555', fontSize: 13, marginBottom: 8, lineHeight: 1.7 }}>
-              El plazo de pago venció el <b>10 de {cobroSeleccionado.mes}</b>.<br/>
+              El plazo de pago venci\u00f3 el <b>10 de {cobroSeleccionado.mes}</b>.<br/>
               Aplica un recargo del <b>25%</b> por atraso.
             </p>
             <div style={{ background: '#fef9c3', borderRadius: 10, padding: 14, marginBottom: 20 }}>
@@ -435,7 +705,7 @@ const totalHoy = cobros.filter(c => c.estado === 'pagado').reduce((a, c) => a + 
                 Sin mora
               </button>
               <button onClick={() => registrarPago(true)} style={{ ...s.btnPrimary, background: '#dc2626' }} disabled={guardando}>
-                {guardando ? 'Registrando...' : '⚠️ Cobrar con mora'}
+                {guardando ? 'Registrando...' : 'Cobrar con mora'}
               </button>
             </div>
           </div>
@@ -444,9 +714,8 @@ const totalHoy = cobros.filter(c => c.estado === 'pagado').reduce((a, c) => a + 
 
       {/* Modal confirmar pago */}
       {modalPago && cobroSeleccionado && (
-        <div style={s.modalBg}>
-          <div style={{ ...s.modalBox, maxWidth: 400, textAlign: 'center' }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>💵</div>
+        <div style={s.modalBg} onClick={() => { setModalPago(false); setCobroSeleccionado(null) }}>
+          <div style={{ ...s.modalBox, maxWidth: 400, textAlign: 'center' }} onClick={e => e.stopPropagation()}>
             <h2 style={s.modalTitle}>Confirmar pago presencial</h2>
             <div style={{ background: '#f8faff', borderRadius: 12, padding: 16, marginBottom: 20, textAlign: 'left' }}>
               <p style={{ fontSize: 13, color: '#555', marginBottom: 6 }}>
@@ -467,7 +736,44 @@ const totalHoy = cobros.filter(c => c.estado === 'pagado').reduce((a, c) => a + 
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
               <button onClick={() => { setModalPago(false); setCobroSeleccionado(null) }} style={s.btnSecondary}>Cancelar</button>
               <button onClick={() => registrarPago(false)} style={s.btnPrimary} disabled={guardando}>
-                {guardando ? 'Registrando...' : '✅ Confirmar pago'}
+                {guardando ? 'Registrando...' : 'Confirmar pago'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de anulación con motivo obligatorio */}
+      {modalAnulacion && cobroSeleccionado && (
+        <div style={s.modalBg} onClick={() => { setModalAnulacion(false); setCobroSeleccionado(null); setMotivoAnulacion('') }}>
+          <div style={{ ...s.modalBox, maxWidth: 440 }} onClick={e => e.stopPropagation()}>
+            <h2 style={{ ...s.modalTitle, color: '#dc2626' }}>Anular cobro</h2>
+            <div style={{ background: '#fff4f0', borderRadius: 10, padding: 14, marginBottom: 16 }}>
+              <p style={{ fontSize: 13, color: '#555', marginBottom: 4 }}>
+                <b>Estudiante:</b> {cobroSeleccionado.estudiantes?.nombre} {cobroSeleccionado.estudiantes?.apellido}
+              </p>
+              <p style={{ fontSize: 13, color: '#555', marginBottom: 4 }}>
+                <b>Concepto:</b> {cobroSeleccionado.conceptos_cobro?.nombre}
+              </p>
+              <p style={{ fontSize: 15, fontWeight: 800, color: '#dc2626' }}>
+                Monto: ${parseFloat(cobroSeleccionado.monto).toFixed(2)}
+              </p>
+            </div>
+            <div style={s.field}>
+              <label style={s.label}>Motivo de anulaci\u00f3n *</label>
+              <textarea
+                style={{ ...s.input, minHeight: 80, resize: 'vertical' }}
+                value={motivoAnulacion}
+                onChange={e => setMotivoAnulacion(e.target.value)}
+                placeholder="Ej: Pago duplicado, Error de monto, Devoluci\u00f3n solicitada..."
+              />
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={() => { setModalAnulacion(false); setCobroSeleccionado(null); setMotivoAnulacion('') }} style={s.btnSecondary}>
+                Cancelar
+              </button>
+              <button onClick={confirmarAnulacion} style={{ ...s.btnPrimary, background: '#dc2626' }} disabled={guardando || !motivoAnulacion.trim()}>
+                {guardando ? 'Anulando...' : 'Confirmar anulaci\u00f3n'}
               </button>
             </div>
           </div>

@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
+import toast from 'react-hot-toast'
 
 export default function Configuracion() {
   const [grados, setGrados] = useState([])
   const [loading, setLoading] = useState(true)
   const [modalGrado, setModalGrado] = useState(false)
+  const [modalEliminar, setModalEliminar] = useState(null)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
   const [editando, setEditando] = useState(null)
@@ -53,13 +55,15 @@ export default function Configuracion() {
     setModalGrado(false)
     setEditando(null)
     resetForm()
+    toast.success(editando ? 'Grado actualizado' : 'Grado creado')
     cargarDatos()
     setGuardando(false)
   }
 
   async function eliminarGrado(grado) {
-    if (!window.confirm(`¿Eliminar el grado "${grado.nombre}"?`)) return
     await supabase.from('grados').delete().eq('id', grado.id)
+    toast.success('Grado eliminado')
+    setModalEliminar(null)
     cargarDatos()
   }
 
@@ -146,7 +150,7 @@ export default function Configuracion() {
                   <td style={s.td}>
                     <div style={{ display: 'flex', gap: 6 }}>
                       <button onClick={() => abrirEditar(g)} style={s.btnEditar}>✏️ Editar</button>
-                      <button onClick={() => eliminarGrado(g)} style={s.btnEliminar}>🗑️ Eliminar</button>
+                      <button onClick={() => setModalEliminar(g)} style={s.btnEliminar}>Eliminar</button>
                     </div>
                   </td>
                 </tr>
@@ -192,6 +196,22 @@ export default function Configuracion() {
               <button onClick={guardarGrado} style={s.btnPrimary} disabled={guardando}>
                 {guardando ? 'Guardando...' : '💾 Guardar'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal confirmar eliminar grado */}
+      {modalEliminar && (
+        <div style={s.modalBg} onClick={() => setModalEliminar(null)}>
+          <div style={{ ...s.modalBox, maxWidth: 400, textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+            <h2 style={{ ...s.modalTitle, color: '#dc2626' }}>Eliminar grado</h2>
+            <p style={{ color: '#555', fontSize: 13, marginBottom: 20, lineHeight: 1.6 }}>
+              Eliminar el grado <b>"{modalEliminar.nombre}"</b>? Los estudiantes asignados a este grado perder\u00e1n su asignaci\u00f3n.
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              <button onClick={() => setModalEliminar(null)} style={s.btnSecondary}>Cancelar</button>
+              <button onClick={() => eliminarGrado(modalEliminar)} style={{ ...s.btnPrimary, background: '#dc2626' }}>Eliminar</button>
             </div>
           </div>
         </div>

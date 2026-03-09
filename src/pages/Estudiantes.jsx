@@ -1,30 +1,19 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
-
-export default function Estudiantes() {
-  const { perfil } = useAuth()
-  const esRecepcion = perfil?.rol === 'recepcion'
-  const [estudianteDetalle, setEstudianteDetalle] = useState(null)
-  const [tabActiva, setTabActiva] = useState('general')
-  const [estudiantes, setEstudiantes] = useState([])
-  const [grados, setGrados] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [busqueda, setBusqueda] = useState('')
-  const [modalAbierto, setModalAbierto] = useState(false)
-  const [form, setForm] = useState({
-    nombre: '', apellido: '', fecha_nacimiento: '',
-    genero: '', nie: '', correo_institucional: '',
-    direccion: '', grado_id: '', tipo_ingreso: 'antiguo'
-  })
-  const [guardando, setGuardando] = useState(false)
-  const [error, setError] = useState('')
+import toast from 'react-hot-toast'
 
 function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion }) {
   const [tab, setTab] = useState(0)
-  const tabs = esRecepcion 
-    ? ['📋 General', '👨‍👩‍👧 Familia', '🏥 Salud']
-    : ['📋 General', '👨‍👩‍👧 Familia', '🏥 Salud', '⚙️ Acciones']
+  const [modalCorreo, setModalCorreo] = useState(false)
+  const [nuevoCorreo, setNuevoCorreo] = useState('')
+  const [modalEliminar, setModalEliminar] = useState(false)
+  const [verificandoEliminar, setVerificandoEliminar] = useState(false)
+  const [tienePagos, setTienePagos] = useState(false)
+
+  const tabs = esRecepcion
+    ? ['General', 'Familia', 'Salud']
+    : ['General', 'Familia', 'Salud', 'Acciones']
 
   const Dato = ({ label, val }) => (
     <div style={{ marginBottom: 12 }}>
@@ -32,6 +21,31 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion }) {
       <div style={{ fontSize: 14, color: val ? '#222' : '#ccc', fontWeight: val ? 600 : 400 }}>{val || '—'}</div>
     </div>
   )
+
+  async function verificarYEliminar() {
+    setVerificandoEliminar(true)
+    const { data: cobrosEst } = await supabase.from('cobros').select('id').eq('estudiante_id', estudiante.id)
+    const cobrosIds = cobrosEst?.map(c => c.id) || []
+
+    if (cobrosIds.length > 0) {
+      const { data: pagos } = await supabase.from('pagos').select('id').in('cobro_id', cobrosIds)
+      if (pagos?.length > 0) {
+        setTienePagos(true)
+        setVerificandoEliminar(false)
+        return
+      }
+    }
+    setTienePagos(false)
+    setModalEliminar(true)
+    setVerificandoEliminar(false)
+  }
+
+  async function ejecutarEliminar() {
+    await supabase.from('cobros').delete().eq('estudiante_id', estudiante.id)
+    await supabase.from('estudiantes').delete().eq('id', estudiante.id)
+    toast.success('Estudiante eliminado')
+    onDelete()
+  }
 
   return (
     <div>
@@ -53,17 +67,17 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion }) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 24px' }}>
           <Dato label="NIE" val={estudiante.nie} />
           <Dato label="Grado" val={estudiante.grados?.nombre} />
-          <Dato label="Género" val={estudiante.genero} />
+          <Dato label="G\u00e9nero" val={estudiante.genero} />
           <Dato label="Fecha de nacimiento" val={estudiante.fecha_nacimiento ? new Date(estudiante.fecha_nacimiento + 'T12:00:00').toLocaleDateString('es-SV') : null} />
           <Dato label="Nacionalidad" val={estudiante.nacionalidad} />
           <Dato label="Lugar de nacimiento" val={estudiante.lugar_nacimiento} />
           <Dato label="Partida de nacimiento" val={estudiante.partida_nacimiento} />
           <Dato label="Folio" val={estudiante.folio_partida} />
-          <Dato label="Nº de libro" val={estudiante.libro_partida} />
+          <Dato label="N\u00ba de libro" val={estudiante.libro_partida} />
           <Dato label="Tipo de ingreso" val={estudiante.tipo_ingreso} />
           <Dato label="Correo institucional" val={estudiante.correo_institucional} />
-          <Dato label="Institución de procedencia" val={estudiante.institucion_procedencia} />
-          <Dato label="Dirección" val={estudiante.direccion} />
+          <Dato label="Instituci\u00f3n de procedencia" val={estudiante.institucion_procedencia} />
+          <Dato label="Direcci\u00f3n" val={estudiante.direccion} />
           <Dato label="Municipio" val={estudiante.municipio} />
           <Dato label="Departamento" val={estudiante.departamento} />
           <Dato label="Zona" val={estudiante.zona} />
@@ -75,43 +89,43 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion }) {
       {tab === 1 && (
         <div>
           <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: '#3d1f61', marginBottom: 12, paddingBottom: 6, borderBottom: '1px solid #f3eeff' }}>👨 Padre</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#3d1f61', marginBottom: 12, paddingBottom: 6, borderBottom: '1px solid #f3eeff' }}>Padre</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 24px' }}>
               <Dato label="Nombre" val={estudiante.nombre_padre} />
               <Dato label="DUI" val={estudiante.dui_padre} />
-              <Dato label="Teléfono" val={estudiante.telefono_padre} />
+              <Dato label="Tel\u00e9fono" val={estudiante.telefono_padre} />
               <Dato label="Correo" val={estudiante.correo_padre} />
               <Dato label="Lugar de trabajo" val={estudiante.trabajo_padre} />
-              <Dato label="Dirección" val={estudiante.direccion_padre} />
+              <Dato label="Direcci\u00f3n" val={estudiante.direccion_padre} />
             </div>
           </div>
           <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: '#3d1f61', marginBottom: 12, paddingBottom: 6, borderBottom: '1px solid #f3eeff' }}>👩 Madre</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#3d1f61', marginBottom: 12, paddingBottom: 6, borderBottom: '1px solid #f3eeff' }}>Madre</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 24px' }}>
               <Dato label="Nombre" val={estudiante.nombre_madre} />
               <Dato label="DUI" val={estudiante.dui_madre} />
-              <Dato label="Teléfono" val={estudiante.telefono_madre} />
+              <Dato label="Tel\u00e9fono" val={estudiante.telefono_madre} />
               <Dato label="Correo" val={estudiante.correo_madre} />
               <Dato label="Lugar de trabajo" val={estudiante.trabajo_madre} />
-              <Dato label="Dirección" val={estudiante.direccion_madre} />
+              <Dato label="Direcci\u00f3n" val={estudiante.direccion_madre} />
             </div>
           </div>
           <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: '#3d1f61', marginBottom: 12, paddingBottom: 6, borderBottom: '1px solid #f3eeff' }}>👤 Tutor/Encargado</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#3d1f61', marginBottom: 12, paddingBottom: 6, borderBottom: '1px solid #f3eeff' }}>Tutor/Encargado</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 24px' }}>
               <Dato label="Nombre" val={estudiante.nombre_tutor} />
               <Dato label="DUI" val={estudiante.dui_tutor} />
-              <Dato label="Teléfono" val={estudiante.telefono_tutor} />
+              <Dato label="Tel\u00e9fono" val={estudiante.telefono_tutor} />
               <Dato label="Correo" val={estudiante.correo_tutor} />
               <Dato label="Lugar de trabajo" val={estudiante.trabajo_tutor} />
-              <Dato label="Dirección" val={estudiante.direccion_tutor} />
+              <Dato label="Direcci\u00f3n" val={estudiante.direccion_tutor} />
             </div>
           </div>
           <div style={{ background: '#fff4f0', borderRadius: 10, padding: '12px 16px' }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: '#E8573A', marginBottom: 8 }}>🚨 Contacto de emergencia</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#E8573A', marginBottom: 8 }}>Contacto de emergencia</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 24px' }}>
               <Dato label="Persona" val={estudiante.contacto_emergencia} />
-              <Dato label="Teléfono" val={estudiante.telefono_emergencia} />
+              <Dato label="Tel\u00e9fono" val={estudiante.telefono_emergencia} />
             </div>
           </div>
           <div style={{ marginTop: 12 }}>
@@ -125,13 +139,13 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion }) {
       {tab === 2 && (
         <div>
           <div style={{ background: '#faf8ff', borderRadius: 12, padding: '16px 20px', marginBottom: 16 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>🤧 Enfermedades o alergias</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Enfermedades o alergias</div>
             <div style={{ fontSize: 14, color: estudiante.enfermedades_alergias ? '#222' : '#ccc' }}>
               {estudiante.enfermedades_alergias || 'Ninguna registrada'}
             </div>
           </div>
           <div style={{ background: '#faf8ff', borderRadius: 12, padding: '16px 20px' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>💊 Medicamento prescrito permanente</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Medicamento prescrito permanente</div>
             <div style={{ fontSize: 14, color: estudiante.medicamento_permanente ? '#222' : '#ccc' }}>
               {estudiante.medicamento_permanente || 'Ninguno registrado'}
             </div>
@@ -140,22 +154,21 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion }) {
       )}
 
       {/* Tab Acciones */}
-      {tab === 3 && (
+      {tab === 3 && !esRecepcion && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <button
-            onClick={async () => {
-              const nuevo = prompt('Nuevo correo institucional:', estudiante.correo_institucional || '')
-              if (nuevo === null) return
-              await supabase.from('estudiantes').update({ correo_institucional: nuevo }).eq('id', estudiante.id)
-              onUpdate({ ...estudiante, correo_institucional: nuevo })
+            onClick={() => {
+              setNuevoCorreo(estudiante.correo_institucional || '')
+              setModalCorreo(true)
             }}
             style={{ padding: '12px 18px', borderRadius: 10, border: '1.5px solid #e0d6f0', background: '#faf8ff', color: '#5B2D8E', fontWeight: 700, fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
-            ✏️ Editar correo institucional
+            Editar correo institucional
           </button>
           <button
             onClick={async () => {
               const nuevoEstado = estudiante.estado === 'activo' ? 'inactivo' : 'activo'
               await supabase.from('estudiantes').update({ estado: nuevoEstado }).eq('id', estudiante.id)
+              toast.success(`Estudiante ${nuevoEstado === 'activo' ? 'activado' : 'desactivado'}`)
               onUpdate({ ...estudiante, estado: nuevoEstado })
             }}
             style={{
@@ -163,45 +176,96 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion }) {
               background: estudiante.estado === 'activo' ? '#fee2e2' : '#dcfce7',
               color: estudiante.estado === 'activo' ? '#dc2626' : '#16a34a'
             }}>
-            {estudiante.estado === 'activo' ? '⛔ Desactivar estudiante' : '✅ Activar estudiante'}
+            {estudiante.estado === 'activo' ? 'Desactivar estudiante' : 'Activar estudiante'}
           </button>
           <button
-            onClick={async () => {
-  const { data: pagos } = await supabase.from('pagos')
-    .select('id')
-    .in('cobro_id', 
-      (await supabase.from('cobros').select('id').eq('estudiante_id', estudiante.id)).data?.map(c => c.id) || []
-    )
-
-  if (pagos?.length > 0) {
-    alert(`⚠️ ${estudiante.nombre} tiene historial de pagos registrado. Para eliminar un estudiante con historial, primero cámbialo a "Inactivo". El sistema eliminará automáticamente los registros después de un año.`)
-    return
-  }
-
-  if (!confirm(`¿Eliminar permanentemente a ${estudiante.nombre} ${estudiante.apellido}? Esta acción no se puede deshacer.`)) return
-  
-  await supabase.from('cobros').delete().eq('estudiante_id', estudiante.id)
-  await supabase.from('estudiantes').delete().eq('id', estudiante.id)
-  onDelete()
-}}
+            onClick={verificarYEliminar}
+            disabled={verificandoEliminar}
             style={{ padding: '12px 18px', borderRadius: 10, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13, background: '#dc2626', color: '#fff', textAlign: 'left' }}>
-            🗑️ Eliminar estudiante permanentemente
+            {verificandoEliminar ? 'Verificando...' : 'Eliminar estudiante permanentemente'}
           </button>
+
+          {tienePagos && (
+            <div style={{ background: '#fef9c3', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: '#854d0e', lineHeight: 1.6 }}>
+              <b>{estudiante.nombre}</b> tiene historial de pagos registrado. Para eliminar un estudiante con historial, primero c\u00e1mbialo a "Inactivo".
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Modal editar correo */}
+      {modalCorreo && (
+        <div style={s.modalBg} onClick={() => setModalCorreo(false)}>
+          <div style={{ ...s.modalBox, maxWidth: 400 }} onClick={e => e.stopPropagation()}>
+            <h2 style={s.modalTitle}>Editar correo institucional</h2>
+            <div style={s.field}>
+              <label style={s.label}>Correo institucional</label>
+              <input style={s.input} type="email" value={nuevoCorreo}
+                onChange={e => setNuevoCorreo(e.target.value)}
+                placeholder="estudiante@cbis.edu.sv" />
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={() => setModalCorreo(false)} style={s.btnSecondary}>Cancelar</button>
+              <button onClick={async () => {
+                await supabase.from('estudiantes').update({ correo_institucional: nuevoCorreo }).eq('id', estudiante.id)
+                toast.success('Correo actualizado')
+                onUpdate({ ...estudiante, correo_institucional: nuevoCorreo })
+                setModalCorreo(false)
+              }} style={s.btnPrimary}>Guardar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal confirmar eliminar */}
+      {modalEliminar && (
+        <div style={s.modalBg} onClick={() => setModalEliminar(false)}>
+          <div style={{ ...s.modalBox, maxWidth: 400, textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+            <h2 style={{ ...s.modalTitle, color: '#dc2626' }}>Eliminar estudiante</h2>
+            <p style={{ color: '#555', fontSize: 13, marginBottom: 20, lineHeight: 1.6 }}>
+              Eliminar permanentemente a <b>{estudiante.nombre} {estudiante.apellido}</b>?<br/>
+              Esta acci\u00f3n no se puede deshacer.
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              <button onClick={() => setModalEliminar(false)} style={s.btnSecondary}>Cancelar</button>
+              <button onClick={ejecutarEliminar} style={{ ...s.btnPrimary, background: '#dc2626' }}>Eliminar</button>
+            </div>
+          </div>
         </div>
       )}
     </div>
   )
 }
 
+export default function Estudiantes() {
+  const { perfil } = useAuth()
+  const esRecepcion = perfil?.rol === 'recepcion'
+  const [estudianteDetalle, setEstudianteDetalle] = useState(null)
+  const [estudiantes, setEstudiantes] = useState([])
+  const [grados, setGrados] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [busqueda, setBusqueda] = useState('')
+  const [modalAbierto, setModalAbierto] = useState(false)
+  const [form, setForm] = useState({
+    nombre: '', apellido: '', fecha_nacimiento: '',
+    genero: '', nie: '', correo_institucional: '',
+    direccion: '', grado_id: '', tipo_ingreso: 'antiguo'
+  })
+  const [guardando, setGuardando] = useState(false)
+  const [error, setError] = useState('')
+
   useEffect(() => { cargarDatos() }, [])
-async function cambiarEstado(estudiante) {
-  const nuevoEstado = estudiante.estado === 'activo' ? 'inactivo' : 'activo'
-  if (!window.confirm(`¿Cambiar estado de ${estudiante.nombre} ${estudiante.apellido} a "${nuevoEstado}"?`)) return
-  await supabase.from('estudiantes')
-    .update({ estado: nuevoEstado })
-    .eq('id', estudiante.id)
-  cargarDatos()
-}
+
+  async function cambiarEstado(e, estudiante) {
+    e.stopPropagation()
+    const nuevoEstado = estudiante.estado === 'activo' ? 'inactivo' : 'activo'
+    await supabase.from('estudiantes')
+      .update({ estado: nuevoEstado })
+      .eq('id', estudiante.id)
+    toast.success(`Estudiante ${nuevoEstado === 'activo' ? 'activado' : 'desactivado'}`)
+    cargarDatos()
+  }
+
   async function cargarDatos() {
     setLoading(true)
     const [{ data: est }, { data: gra }] = await Promise.all([
@@ -215,7 +279,7 @@ async function cambiarEstado(estudiante) {
 
   async function guardarEstudiante() {
     if (!form.nombre || !form.apellido || !form.grado_id || !form.genero) {
-      setError('Nombres, apellidos, género y grado son obligatorios')
+      setError('Nombres, apellidos, g\u00e9nero y grado son obligatorios')
       return
     }
     setGuardando(true)
@@ -236,6 +300,7 @@ async function cambiarEstado(estudiante) {
     } else {
       setModalAbierto(false)
       resetForm()
+      toast.success('Estudiante registrado exitosamente')
       cargarDatos()
     }
     setGuardando(false)
@@ -257,140 +322,149 @@ async function cambiarEstado(estudiante) {
   )
 
   function descargarPlantilla() {
-  const headers = ['nombres', 'apellidos', 'fecha_nacimiento', 'genero', 'nie', 'correo', 'direccion', 'grado']
-  const ejemplo = ['Camilo Aryéh', 'Velis Figueroa', '2015-03-10', 'masculino', '12345678', 'camilo@cbis.edu.sv', 'Sonsonate, El Salvador', 'Sección 4']
-  const csv = [headers.join(','), ejemplo.join(',')].join('\n')
-  const BOM = '\uFEFF'
-  const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = 'plantilla_estudiantes_cbis.csv'
-  a.click()
-  URL.revokeObjectURL(url)
-}
-function normalizar(str) {
-  return str?.toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .trim() || ''
-}
-async function importarCSV(e) {
-  const file = e.target.files[0]
-  if (!file) return
-
-  const text = await new Promise((resolve) => {
-  const reader = new FileReader()
-  reader.onload = e => resolve(e.target.result)
-  reader.readAsText(file, 'UTF-8')
-})
-  const lineas = text.trim().split('\n')
-  const headers = lineas[0].split(',').map(h => h.trim().toLowerCase())
-  const filas = lineas.slice(1)
-
-  if (filas.length === 0) {
-    alert('❌ El archivo está vacío.')
-    return
-    {!esRecepcion && (
-  <>
-    <button onClick={descargarPlantilla} style={s.btnSecondary}>📥 Descargar plantilla</button>
-    <label style={{ ...s.btnSecondary, cursor: 'pointer' }}>
-      📂 Importar CSV
-      <input type="file" accept=".csv" style={{ display: 'none' }} onChange={importarCSV} />
-    </label>
-  </>
-)}
+    const headers = ['nombres', 'apellidos', 'fecha_nacimiento', 'genero', 'nie', 'correo', 'direccion', 'grado']
+    const ejemplo = ['Camilo Ary\u00e9h', 'Velis Figueroa', '2015-03-10', 'masculino', '12345678', 'camilo@cbis.edu.sv', 'Sonsonate, El Salvador', 'Secci\u00f3n 4']
+    const csv = [headers.join(','), ejemplo.join(',')].join('\n')
+    const BOM = '\uFEFF'
+    const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'plantilla_estudiantes_cbis.csv'
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
-  // Parsear filas
-  const estudiantes = filas.map(fila => {
-    const valores = fila.split(',').map(v => v.trim())
-    const obj = {}
-    headers.forEach((h, i) => { obj[h] = valores[i] || '' })
-    return obj
-  })
-
-  // Validar NIEs en el CSV (duplicados entre sí)
-  const niesCSV = estudiantes.map(e => e.nie)
-  const duplicadosInternos = niesCSV.filter((nie, i) => niesCSV.indexOf(nie) !== i)
-  if (duplicadosInternos.length > 0) {
-    alert(`❌ El archivo tiene NIEs duplicados: ${[...new Set(duplicadosInternos)].join(', ')}. Corrígelos y vuelve a intentar.`)
-    e.target.value = ''
-    return
+  function normalizar(str) {
+    return str?.toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim() || ''
   }
 
-  // Validar NIEs contra la base de datos
-  const { data: existentes } = await supabase
-    .from('estudiantes')
-    .select('nie')
-    .in('nie', niesCSV)
+  async function importarCSV(ev) {
+    const file = ev.target.files[0]
+    if (!file) return
 
-  if (existentes && existentes.length > 0) {
-    const niesExistentes = existentes.map(e => e.nie).join(', ')
-    alert(`❌ NIE ya existe en el sistema: ${niesExistentes}. Corrígelo en el archivo y vuelve a intentar.`)
-    e.target.value = ''
-    return
+    const text = await new Promise((resolve) => {
+      const reader = new FileReader()
+      reader.onload = e => resolve(e.target.result)
+      reader.readAsText(file, 'UTF-8')
+    })
+    const lineas = text.trim().split('\n')
+    const headers = lineas[0].split(',').map(h => h.trim().toLowerCase())
+    const filas = lineas.slice(1)
+
+    if (filas.length === 0) {
+      toast.error('El archivo est\u00e1 vac\u00edo')
+      ev.target.value = ''
+      return
+    }
+
+    // Parsear filas
+    const datos = filas.map(fila => {
+      const valores = fila.split(',').map(v => v.trim())
+      const obj = {}
+      headers.forEach((h, i) => { obj[h] = valores[i] || '' })
+      return obj
+    })
+
+    // Validar NIEs en el CSV (duplicados entre s\u00ed)
+    const niesCSV = datos.map(e => e.nie)
+    const duplicadosInternos = niesCSV.filter((nie, i) => niesCSV.indexOf(nie) !== i)
+    if (duplicadosInternos.length > 0) {
+      toast.error(`NIEs duplicados en archivo: ${[...new Set(duplicadosInternos)].join(', ')}`)
+      ev.target.value = ''
+      return
+    }
+
+    // Validar NIEs contra la base de datos
+    const { data: existentes } = await supabase
+      .from('estudiantes')
+      .select('nie')
+      .in('nie', niesCSV)
+
+    if (existentes && existentes.length > 0) {
+      const niesExistentes = existentes.map(e => e.nie).join(', ')
+      toast.error(`NIE ya existe en el sistema: ${niesExistentes}`)
+      ev.target.value = ''
+      return
+    }
+
+    // Buscar IDs de grados
+    const { data: gds } = await supabase.from('grados').select('id, nombre')
+    const gradoMap = {}
+    gds?.forEach(g => { gradoMap[normalizar(g.nombre)] = g.id })
+
+    // Validar que todos los grados existen
+    const gradosInvalidos = []
+    for (const est of datos) {
+      const gradoNombre = normalizar(est.grado)
+      if (!gradoMap[gradoNombre]) gradosInvalidos.push(est.grado)
+    }
+    if (gradosInvalidos.length > 0) {
+      toast.error(`Grados no encontrados: ${[...new Set(gradosInvalidos)].join(', ')}`)
+      ev.target.value = ''
+      return
+    }
+
+    // Insertar todos
+    const registros = datos.map(est => ({
+      nombre: est.nombres,
+      apellido: est.apellidos,
+      fecha_nacimiento: est.fecha_nacimiento || null,
+      genero: est.genero,
+      nie: est.nie,
+      correo_institucional: est.correo || null,
+      direccion: est.direccion || null,
+      grado_id: gradoMap[normalizar(est.grado)],
+      estado: 'activo',
+      tipo_ingreso: 'antiguo'
+    }))
+
+    const { error } = await supabase.from('estudiantes').insert(registros)
+
+    if (error) {
+      toast.error(`Error al importar: ${error.message}`)
+    } else {
+      toast.success(`${registros.length} estudiante(s) importado(s) exitosamente`)
+      cargarDatos()
+    }
+    ev.target.value = ''
   }
-
-  // Buscar IDs de grados
-  const { data: grados } = await supabase.from('grados').select('id, nombre')
-  const gradoMap = {}
-grados?.forEach(g => { gradoMap[normalizar(g.nombre)] = g.id })
-  // Validar que todos los grados existen
-  const gradosInvalidos = []
-  for (const est of estudiantes) {
-    const gradoNombre = normalizar(est.grado)
-if (!gradoMap[gradoNombre]) gradosInvalidos.push(est.grado)
-  }
-  if (gradosInvalidos.length > 0) {
-    alert(`❌ Grados no encontrados: ${[...new Set(gradosInvalidos)].join(', ')}. Verifica que coincidan con los grados del sistema.`)
-    e.target.value = ''
-    return
-  }
-
-  // Insertar todos
-  const registros = estudiantes.map(est => ({
-  nombre: est.nombres,
-  apellido: est.apellidos,
-  fecha_nacimiento: est.fecha_nacimiento || null,
-  genero: est.genero,
-  nie: est.nie,
-  correo_institucional: est.correo || null,
-  direccion: est.direccion || null,
-  grado_id: gradoMap[normalizar(est.grado)],
-  estado: 'activo',
-  tipo_ingreso: 'antiguo'
-}))
-
-  const { error } = await supabase.from('estudiantes').insert(registros)
-
-  if (error) {
-    alert(`❌ Error al importar: ${error.message}`)
-  } else {
-    alert(`✅ ${registros.length} estudiante(s) importado(s) exitosamente.`)
-    cargarDatos()
-  }
-  e.target.value = ''
-}
 
   return (
     <div>
       {/* Header */}
-      <div style={{ display: 'flex', gap: 10 }}>
-  <button onClick={descargarPlantilla} style={{ ...s.btnSecondary, fontSize: 13 }}>
-    📥 Descargar plantilla
-  </button>
-  <label style={{ ...s.btnSecondary, fontSize: 13, cursor: 'pointer' }}>
-    📂 Importar CSV
-    <input type="file" accept=".csv" onChange={importarCSV} style={{ display: 'none' }} />
-  </label>
-
-</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div>
+          <h1 style={{ color: '#5B2D8E', fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Estudiantes</h1>
+          <p style={{ color: '#888', fontSize: 13 }}>{estudiantes.length} estudiantes registrados</p>
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          {!esRecepcion && (
+            <>
+              <button onClick={descargarPlantilla} style={{ ...s.btnSecondary, fontSize: 13 }}>
+                Descargar plantilla
+              </button>
+              <label style={{ ...s.btnSecondary, fontSize: 13, cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}>
+                Importar CSV
+                <input type="file" accept=".csv" onChange={importarCSV} style={{ display: 'none' }} />
+              </label>
+            </>
+          )}
+          {!esRecepcion && (
+            <button onClick={() => setModalAbierto(true)} style={s.btnPrimary}>
+              + Nuevo Estudiante
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* Buscador */}
       <input
         style={s.search}
-        placeholder="🔍 Buscar por nombre, grado o NIE..."
+        placeholder="Buscar por nombre, grado o NIE..."
         value={busqueda}
         onChange={e => setBusqueda(e.target.value)}
       />
@@ -401,13 +475,13 @@ if (!gradoMap[gradoNombre]) gradosInvalidos.push(est.grado)
           <p style={{ textAlign: 'center', color: '#aaa', padding: 40 }}>Cargando...</p>
         ) : filtrados.length === 0 ? (
           <p style={{ textAlign: 'center', color: '#aaa', padding: 40 }}>
-            {busqueda ? 'No se encontraron resultados' : 'No hay estudiantes registrados aún'}
+            {busqueda ? 'No se encontraron resultados' : 'No hay estudiantes registrados a\u00fan'}
           </p>
         ) : (
           <table style={s.table}>
             <thead>
               <tr>
-                {['Nombre', 'Apellido', 'Grado', 'NIE', 'Género', 'Estado'].map(h => (
+                {['Nombre', 'Apellido', 'Grado', 'NIE', 'G\u00e9nero', 'Estado'].map(h => (
                   <th key={h} style={s.th}>{h}</th>
                 ))}
               </tr>
@@ -425,20 +499,20 @@ if (!gradoMap[gradoNombre]) gradosInvalidos.push(est.grado)
                       {e.nie || <span style={{ color: '#ccc' }}>Sin NIE</span>}
                     </span>
                   </td>
-                  <td style={s.td} >{e.genero || '—'}</td>
+                  <td style={s.td}>{e.genero || '—'}</td>
                   <td style={s.td}>
                     <span
-  onClick={() => cambiarEstado(e)}
-  title="Clic para cambiar estado"
-  style={{
-    ...s.estadoBadge,
-    background: e.estado === 'activo' ? '#dcfce7' : '#fee2e2',
-    color: e.estado === 'activo' ? '#16a34a' : '#dc2626',
-    cursor: 'pointer',
-  }}
->
-  {e.estado === 'activo' ? '✅ Activo' : '🔴 Inactivo'}
-</span>
+                      onClick={(ev) => cambiarEstado(ev, e)}
+                      title="Clic para cambiar estado"
+                      style={{
+                        ...s.estadoBadge,
+                        background: e.estado === 'activo' ? '#dcfce7' : '#fee2e2',
+                        color: e.estado === 'activo' ? '#16a34a' : '#dc2626',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {e.estado === 'activo' ? 'Activo' : 'Inactivo'}
+                    </span>
                   </td>
                 </tr>
               ))}
@@ -449,9 +523,9 @@ if (!gradoMap[gradoNombre]) gradosInvalidos.push(est.grado)
 
       {/* Modal nuevo estudiante */}
       {modalAbierto && (
-        <div style={s.modalBg}>
-          <div style={s.modalBox}>
-            <h2 style={s.modalTitle}>➕ Nuevo Estudiante</h2>
+        <div style={s.modalBg} onClick={() => { setModalAbierto(false); resetForm() }}>
+          <div style={s.modalBox} onClick={e => e.stopPropagation()}>
+            <h2 style={s.modalTitle}>Nuevo Estudiante</h2>
 
             {/* Tipo de ingreso */}
             <div style={s.field}>
@@ -469,13 +543,13 @@ if (!gradoMap[gradoNombre]) gradosInvalidos.push(est.grado)
                       border: form.tipo_ingreso === tipo ? 'none' : '1.5px solid #dde3ee',
                     }}
                   >
-                    {tipo === 'antiguo' ? '🏫 Antiguo ingreso' : '🆕 Nuevo Ingreso'}
+                    {tipo === 'antiguo' ? 'Antiguo ingreso' : 'Nuevo Ingreso'}
                   </button>
                 ))}
               </div>
               {form.tipo_ingreso === 'nuevo' && (
                 <p style={{ fontSize: 11, color: '#aaa', marginTop: 6 }}>
-                  * El NIE puede dejarse vacío si el estudiante aún no lo tiene asignado
+                  * El NIE puede dejarse vac\u00edo si el estudiante a\u00fan no lo tiene asignado
                 </p>
               )}
             </div>
@@ -496,7 +570,7 @@ if (!gradoMap[gradoNombre]) gradosInvalidos.push(est.grado)
               </div>
             </div>
 
-            {/* Fecha y género */}
+            {/* Fecha y g\u00e9nero */}
             <div style={s.grid2}>
               <div style={s.field}>
                 <label style={s.label}>Fecha de nacimiento</label>
@@ -504,7 +578,7 @@ if (!gradoMap[gradoNombre]) gradosInvalidos.push(est.grado)
                   onChange={e => setForm({ ...form, fecha_nacimiento: e.target.value })}/>
               </div>
               <div style={s.field}>
-                <label style={s.label}>Género *</label>
+                <label style={s.label}>G\u00e9nero *</label>
                 <select style={s.input} value={form.genero}
                   onChange={e => setForm({ ...form, genero: e.target.value })}>
                   <option value="">— Seleccione —</option>
@@ -514,13 +588,13 @@ if (!gradoMap[gradoNombre]) gradosInvalidos.push(est.grado)
               </div>
             </div>
 
-           {/* NIE */}
-<div style={s.field}>
-  <label style={s.label}>NIE (opcional)</label>
-  <input style={s.input} value={form.nie}
-    onChange={e => setForm({ ...form, nie: e.target.value })}
-    placeholder="Ej: 12345678-1"/>
-</div>
+            {/* NIE */}
+            <div style={s.field}>
+              <label style={s.label}>NIE (opcional)</label>
+              <input style={s.input} value={form.nie}
+                onChange={e => setForm({ ...form, nie: e.target.value })}
+                placeholder="Ej: 12345678-1"/>
+            </div>
 
             {/* Correo institucional */}
             <div style={s.field}>
@@ -530,12 +604,12 @@ if (!gradoMap[gradoNombre]) gradosInvalidos.push(est.grado)
                 placeholder="estudiante@cbis.edu.sv"/>
             </div>
 
-            {/* Dirección */}
+            {/* Direcci\u00f3n */}
             <div style={s.field}>
-              <label style={s.label}>Dirección</label>
+              <label style={s.label}>Direcci\u00f3n</label>
               <input style={s.input} value={form.direccion}
                 onChange={e => setForm({ ...form, direccion: e.target.value })}
-                placeholder="Dirección de residencia"/>
+                placeholder="Direcci\u00f3n de residencia"/>
             </div>
 
             {/* Grado */}
@@ -555,72 +629,60 @@ if (!gradoMap[gradoNombre]) gradosInvalidos.push(est.grado)
                 Cancelar
               </button>
               <button onClick={guardarEstudiante} style={s.btnPrimary} disabled={guardando}>
-                {guardando ? 'Guardando...' : '💾 Guardar'}
+                {guardando ? 'Guardando...' : 'Guardar'}
               </button>
             </div>
-
-            
           </div>
         </div>
       )}
 
-{estudianteDetalle && (
-  <div style={s.modalBg} onClick={() => setEstudianteDetalle(null)}>
-    <div style={{ ...s.modalBox, maxWidth: 620, maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
-
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{
-            width: 56, height: 56, borderRadius: '50%',
-            background: 'linear-gradient(135deg, #3d1f61, #5B2D8E)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#fff', fontWeight: 900, fontSize: 20, flexShrink: 0
-          }}>
-            {estudianteDetalle.nombre?.charAt(0)}{estudianteDetalle.apellido?.charAt(0)}
-          </div>
-          <div>
-            <h2 style={{ color: '#3d1f61', fontSize: 18, fontWeight: 900, marginBottom: 4 }}>
-              {estudianteDetalle.nombre} {estudianteDetalle.apellido}
-            </h2>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <span style={{
-                padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700,
-                background: estudianteDetalle.estado === 'activo' ? '#dcfce7' : '#fee2e2',
-                color: estudianteDetalle.estado === 'activo' ? '#16a34a' : '#dc2626'
-              }}>
-                {estudianteDetalle.estado === 'activo' ? '✅ Activo' : '⛔ Inactivo'}
-              </span>
-              <span style={{ fontSize: 12, color: '#888' }}>{estudianteDetalle.grados?.nombre}</span>
+      {/* Modal detalle estudiante */}
+      {estudianteDetalle && (
+        <div style={s.modalBg} onClick={() => setEstudianteDetalle(null)}>
+          <div style={{ ...s.modalBox, maxWidth: 620, maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{
+                  width: 56, height: 56, borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #3d1f61, #5B2D8E)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#fff', fontWeight: 900, fontSize: 20, flexShrink: 0
+                }}>
+                  {estudianteDetalle.nombre?.charAt(0)}{estudianteDetalle.apellido?.charAt(0)}
+                </div>
+                <div>
+                  <h2 style={{ color: '#3d1f61', fontSize: 18, fontWeight: 900, marginBottom: 4 }}>
+                    {estudianteDetalle.nombre} {estudianteDetalle.apellido}
+                  </h2>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <span style={{
+                      padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700,
+                      background: estudianteDetalle.estado === 'activo' ? '#dcfce7' : '#fee2e2',
+                      color: estudianteDetalle.estado === 'activo' ? '#16a34a' : '#dc2626'
+                    }}>
+                      {estudianteDetalle.estado === 'activo' ? 'Activo' : 'Inactivo'}
+                    </span>
+                    <span style={{ fontSize: 12, color: '#888' }}>{estudianteDetalle.grados?.nombre}</span>
+                  </div>
+                </div>
+              </div>
+              <button onClick={() => setEstudianteDetalle(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#aaa' }}>&#10005;</button>
             </div>
+
+            {/* Pesta\u00f1as */}
+            <FichaTabs
+              estudiante={estudianteDetalle}
+              esRecepcion={esRecepcion}
+              onUpdate={(updated) => { setEstudianteDetalle(updated); cargarDatos() }}
+              onDelete={() => { setEstudianteDetalle(null); cargarDatos() }}
+            />
           </div>
         </div>
-        <button onClick={() => setEstudianteDetalle(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#aaa' }}>✕</button>
-      </div>
-
-      {/* Pestañas */}
-      {(() => {
-        const [tabActiva, setTabActiva] = window._tabState || [0, () => {}]
-        return null
-      })()}
-      <FichaTabs estudiante={estudianteDetalle} onUpdate={(updated) => {
-        setEstudianteDetalle(updated)
-        cargarDatos()
-      }} onDelete={() => { setEstudianteDetalle(null); cargarDatos() }} />
-<FichaTabs 
-  estudiante={estudianteDetalle} 
-  esRecepcion={esRecepcion}
-  onUpdate={(updated) => { setEstudianteDetalle(updated); cargarDatos() }} 
-  onDelete={() => { setEstudianteDetalle(null); cargarDatos() }} 
-/>
-    </div>
-  </div>
-)}
-
+      )}
     </div>
   )
 }
-
 
 const s = {
   card: { background: '#fff', borderRadius: 14, boxShadow: '0 2px 12px rgba(0,0,0,0.07)', overflow: 'hidden' },
