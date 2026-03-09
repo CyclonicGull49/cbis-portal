@@ -219,10 +219,21 @@ setCobroSeleccionado({ ...cobroSeleccionado, ...cobroActualizado, monto: montoFi
   setGuardando(false)
 }
 async function anularCobro(cobro) {
-  if (!window.confirm(`¿Anular el cobro de ${cobro.estudiantes?.nombre} ${cobro.estudiantes?.apellido} por $${parseFloat(cobro.monto).toFixed(2)}?`)) return
+  const motivo = window.prompt(`¿Motivo de anulación del cobro de ${cobro.estudiantes?.nombre} ${cobro.estudiantes?.apellido} por $${parseFloat(cobro.monto).toFixed(2)}?\n\nEjemplo: Pago duplicado, Error de monto, Devolución solicitada...`)
+  if (motivo === null) return
+  if (!motivo.trim()) {
+    alert('❌ Debes ingresar un motivo para anular el cobro.')
+    return
+  }
+
   await supabase.from('cobros')
-    .update({ estado: 'anulado' })
+    .update({ estado: 'anulado', motivo_anulacion: motivo })
     .eq('id', cobro.id)
+  
+  await supabase.from('pagos')
+    .update({ anulado: true, motivo_anulacion: motivo })
+    .eq('cobro_id', cobro.id)
+
   cargarDatos()
 }
   function resetForm() {

@@ -27,24 +27,27 @@ function DashboardHome() {
     const hoy = new Date().toISOString().split('T')[0]
 
     const [
-      { data: estudiantes },
-      { data: cobros },
-      { data: pagosHoy },
-      { data: pagosMes },
-      { data: pagosRecientes }
-    ] = await Promise.all([
-      supabase.from('estudiantes').select('id, estado'),
-      supabase.from('cobros').select('id, estado, monto, fecha_vencimiento').neq('estado', 'anulado'),
-      supabase.from('pagos').select('monto_pagado').gte('fecha_pago', hoy),
-      supabase.from('pagos').select('monto_pagado').gte('fecha_pago', inicioMes),
-      supabase.from('pagos').select(`
-        id, monto_pagado, fecha_pago,
-        estudiantes(nombre, apellido),
-        cobros(mes, conceptos_cobro(nombre))
-      `).order('fecha_pago', { ascending: false }).limit(5)
-    ])
+  { data: estudiantes },
+  { data: cobros },
+  { data: pagosHoy },
+  { data: pagosMes },
+  { data: pagosAnulados },
+  { data: pagosRecientes }
+] = await Promise.all([
+  supabase.from('estudiantes').select('id, estado'),
+  supabase.from('cobros').select('id, estado, monto, fecha_vencimiento').neq('estado', 'anulado'),
+  supabase.from('pagos').select('monto_pagado').gte('fecha_pago', hoy).neq('anulado', true),
+  supabase.from('pagos').select('monto_pagado').gte('fecha_pago', inicioMes).neq('anulado', true),
+  supabase.from('pagos').select('monto_pagado').gte('fecha_pago', inicioMes).eq('anulado', true),
+  supabase.from('pagos').select(`
+    id, monto_pagado, fecha_pago,
+    estudiantes(nombre, apellido),
+    cobros(mes, conceptos_cobro(nombre))
+  `).neq('anulado', true).order('fecha_pago', { ascending: false }).limit(5)
+])
 
     setStats({
+      anuladosMes: pagosAnulados?.reduce((a, p) => a + parseFloat(p.monto_pagado), 0) || 0,
       totalEstudiantes: estudiantes?.length || 0,
       estudiantesActivos: estudiantes?.filter(e => e.estado === 'activo').length || 0,
       cobradoHoy: pagosHoy?.reduce((a, p) => a + parseFloat(p.monto_pagado), 0) || 0,
@@ -63,6 +66,8 @@ function DashboardHome() {
     { icon: '📅', label: 'Cobrado este mes', val: `$${stats.totalMes.toFixed(2)}`, sub: 'ingresos del mes', color: '#D4A017', bg: '#fffbeb' },
     { icon: '⏳', label: 'Pendiente de cobro', val: `$${stats.totalPendiente.toFixed(2)}`, sub: `${stats.cobrosPendientes} cobros`, color: '#E8573A', bg: '#fff4f0' },
     { icon: '🚨', label: 'Cobros vencidos', val: stats.cobrosVencidos, sub: 'requieren atención', color: '#dc2626', bg: '#fff0f0' },
+    { icon: '↩️', label: 'Anulado este mes', val: `$${stats.anuladosMes?.toFixed(2) || '0.00'}`, sub: 'no incluido en total', color: '#888', bg: '#f5f5f5' },
+    { icon: '↩️', label: 'Anulado este mes', val: `$${stats.anuladosMes?.toFixed(2) || '0.00'}`, sub: 'no incluido en total', color: '#888', bg: '#f5f5f5' },
   ]
 
   return (

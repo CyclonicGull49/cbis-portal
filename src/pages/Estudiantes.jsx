@@ -163,15 +163,23 @@ function FichaTabs({ estudiante, onUpdate, onDelete }) {
           </button>
           <button
             onClick={async () => {
-              if (!confirm(`¿Eliminar permanentemente a ${estudiante.nombre} ${estudiante.apellido}? Esta acción no se puede deshacer.`)) return
-              const { data: cobros } = await supabase.from('cobros').select('id').eq('estudiante_id', estudiante.id)
-              if (cobros?.length > 0) {
-                await supabase.from('pagos').delete().in('cobro_id', cobros.map(c => c.id))
-                await supabase.from('cobros').delete().eq('estudiante_id', estudiante.id)
-              }
-              await supabase.from('estudiantes').delete().eq('id', estudiante.id)
-              onDelete()
-            }}
+  const { data: pagos } = await supabase.from('pagos')
+    .select('id')
+    .in('cobro_id', 
+      (await supabase.from('cobros').select('id').eq('estudiante_id', estudiante.id)).data?.map(c => c.id) || []
+    )
+
+  if (pagos?.length > 0) {
+    alert(`⚠️ ${estudiante.nombre} tiene historial de pagos registrado. Para eliminar un estudiante con historial, primero cámbialo a "Inactivo". El sistema eliminará automáticamente los registros después de un año.`)
+    return
+  }
+
+  if (!confirm(`¿Eliminar permanentemente a ${estudiante.nombre} ${estudiante.apellido}? Esta acción no se puede deshacer.`)) return
+  
+  await supabase.from('cobros').delete().eq('estudiante_id', estudiante.id)
+  await supabase.from('estudiantes').delete().eq('id', estudiante.id)
+  onDelete()
+}}
             style={{ padding: '12px 18px', borderRadius: 10, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13, background: '#dc2626', color: '#fff', textAlign: 'left' }}>
             🗑️ Eliminar estudiante permanentemente
           </button>
@@ -363,7 +371,7 @@ if (!gradoMap[gradoNombre]) gradosInvalidos.push(est.grado)
     📂 Importar CSV
     <input type="file" accept=".csv" onChange={importarCSV} style={{ display: 'none' }} />
   </label>
-  <button onClick={() => setModalAbierto(true)} style={s.btnPrimary}>+ Nuevo Estudiante</button>
+
 </div>
 
       {/* Buscador */}

@@ -6,6 +6,7 @@ export default function Contabilidad() {
   const [loading, setLoading] = useState(true)
   const [filtroMes, setFiltroMes] = useState('')
   const [filtroYear, setFiltroYear] = useState(new Date().getFullYear())
+  const [totalAnulado, setTotalAnulado] = useState(0)
 
   const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
                  'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
@@ -13,19 +14,19 @@ export default function Contabilidad() {
   useEffect(() => { cargarPagos() }, [])
 
   async function cargarPagos() {
-    setLoading(true)
-    const { data } = await supabase
-      .from('pagos')
-      .select(`
-        *,
-        estudiantes(nombre, apellido, grados(nombre)),
-        cobros(mes, year_escolar, conceptos_cobro(nombre, tipo))
-      `)
-      .eq('anulado', false)
-      .order('fecha_pago', { ascending: false })
-    setPagos(data || [])
-    setLoading(false)
-  }
+  setLoading(true)
+  const [{ data }, { data: anulados }] = await Promise.all([
+    supabase.from('pagos').select(`
+      *,
+      estudiantes(nombre, apellido, grados(nombre)),
+      cobros(mes, year_escolar, conceptos_cobro(nombre, tipo))
+    `).neq('anulado', true).order('fecha_pago', { ascending: false }),
+    supabase.from('pagos').select('monto_pagado').eq('anulado', true)
+  ])
+  setPagos(data || [])
+  setTotalAnulado(anulados?.reduce((a, p) => a + parseFloat(p.monto_pagado), 0) || 0)
+  setLoading(false)
+}
 
   const pagosFiltrados = pagos.filter(p => {
     const mes = p.cobros?.mes
@@ -90,6 +91,13 @@ export default function Contabilidad() {
           <div style={{ fontSize: 12, color: '#888', fontWeight: 600 }}>Pagos registrados</div>
         </div>
       </div>
+      <div style={{ background: '#f9f9f9', borderRadius: 12, padding: '20px 24px', border: '1.5px dashed #ddd', display: 'flex', alignItems: 'center', gap: 16 }}>
+  <span style={{ fontSize: 28 }}>↩️</span>
+  <div>
+    <div style={{ fontSize: 22, fontWeight: 900, color: '#888' }}>${totalAnulado.toFixed(2)}</div>
+    <div style={{ fontSize: 12, color: '#aaa', fontWeight: 600 }}>Pagos anulados — no incluidos en el total</div>
+  </div>
+</div>
 
       {/* Desglose por tipo */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
