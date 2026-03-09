@@ -453,11 +453,7 @@ export default function Estudiantes() {
               </label>
             </>
           )}
-          {!esRecepcion && (
-            <button onClick={() => setModalAbierto(true)} style={s.btnPrimary}>
-              + Nuevo Estudiante
-            </button>
-          )}
+          
         </div>
       </div>
 

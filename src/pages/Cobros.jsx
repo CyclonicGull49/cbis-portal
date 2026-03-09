@@ -540,7 +540,7 @@ export default function Cobros() {
                             {tieneVencidos && ' (vencidos)'}
                           </span>
                         ) : (
-                          <span style={{ ...s.badge, background: '#dcfce7', color: '#16a34a' }}>Al d\u00eda</span>
+                          <span style={{ ...s.badge, background: '#dcfce7', color: '#16a34a' }}>Al día</span>
                         )}
                       </td>
                       <td style={s.td}>
