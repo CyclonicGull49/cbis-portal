@@ -54,14 +54,15 @@ export function AuthProvider({ children }) {
   }
 
   async function logout() {
-    await supabase.auth.signOut()
-    setPerfil(null)
-  }
+  setLoading(false)
+  setPerfil(null)
+  await supabase.auth.signOut()
+}
 
   return (
-    <AuthContext.Provider value={{ user, perfil, loading, login, logout }}>
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={{ user, perfil, login, logout, signOut: logout }}>
+  {children}
+</AuthContext.Provider>
   )
 }
 

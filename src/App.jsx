@@ -4,9 +4,23 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 
 function RutaProtegida({ children }) {
-  const { user, loading } = useAuth()
-  if (loading) return <div className="loading">Cargando...</div>
-  if (!user) return <Navigate to="/login" />
+  const { perfil, loading } = useAuth()
+  if (loading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f4f0fa' }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 40, marginBottom: 12 }}>🎓</div>
+        <p style={{ color: '#5B2D8E', fontWeight: 700 }}>Cargando CBIS+...</p>
+      </div>
+    </div>
+  )
+  if (!perfil) return <Navigate to="/login" />
+  return children
+}
+
+function PublicRoute({ children }) {
+  const { perfil, loading } = useAuth()
+  if (loading) return null
+  if (perfil) return <Navigate to="/dashboard" />
   return children
 }
 
@@ -15,7 +29,7 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/dashboard" element={
             <RutaProtegida>
               <Dashboard />

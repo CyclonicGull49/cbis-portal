@@ -11,17 +11,15 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
 
   async function handleLogin(e) {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
-    const { error } = await login(email, password)
-    if (error) {
-      setError('Correo o contraseña incorrectos')
-      setLoading(false)
-    } else {
-      navigate('/dashboard')
-    }
+  e.preventDefault()
+  setLoading(true)
+  setError('')
+  const { error } = await login(email, password)
+  if (error) {
+    setError('Correo o contraseña incorrectos')
   }
+  setLoading(false)
+}
 
   return (
     <div style={styles.bg}>
