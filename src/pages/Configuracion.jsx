@@ -26,14 +26,15 @@ export default function Configuracion() {
   useEffect(() => { cargarDatos() }, [])
 
   async function cargarDatos() {
-    setLoading(true)
-    const { data } = await supabase
-      .from('grados')
-      .select('*')
-      .order('orden', { ascending: true })
-    setGrados(data || [])
-    setLoading(false)
-  }
+  setLoading(true)
+  const [{ data: gra }, { data: config }] = await Promise.all([
+    supabase.from('grados').select('*').order('orden', { ascending: true }),
+    supabase.from('configuracion').select('valor').eq('clave', 'year_escolar_activo').single()
+  ])
+  setGrados(gra || [])
+  if (config?.valor) setYearEscolar(parseInt(config.valor))
+  setLoading(false)
+}
 
   async function guardarGrado() {
     if (!form.nombre || !form.nivel || !form.orden) {
@@ -96,10 +97,14 @@ export default function Configuracion() {
             onChange={e => setYearEscolar(parseInt(e.target.value))}
           />
           <button
-            onClick={() => {
-              setGuardandoYear(true)
-              setTimeout(() => setGuardandoYear(false), 800)
-            }}
+            onClick={async () => {
+  setGuardandoYear(true)
+  await supabase.from('configuracion')
+    .update({ valor: yearEscolar.toString() })
+    .eq('clave', 'year_escolar_activo')
+  toast.success('Año escolar actualizado')
+  setGuardandoYear(false)
+}}
             style={s.btnPrimary}
             disabled={guardandoYear}
           >

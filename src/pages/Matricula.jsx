@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
+import { useYearEscolar } from '../hooks/useYearEscolar'
 
 const PURPLE = '#5B2D8E'
 const PURPLE_DARK = '#3d1f61'
@@ -35,6 +36,7 @@ export default function Matricula() {
   const [loading, setLoading] = useState(false)
   const [exito, setExito] = useState(false)
   const [error, setError] = useState('')
+  const yearEscolar = useYearEscolar()
 
   useEffect(() => {
     supabase.from('grados').select('id, nombre').order('orden').then(({ data }) => setGrados(data || []))
@@ -78,7 +80,7 @@ export default function Matricula() {
       ...form,
       tipo_ingreso: 'nuevo',
       estado: 'activo',
-      year_escolar: 2026,
+      year_escolar: yearEscolar,
       grado_id: form.grado_id || null,
     })
     .select()
@@ -96,7 +98,7 @@ export default function Matricula() {
   const conceptoMensualidadId = esBachillerato ? 24 : grado.nivel === 'secundaria' ? 23 : 22
 
   const hoy = new Date()
-  const año = 2026
+  const año = yearEscolar
   const cobros = []
 
   // Cobro de matrícula
@@ -158,7 +160,7 @@ export default function Matricula() {
     <div>
       {/* Header */}
       <div style={{ marginBottom: 28 }}>
-        <h1 style={{ color: PURPLE_DARK, fontSize: 22, fontWeight: 900, marginBottom: 4 }}>📋 Matrícula — Nuevo Ingreso 2026</h1>
+        <h1 style={{ color: PURPLE_DARK, fontSize: 22, fontWeight: 900, marginBottom: 4 }}>📋 Matrícula — Nuevo Ingreso ${yearEscolar}</h1>
         <p style={{ color: '#888', fontSize: 13 }}>Complete todos los campos de la ficha de registro académico</p>
       </div>
 
