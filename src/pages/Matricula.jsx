@@ -45,34 +45,98 @@ export default function Matricula() {
   }
 
   async function guardar() {
-    setLoading(true)
-    setError('')
+  setLoading(true)
+  setError('')
 
-    // Validar NIE único
-    if (form.nie) {
-      const { data: existe } = await supabase.from('estudiantes').select('id').eq('nie', form.nie).single()
-      if (existe) {
-        setError('❌ El NIE ingresado ya existe en el sistema.')
-        setLoading(false)
-        return
-      }
+  // Validar NIE único
+  if (form.nie) {
+    const { data: existe } = await supabase.from('estudiantes').select('id').eq('nie', form.nie).single()
+    if (existe) {
+      setError('❌ El NIE ingresado ya existe en el sistema.')
+      setLoading(false)
+      return
     }
+  }
 
-    const { error: err } = await supabase.from('estudiantes').insert({
+  // Obtener grado con precios
+  const { data: grado } = await supabase
+    .from('grados')
+    .select('id, nombre, nivel, monto_matricula, monto_mensualidad')
+    .eq('id', form.grado_id)
+    .single()
+
+  if (!grado) {
+    setError('❌ Error al obtener información del grado.')
+    setLoading(false)
+    return
+  }
+
+  // Insertar estudiante
+  const { data: estudiante, error: errEst } = await supabase
+    .from('estudiantes')
+    .insert({
       ...form,
       tipo_ingreso: 'nuevo',
       estado: 'activo',
       year_escolar: 2026,
       grado_id: form.grado_id || null,
     })
+    .select()
+    .single()
 
-    if (err) {
-      setError(`❌ Error: ${err.message}`)
-    } else {
-      setExito(true)
-    }
+  if (errEst) {
+    setError(`❌ Error: ${errEst.message}`)
     setLoading(false)
+    return
   }
+
+  // Determinar conceptos según nivel
+  const esBachillerato = grado.nivel === 'bachillerato'
+  const conceptoMatriculaId = esBachillerato ? 21 : 20
+  const conceptoMensualidadId = esBachillerato ? 24 : grado.nivel === 'secundaria' ? 23 : 22
+
+  const hoy = new Date()
+  const año = 2026
+  const cobros = []
+
+  // Cobro de matrícula
+  cobros.push({
+    estudiante_id: estudiante.id,
+    concepto_id: conceptoMatriculaId,
+    monto: grado.monto_matricula,
+    mes: 'Enero',
+    year_escolar: año,
+    estado: 'pendiente',
+    fecha_vencimiento: new Date(año, 0, 10).toISOString().split('T')[0],
+  })
+
+  // 11 mensualidades — enero a noviembre
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                 'Julio','Agosto','Septiembre','Octubre','Noviembre']
+
+  meses.forEach((mes, i) => {
+    cobros.push({
+      estudiante_id: estudiante.id,
+      concepto_id: conceptoMensualidadId,
+      monto: grado.monto_mensualidad,
+      mes,
+      year_escolar: año,
+      estado: 'pendiente',
+      fecha_vencimiento: new Date(año, i, 10).toISOString().split('T')[0],
+    })
+  })
+
+  const { error: errCobros } = await supabase.from('cobros').insert(cobros)
+
+  if (errCobros) {
+    setError(`❌ Estudiante registrado pero error al generar cobros: ${errCobros.message}`)
+    setLoading(false)
+    return
+  }
+
+  setExito(true)
+  setLoading(false)
+}
 
   const pasos = ['Datos del Alumno', 'Residencia y Familia', 'Padre y Madre', 'Emergencia y Salud']
 
