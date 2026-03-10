@@ -109,6 +109,8 @@ export default function Cobros() {
   const [ticketVisible, setTicketVisible] = useState(false)
   const [cobroSeleccionado, setCobroSeleccionado] = useState(null)
   const [guardando, setGuardando] = useState(false)
+  const [cobrosSeleccionados, setCobrosSeleccionados] = useState([])
+const [modalPagoMultiple, setModalPagoMultiple] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({
     estudiante_id: '', concepto_id: '', monto: '',
@@ -119,6 +121,7 @@ export default function Cobros() {
                  'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 
   useEffect(() => { cargarDatos() }, [])
+  useEffect(() => { setCobrosSeleccionados([]) }, [estudianteSeleccionado])
 
   async function cargarDatos() {
     setLoading(true)
@@ -126,9 +129,9 @@ export default function Cobros() {
       supabase.from('estudiantes').select('id, nombre, apellido, grado_id, grados(nombre)').eq('estado', 'activo').order('apellido'),
       supabase.from('conceptos_cobro').select('*').eq('activo', true).order('tipo'),
       supabase.from('cobros').select(`
-        *, estudiantes(nombre, apellido, grados(nombre)),
-        conceptos_cobro(nombre, tipo)
-      `).order('creado_en', { ascending: false })
+  *, estudiantes(nombre, apellido, grados(nombre)),
+  conceptos_cobro(nombre, tipo)
+`).order('fecha_vencimiento', { ascending: true })
     ])
     setEstudiantes(est || [])
     setConceptos(con || [])
@@ -234,32 +237,55 @@ export default function Cobros() {
   }
 
   async function confirmarAnulacion() {
-    if (!motivoAnulacion.trim()) {
-      toast.error('Debes ingresar un motivo para anular el cobro')
-      return
-    }
-    setGuardando(true)
-
-    await supabase.from('cobros')
-      .update({ estado: 'anulado', motivo_anulacion: motivoAnulacion })
-      .eq('id', cobroSeleccionado.id)
-
-    await supabase.from('pagos')
-      .update({ anulado: true, motivo_anulacion: motivoAnulacion })
-      .eq('cobro_id', cobroSeleccionado.id)
-
-    setModalAnulacion(false)
-    setCobroSeleccionado(null)
-    setMotivoAnulacion('')
-    toast.success('Cobro anulado correctamente')
-    cargarDatos()
-    setGuardando(false)
+  if (!motivoAnulacion.trim()) {
+    toast.error('Debes ingresar un motivo para anular el cobro')
+    return
   }
+  setGuardando(true)
 
-  function resetForm() {
-    setForm({ estudiante_id: '', concepto_id: '', monto: '', mes: '', year_escolar: new Date().getFullYear() })
-    setError('')
+  await supabase.from('cobros')
+    .update({ estado: 'anulado', motivo_anulacion: motivoAnulacion })
+    .eq('id', cobroSeleccionado.id)
+
+  await supabase.from('pagos')
+    .update({ anulado: true, motivo_anulacion: motivoAnulacion })
+    .eq('cobro_id', cobroSeleccionado.id)
+
+  setModalAnulacion(false)
+  setCobroSeleccionado(null)
+  setMotivoAnulacion('')
+  toast.success('Cobro anulado correctamente')
+  cargarDatos()
+  setGuardando(false)
+}
+
+async function registrarPagoMultiple() {
+  const cobrosAPagar = cobrosPendientesEst.filter(c => cobrosSeleccionados.includes(c.id))
+  setGuardando(true)
+  for (const cobro of cobrosAPagar) {
+    const tieneMora = cobro.conceptos_cobro?.tipo === 'mensualidad' && hayMora(cobro.mes, cobro.year_escolar)
+    const monto = tieneMora ? parseFloat((parseFloat(cobro.monto) * 1.25).toFixed(2)) : parseFloat(cobro.monto)
+    await supabase.from('pagos').insert({
+      cobro_id: cobro.id,
+      estudiante_id: cobro.estudiante_id,
+      monto_pagado: monto,
+      metodo: 'presencial',
+      recibido_por: perfil.id,
+      fecha_pago: new Date().toISOString()
+    })
+    await supabase.from('cobros').update({ estado: 'pagado', monto }).eq('id', cobro.id)
   }
+  setModalPagoMultiple(false)
+  setCobrosSeleccionados([])
+  toast.success(`${cobrosAPagar.length} cobro(s) registrados exitosamente`)
+  await cargarDatos()
+  setGuardando(false)
+}
+
+function resetForm() {
+  setForm({ estudiante_id: '', concepto_id: '', monto: '', mes: '', year_escolar: new Date().getFullYear() })
+  setError('')
+}
 
   function abrirNuevoCobro() {
     resetForm()
@@ -392,55 +418,101 @@ export default function Cobros() {
 
           {/* Cobros pendientes */}
           {cobrosPendientesEst.length > 0 && (
-            <div style={{ marginBottom: 20 }}>
-              <h3 style={{ color: '#5B2D8E', fontSize: 14, fontWeight: 800, marginBottom: 10 }}>Cobros pendientes ({cobrosPendientesEst.length})</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {cobrosPendientesEst.map(c => {
-                  const vencido = c.fecha_vencimiento && new Date(c.fecha_vencimiento) < new Date()
-                  return (
-                    <div key={c.id} style={{
-                      background: '#fff', borderRadius: 12, padding: '16px 20px',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                      borderLeft: `4px solid ${vencido ? '#ef4444' : '#f59e0b'}`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: '#333', marginBottom: 4 }}>
-                          {c.conceptos_cobro?.nombre}
-                        </div>
-                        <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#888' }}>
-                          {c.mes && <span>{c.mes} {c.year_escolar}</span>}
-                          {c.fecha_vencimiento && (
-                            <span style={{ color: vencido ? '#dc2626' : '#888' }}>
-                              Vence: {new Date(c.fecha_vencimiento + 'T12:00:00').toLocaleDateString('es-SV')}
-                              {vencido && ' (vencido)'}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{ fontSize: 18, fontWeight: 900, color: '#3d1f61', marginRight: 8 }}>
-                          ${parseFloat(c.monto).toFixed(2)}
-                        </div>
-                        <button onClick={() => iniciarPago(c)} style={s.btnPagar}>Pagar</button>
-                        {!esRecepcion && (
-                          <button onClick={() => iniciarAnulacion(c)} style={s.btnAnular}>Anular</button>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
+  <div style={{ marginBottom: 20 }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+      <h3 style={{ color: '#5B2D8E', fontSize: 14, fontWeight: 800 }}>
+        Cobros pendientes ({cobrosPendientesEst.length})
+      </h3>
+      <button
+        onClick={() => {
+          if (cobrosSeleccionados.length === cobrosPendientesEst.length) {
+            setCobrosSeleccionados([])
+          } else {
+            setCobrosSeleccionados(cobrosPendientesEst.map(c => c.id))
+          }
+        }}
+        style={{ fontSize: 12, color: '#5B2D8E', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}>
+        {cobrosSeleccionados.length === cobrosPendientesEst.length ? 'Deseleccionar todos' : 'Seleccionar todos'}
+      </button>
+    </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {cobrosPendientesEst.map(c => {
+        const vencido = c.fecha_vencimiento && new Date(c.fecha_vencimiento) < new Date()
+        const seleccionado = cobrosSeleccionados.includes(c.id)
+        return (
+          <div key={c.id} onClick={() => setCobrosSeleccionados(prev =>
+            prev.includes(c.id) ? prev.filter(id => id !== c.id) : [...prev, c.id]
+          )} style={{
+            background: seleccionado ? '#f3eeff' : '#fff',
+            borderRadius: 12, padding: '16px 20px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+            borderLeft: `4px solid ${seleccionado ? '#5B2D8E' : vencido ? '#ef4444' : '#f59e0b'}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            cursor: 'pointer', transition: 'all 0.15s'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
+              <div style={{
+                width: 20, height: 20, borderRadius: 6, border: `2px solid ${seleccionado ? '#5B2D8E' : '#ddd'}`,
+                background: seleccionado ? '#5B2D8E' : '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+              }}>
+                {seleccionado && <span style={{ color: '#fff', fontSize: 12, fontWeight: 900 }}>✓</span>}
+              </div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#333', marginBottom: 4 }}>
+                  {c.conceptos_cobro?.nombre}
+                </div>
+                <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#888' }}>
+                  {c.mes && <span>{c.mes} {c.year_escolar}</span>}
+                  {c.fecha_vencimiento && (
+                    <span style={{ color: vencido ? '#dc2626' : '#888' }}>
+                      Vence: {new Date(c.fecha_vencimiento + 'T12:00:00').toLocaleDateString('es-SV')}
+                      {vencido && ' ⚠ vencido'}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
-          )}
-
-          {cobrosPendientesEst.length === 0 && (
-            <div style={{ background: '#f0fdf4', borderRadius: 12, padding: '24px', textAlign: 'center', marginBottom: 20, border: '1px solid #bbf7d0' }}>
-              <div style={{ fontSize: 32, marginBottom: 8 }}>&#10003;</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#16a34a' }}>Sin cobros pendientes</div>
-              <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>Este estudiante no tiene cobros por pagar</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ fontSize: 18, fontWeight: 900, color: '#3d1f61', marginRight: 8 }}>
+                ${parseFloat(c.monto).toFixed(2)}
+              </div>
+              <button onClick={e => { e.stopPropagation(); iniciarPago(c) }} style={s.btnPagar}>Pagar</button>
+              {!esRecepcion && (
+                <button onClick={e => { e.stopPropagation(); iniciarAnulacion(c) }} style={s.btnAnular}>Anular</button>
+              )}
             </div>
-          )}
+          </div>
+        )
+      })}
+    </div>
+
+    {/* Barra flotante de pago múltiple */}
+    {cobrosSeleccionados.length > 1 && (
+      <div style={{
+        position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
+        background: 'linear-gradient(135deg, #3d1f61, #5B2D8E)',
+        borderRadius: 16, padding: '14px 24px', display: 'flex', alignItems: 'center',
+        gap: 20, boxShadow: '0 8px 32px rgba(61,31,97,0.4)', zIndex: 50, minWidth: 340
+      }}>
+        <div>
+          <div style={{ color: '#d4b8ff', fontSize: 11, fontWeight: 600 }}>
+            {cobrosSeleccionados.length} cobros seleccionados
+          </div>
+          <div style={{ color: '#fff', fontSize: 20, fontWeight: 900 }}>
+            ${cobrosPendientesEst.filter(c => cobrosSeleccionados.includes(c.id))
+              .reduce((a, c) => a + parseFloat(c.monto), 0).toFixed(2)}
+          </div>
+        </div>
+        <button
+          onClick={() => setModalPagoMultiple(true)}
+          style={{ padding: '10px 20px', borderRadius: 10, border: 'none', background: '#D4A017', color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
+          Pagar seleccionados
+        </button>
+      </div>
+    )}
+  </div>
+)}
 
           {/* Historial */}
           {cobrosHistorialEst.length > 0 && (
@@ -779,6 +851,46 @@ export default function Cobros() {
           </div>
         </div>
       )}
+
+{/* Modal pago múltiple */}
+{modalPagoMultiple && (
+  <div style={s.modalBg} onClick={() => setModalPagoMultiple(false)}>
+    <div style={{ ...s.modalBox, maxWidth: 440 }} onClick={e => e.stopPropagation()}>
+      <h2 style={s.modalTitle}>Confirmar pago múltiple</h2>
+      <div style={{ background: '#f8faff', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+        {cobrosPendientesEst.filter(c => cobrosSeleccionados.includes(c.id)).map(c => {
+          const tieneMora = c.conceptos_cobro?.tipo === 'mensualidad' && hayMora(c.mes, c.year_escolar)
+          const monto = tieneMora ? parseFloat(c.monto) * 1.25 : parseFloat(c.monto)
+          return (
+            <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0eeff', fontSize: 13 }}>
+              <span style={{ color: '#555' }}>
+                {c.conceptos_cobro?.nombre} {c.mes ? `— ${c.mes}` : ''}
+                {tieneMora && <span style={{ color: '#dc2626', fontSize: 11 }}> +mora</span>}
+              </span>
+              <b style={{ color: '#3d1f61' }}>${monto.toFixed(2)}</b>
+            </div>
+          )
+        })}
+        <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 12, fontSize: 16, fontWeight: 900 }}>
+          <span style={{ color: '#3d1f61' }}>Total</span>
+          <span style={{ color: '#16a34a' }}>
+            ${cobrosPendientesEst.filter(c => cobrosSeleccionados.includes(c.id))
+              .reduce((a, c) => {
+                const tieneMora = c.conceptos_cobro?.tipo === 'mensualidad' && hayMora(c.mes, c.year_escolar)
+                return a + (tieneMora ? parseFloat(c.monto) * 1.25 : parseFloat(c.monto))
+              }, 0).toFixed(2)}
+          </span>
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+        <button onClick={() => setModalPagoMultiple(false)} style={s.btnSecondary}>Cancelar</button>
+        <button onClick={registrarPagoMultiple} style={s.btnPrimary} disabled={guardando}>
+          {guardando ? 'Registrando...' : 'Confirmar pago'}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       {/* Ticket térmico */}
       {ticketVisible && cobroSeleccionado && (
