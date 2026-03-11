@@ -41,13 +41,22 @@ export default function Configuracion() {
   const [yearEscolar, setYearEscolar] = useState(new Date().getFullYear())
   const [guardandoYear, setGuardandoYear] = useState(false)
 
-  const niveles = ['inicial', 'primaria', 'secundaria', 'bachillerato']
+  const niveles = ['primera_infancia', 'primaria', 'secundaria', 'bachillerato']
+
+  const nivelLabel = {
+    primera_infancia: 'Primera Infancia',
+    inicial:          'Primera Infancia',
+    primaria:         'Primaria',
+    secundaria:       'Secundaria',
+    bachillerato:     'Bachillerato',
+  }
 
   const nivelColor = {
-    inicial:     { bg: '#fdf4ff', color: '#7e22ce' },
-    primaria:    { bg: '#f3eeff', color: '#5B2D8E' },
-    secundaria:  { bg: '#f0fdf4', color: '#166534' },
-    bachillerato:{ bg: '#fef3c7', color: '#92400e' },
+    primera_infancia: { bg: '#fdf4ff', color: '#7e22ce' },
+    inicial:          { bg: '#fdf4ff', color: '#7e22ce' },
+    primaria:         { bg: '#f3eeff', color: '#5B2D8E' },
+    secundaria:       { bg: '#f0fdf4', color: '#166534' },
+    bachillerato:     { bg: '#fef3c7', color: '#92400e' },
   }
 
   useEffect(() => { cargarDatos() }, [])
@@ -165,8 +174,8 @@ export default function Configuracion() {
                     <span style={{ fontWeight: 700, color: '#3d1f61', fontSize: 13 }}>{g.nombre}</span>
                   </td>
                   <td style={s.td}>
-                    <span style={{ ...s.badge, background: nivelColor[g.nivel]?.bg, color: nivelColor[g.nivel]?.color, textTransform: 'capitalize' }}>
-                      {g.nivel}
+                    <span style={{ ...s.badge, background: nivelColor[g.nivel]?.bg || '#f3f4f6', color: nivelColor[g.nivel]?.color || '#6b7280' }}>
+                      {nivelLabel[g.nivel] || g.nivel}
                     </span>
                   </td>
                   <td style={s.td}>
@@ -204,7 +213,7 @@ export default function Configuracion() {
               <div style={s.field}>
                 <label style={s.label}>Nivel *</label>
                 <select style={s.input} value={form.nivel} onChange={e => setForm({ ...form, nivel: e.target.value })}>
-                  {niveles.map(n => (<option key={n} value={n}>{n.charAt(0).toUpperCase() + n.slice(1)}</option>))}
+                  {niveles.map(n => (<option key={n} value={n}>{nivelLabel[n]}</option>))}
                 </select>
               </div>
               <div style={s.field}><label style={s.label}>Orden *</label><input style={s.input} type="number" value={form.orden} onChange={e => setForm({ ...form, orden: e.target.value })} placeholder="1, 2, 3..." /></div>
