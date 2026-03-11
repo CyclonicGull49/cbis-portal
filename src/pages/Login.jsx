@@ -80,53 +80,48 @@ export default function Login() {
         }
 
         .brand-logo {
-          width: 68px;
-          height: 68px;
-          border-radius: 18px;
+          width: 76px;
+          height: 76px;
+          border-radius: 20px;
           object-fit: cover;
           box-shadow: 0 10px 32px rgba(0,0,0,0.45);
         }
 
         .brand-name {
-          font-size: 32px;
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          font-size: 40px;
           font-weight: 800;
           color: #fff;
-          letter-spacing: -1px;
+          letter-spacing: -1.5px;
           line-height: 1;
         }
 
-        .brand-sub {
-          font-size: 11px;
-          color: rgba(255,255,255,0.4);
-          font-weight: 500;
-          letter-spacing: 0.2px;
-          margin-top: 5px;
+        .left-headline {
+          margin-top: 64px;
         }
 
-        .left-headline {
-          margin-top: 72px;
+        .slogan-block {
+          margin-bottom: 32px;
+        }
+
+        .slogan-block p {
+          font-size: 54px;
+          font-weight: 800;
+          color: #fff;
+          line-height: 1.12;
+          letter-spacing: -2px;
+        }
+
+        .slogan-block p span {
+          color: #D4A017;
         }
 
         .stat-pills {
           display: flex;
           gap: 10px;
           flex-wrap: wrap;
-        }
-
-        .slogan-block {
-          margin: 32px 0 0;
-        }
-
-        .slogan-block p {
-          font-size: 28px;
-          font-weight: 800;
-          color: #fff;
-          line-height: 1.25;
-          letter-spacing: -0.5px;
-        }
-
-        .slogan-block p span {
-          color: #D4A017;
         }
 
         .stat-pill {
@@ -384,19 +379,26 @@ export default function Login() {
           <div className="login-left-content">
             <div className="brand-mark">
               <img src="/logo.png" alt="CBIS" className="brand-logo" />
-              <div className="brand-name">CBIS+</div>
+              <div className="brand-name">
+                CBIS
+                {/* Plus SVG — cruz con esquinas redondeadas en dorado */}
+                <svg className="brand-plus" width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="11" y="2" width="6" height="24" rx="3" fill="#D4A017"/>
+                  <rect x="2" y="11" width="24" height="6" rx="3" fill="#D4A017"/>
+                </svg>
+              </div>
             </div>
 
             <div className="left-headline">
+              <div className="slogan-block">
+                <p>Fe, Cultura,<br/>Innovación <span>&</span><br/>Disciplina.</p>
+              </div>
+
               <div className="stat-pills">
                 <div className="stat-pill">Matrículas <strong>automatizadas</strong></div>
                 <div className="stat-pill">Estados de <strong>cuenta</strong></div>
                 <div className="stat-pill">Pagos en <strong>línea</strong></div>
                 <div className="stat-pill"><strong>Y más</strong></div>
-              </div>
-
-              <div className="slogan-block">
-                <p>Fe, Cultura,<br/>Innovación <span>&</span><br/>Disciplina.</p>
               </div>
             </div>
           </div>
@@ -436,8 +438,6 @@ export default function Login() {
 
             {/* Redes sociales */}
             <div className="social-row">
-              <span className="social-label">Hagamos comunidad</span>
-
               {/* Facebook */}
               <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="social-link" title="Facebook">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
