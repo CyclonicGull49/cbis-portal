@@ -130,56 +130,70 @@ export default function PerfilAlumno({ defaultTab = 'perfil' }) {
       <div style={{
         background: 'linear-gradient(135deg, #1a0d30, #3d1f61)',
         borderRadius: 20, padding: '28px 32px', marginBottom: 24,
-        display: 'flex', alignItems: 'center', gap: 24, position: 'relative', overflow: 'hidden',
+        position: 'relative', overflow: 'hidden',
       }}>
         {/* Grid decorativo */}
         <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)', backgroundSize: '32px 32px', borderRadius: 20 }} />
 
-        {/* Avatar */}
-        <div style={{
-          width: 72, height: 72, borderRadius: '50%', flexShrink: 0,
-          background: 'linear-gradient(135deg, #D4A017, #b8860b)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#fff', fontWeight: 900, fontSize: 26,
-          boxShadow: '0 8px 24px rgba(0,0,0,0.3)', position: 'relative', zIndex: 1,
-        }}>
-          {estudiante.nombre?.charAt(0)}{estudiante.apellido?.charAt(0)}
-        </div>
-
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px', marginBottom: 4 }}>
-            {estudiante.nombre} {estudiante.apellido}
+        {/* Fila superior: avatar + nombre + grado */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 20, position: 'relative', zIndex: 1 }}>
+          <div style={{
+            width: 64, height: 64, borderRadius: '50%', flexShrink: 0,
+            background: 'linear-gradient(135deg, #D4A017, #b8860b)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#fff', fontWeight: 900, fontSize: 22,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+          }}>
+            {estudiante.nombre?.charAt(0)}{estudiante.apellido?.charAt(0)}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <span style={{ ...nivel, padding: '3px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>
-              {estudiante.grados?.nombre}
-            </span>
-            {estudiante.nie && (
-              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>
-                NIE: {estudiante.nie}
+          <div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px', marginBottom: 6 }}>
+              {estudiante.nombre} {estudiante.apellido}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ ...nivel, padding: '3px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>
+                {estudiante.grados?.nombre}
               </span>
-            )}
+              {estudiante.nie && (
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>
+                  NIE: {estudiante.nie}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* KPIs rápidos */}
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 16, position: 'relative', zIndex: 1 }}>
-          {cobrosVenc.length > 0 && (
-            <div style={{ background: 'rgba(220,38,38,0.2)', border: '1px solid rgba(220,38,38,0.4)', borderRadius: 12, padding: '10px 16px', textAlign: 'center' }}>
-              <div style={{ fontSize: 20, fontWeight: 900, color: '#fca5a5' }}>{cobrosVenc.length}</div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Vencido{cobrosVenc.length !== 1 ? 's' : ''}</div>
+        {/* KPIs clickeables */}
+        <div style={{ display: 'flex', gap: 12, position: 'relative', zIndex: 1 }}>
+          {/* Cobros pendientes */}
+          <button onClick={() => setTab('cobros')} style={{
+            flex: 1, background: cobrosVenc.length > 0 ? 'rgba(220,38,38,0.15)' : 'rgba(255,255,255,0.08)',
+            border: cobrosVenc.length > 0 ? '1px solid rgba(220,38,38,0.4)' : '1px solid rgba(255,255,255,0.12)',
+            borderRadius: 14, padding: '14px 20px', cursor: 'pointer', textAlign: 'left',
+            fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', transition: 'all 0.15s',
+          }}>
+            <div style={{ fontSize: 24, fontWeight: 900, color: cobrosVenc.length > 0 ? '#fca5a5' : '#fff', lineHeight: 1 }}>
+              ${totalPend.toFixed(0)}
             </div>
-          )}
-          {cobrosPend.length > 0 && (
-            <div style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 16px', textAlign: 'center' }}>
-              <div style={{ fontSize: 20, fontWeight: 900, color: '#fff' }}>${totalPend.toFixed(0)}</div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Pendiente</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: 4 }}>
+              {cobrosVenc.length > 0 ? `${cobrosVenc.length} vencido${cobrosVenc.length !== 1 ? 's' : ''}` : `${cobrosPend.length} pendiente${cobrosPend.length !== 1 ? 's' : ''}`}
             </div>
-          )}
-          <div style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 16px', textAlign: 'center' }}>
-            <div style={{ fontSize: 20, fontWeight: 900, color: '#fff' }}>{docsSubidos}/{tiposDoc.length}</div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Documentos</div>
-          </div>
+          </button>
+
+          {/* Documentos */}
+          <button onClick={() => setTab('docs')} style={{
+            flex: 1, background: 'rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: 14, padding: '14px 20px', cursor: 'pointer', textAlign: 'left',
+            fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', transition: 'all 0.15s',
+          }}>
+            <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', lineHeight: 1 }}>
+              {docsSubidos}<span style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>/{tiposDoc.length}</span>
+            </div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: 4 }}>
+              Documentos
+            </div>
+          </button>
         </div>
       </div>
 
