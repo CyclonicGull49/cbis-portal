@@ -274,6 +274,259 @@ const ds = {
 
 // ─────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────
+
+const IcoPermiso = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+    <polyline points="14 2 14 8 20 8"/>
+    <line x1="16" y1="13" x2="8" y2="13"/>
+    <line x1="16" y1="17" x2="8" y2="17"/>
+    <polyline points="10 9 9 9 8 9"/>
+  </svg>
+)
+const IcoMedico = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+  </svg>
+)
+const IcoPlus = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+  </svg>
+)
+
+const TIPO_PERMISO = {
+  medico:    { label: 'Médico',          bg: '#fef2f2', color: '#dc2626' },
+  familiar:  { label: 'Familiar',        bg: '#fff7ed', color: '#c2410c' },
+  academico: { label: 'Académico',       bg: '#f0fdf4', color: '#16a34a' },
+  otro:      { label: 'Otro',            bg: '#faf8ff', color: '#5B2D8E' },
+}
+
+function TabPermisos({ estudiante, perfil }) {
+  const [permisos, setPermisos]   = useState([])
+  const [loading, setLoading]     = useState(true)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [guardando, setGuardando] = useState(false)
+  const [subiendo, setSubiendo]   = useState(false)
+  const [form, setForm]           = useState({ fecha: '', motivo: '', tipo: 'otro' })
+  const [archivo, setArchivo]     = useState(null)
+
+  const puedeRegistrar = ['admin', 'docente', 'recepcion', 'registro_academico'].includes(perfil?.rol)
+
+  useEffect(() => { cargarPermisos() }, [estudiante.id])
+
+  async function cargarPermisos() {
+    setLoading(true)
+    const { data } = await supabase
+      .from('permisos_estudiante')
+      .select('*, perfiles(nombre, apellido)')
+      .eq('estudiante_id', estudiante.id)
+      .order('fecha', { ascending: false })
+    setPermisos(data || [])
+    setLoading(false)
+  }
+
+  async function guardarPermiso() {
+    if (!form.fecha || !form.motivo) { toast.error('Fecha y motivo son obligatorios'); return }
+    setGuardando(true)
+
+    let storage_path = null
+    let comprobante_url = null
+
+    // Subir comprobante si hay archivo
+    if (archivo) {
+      setSubiendo(true)
+      const ext  = archivo.name.split('.').pop().toLowerCase()
+      const path = `${estudiante.id}/permisos/${Date.now()}.${ext}`
+      const { error: upErr } = await supabase.storage
+        .from('documentos-estudiantes')
+        .upload(path, archivo, { upsert: false })
+      if (!upErr) {
+        const { data: signed } = await supabase.storage
+          .from('documentos-estudiantes')
+          .createSignedUrl(path, 60 * 60 * 24 * 365 * 5)
+        storage_path    = path
+        comprobante_url = signed?.signedUrl || null
+      }
+      setSubiendo(false)
+    }
+
+    const { error } = await supabase.from('permisos_estudiante').insert({
+      estudiante_id:   estudiante.id,
+      fecha:           form.fecha,
+      motivo:          form.motivo,
+      tipo:            form.tipo,
+      storage_path,
+      comprobante_url,
+      registrado_por:  perfil?.id,
+    })
+
+    if (error) { toast.error('Error al guardar'); setGuardando(false); return }
+
+    toast.success('Permiso registrado')
+    setModalOpen(false)
+    setForm({ fecha: '', motivo: '', tipo: 'otro' })
+    setArchivo(null)
+    cargarPermisos()
+    setGuardando(false)
+  }
+
+  async function verComprobante(permiso) {
+    const { data } = await supabase.storage
+      .from('documentos-estudiantes')
+      .createSignedUrl(permiso.storage_path, 60 * 60)
+    if (data?.signedUrl) window.open(data.signedUrl, '_blank')
+    else toast.error('No se pudo abrir el comprobante')
+  }
+
+  return (
+    <div>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 800, color: '#3d1f61' }}>Permisos y ausencias</div>
+          <div style={{ fontSize: 11, color: '#b0a8c0', fontWeight: 500, marginTop: 2 }}>
+            {permisos.length} permiso{permisos.length !== 1 ? 's' : ''} registrado{permisos.length !== 1 ? 's' : ''}
+          </div>
+        </div>
+        {puedeRegistrar && (
+          <button onClick={() => setModalOpen(true)} style={ps.btnPrimary}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <IcoPlus /> Registrar permiso
+            </span>
+          </button>
+        )}
+      </div>
+
+      {/* Lista */}
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: 32, color: '#b0a8c0', fontSize: 13 }}>Cargando...</div>
+      ) : permisos.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: 40, background: '#faf8ff', borderRadius: 12 }}>
+          <div style={{ color: '#d8c8f0', marginBottom: 10 }}><IcoPermiso /></div>
+          <div style={{ fontSize: 13, color: '#b0a8c0', fontWeight: 600 }}>Sin permisos registrados</div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {permisos.map(p => {
+            const tipo = TIPO_PERMISO[p.tipo] || TIPO_PERMISO.otro
+            return (
+              <div key={p.id} style={{
+                background: '#fff', borderRadius: 12, padding: '14px 16px',
+                border: '1px solid #f0ecf8', display: 'flex', gap: 14, alignItems: 'flex-start',
+              }}>
+                {/* Fecha */}
+                <div style={{ background: '#f3eeff', borderRadius: 10, padding: '8px 12px', textAlign: 'center', flexShrink: 0, minWidth: 52 }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#3d1f61', lineHeight: 1 }}>
+                    {new Date(p.fecha + 'T12:00:00').getDate()}
+                  </div>
+                  <div style={{ fontSize: 10, color: '#b0a8c0', fontWeight: 600, textTransform: 'uppercase' }}>
+                    {new Date(p.fecha + 'T12:00:00').toLocaleDateString('es-SV', { month: 'short' })}
+                  </div>
+                </div>
+
+                {/* Contenido */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+                    <span style={{ ...ps.badge, background: tipo.bg, color: tipo.color }}>
+                      {tipo.label}
+                    </span>
+                    {p.storage_path && (
+                      <span style={{ ...ps.badge, background: '#f0fdf4', color: '#16a34a', cursor: 'pointer' }}
+                        onClick={() => verComprobante(p)}>
+                        <IcoMedico /> Comprobante
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 13, color: '#374151', fontWeight: 600, lineHeight: 1.5 }}>{p.motivo}</div>
+                  {p.perfiles && (
+                    <div style={{ fontSize: 11, color: '#b0a8c0', marginTop: 4, fontWeight: 500 }}>
+                      Registrado por {p.perfiles.nombre} {p.perfiles.apellido}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Modal nuevo permiso */}
+      {modalOpen && (
+        <div style={s.modalBg} onClick={() => setModalOpen(false)}>
+          <div style={{ ...s.modalBox, maxWidth: 460 }} onClick={e => e.stopPropagation()}>
+            <h2 style={s.modalTitle}>Registrar permiso</h2>
+
+            <div style={s.grid2}>
+              <div style={s.field}>
+                <label style={s.label}>Fecha *</label>
+                <input type="date" style={s.input}
+                  value={form.fecha}
+                  onChange={e => setForm({ ...form, fecha: e.target.value })} />
+              </div>
+              <div style={s.field}>
+                <label style={s.label}>Tipo *</label>
+                <select style={s.input} value={form.tipo} onChange={e => setForm({ ...form, tipo: e.target.value })}>
+                  {Object.entries(TIPO_PERMISO).map(([k, v]) => (
+                    <option key={k} value={k}>{v.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div style={s.field}>
+              <label style={s.label}>Motivo *</label>
+              <textarea style={{ ...s.input, minHeight: 80, resize: 'vertical' }}
+                value={form.motivo}
+                onChange={e => setForm({ ...form, motivo: e.target.value })}
+                placeholder="Describe el motivo de la ausencia..." />
+            </div>
+
+            {/* Comprobante — solo si tipo médico */}
+            {form.tipo === 'medico' && (
+              <div style={s.field}>
+                <label style={s.label}>Comprobante médico</label>
+                <label style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '10px 14px', borderRadius: 10, border: '1.5px dashed #d8c8f0',
+                  background: '#faf8ff', cursor: 'pointer', fontSize: 13, color: '#5B2D8E', fontWeight: 600,
+                }}>
+                  <IcoUpload />
+                  {archivo ? archivo.name : 'Adjuntar PDF o imagen'}
+                  <input type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display: 'none' }}
+                    onChange={e => setArchivo(e.target.files[0] || null)} />
+                </label>
+                {archivo && (
+                  <button onClick={() => setArchivo(null)}
+                    style={{ marginTop: 6, fontSize: 11, color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
+                    Quitar archivo
+                  </button>
+                )}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
+              <button onClick={() => { setModalOpen(false); setForm({ fecha: '', motivo: '', tipo: 'otro' }); setArchivo(null) }}
+                style={s.btnSecondary}>Cancelar</button>
+              <button onClick={guardarPermiso} style={s.btnPrimary} disabled={guardando || subiendo}>
+                {subiendo ? 'Subiendo...' : guardando ? 'Guardando...' : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+const ps = {
+  btnPrimary: { padding: '8px 16px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #5B2D8E, #3d1f61)', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' },
+  badge: { display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700 },
+}
+
+// ─────────────────────────────────────────────────────────────
+
 function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion, perfil }) {
   const [tab, setTab] = useState(0)
   const [modalCorreo, setModalCorreo] = useState(false)
@@ -286,8 +539,8 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion, perfil }) {
   const esAdmin    = perfil?.rol === 'admin'
 
   const tabs = esRecepcion
-    ? ['General', 'Familia', 'Salud', 'Documentos']
-    : ['General', 'Familia', 'Salud', 'Documentos', 'Acciones']
+    ? ['General', 'Familia', 'Salud', 'Documentos', 'Permisos']
+    : ['General', 'Familia', 'Salud', 'Documentos', 'Permisos', 'Acciones']
 
   const Dato = ({ label, val }) => (
     <div style={{ marginBottom: 12 }}>
@@ -409,7 +662,11 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion, perfil }) {
         <TabDocumentos estudiante={estudiante} puedeSubir={puedeSubir} esAdmin={esAdmin} />
       )}
 
-      {tab === 4 && !esRecepcion && (
+      {tab === 4 && (
+        <TabPermisos estudiante={estudiante} perfil={perfil} />
+      )}
+
+      {tab === 5 && !esRecepcion && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <button onClick={() => { setNuevoCorreo(estudiante.correo_institucional || ''); setModalCorreo(true) }}
             style={{ padding: '12px 18px', borderRadius: 10, border: '1.5px solid #e0d6f0', background: '#faf8ff', color: '#5B2D8E', fontWeight: 700, fontSize: 13, cursor: 'pointer', textAlign: 'left', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>

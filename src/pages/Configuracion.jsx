@@ -28,18 +28,36 @@ const IcoGrados = () => (
     <path d="M6 12v5c3 3 9 3 12 0v-5"/>
   </svg>
 )
+const IcoBook = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+  </svg>
+)
+const IcoClose = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+  </svg>
+)
 
 export default function Configuracion() {
-  const [grados, setGrados] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [modalGrado, setModalGrado] = useState(false)
+  const [grados, setGrados]           = useState([])
+  const [loading, setLoading]         = useState(true)
+  const [modalGrado, setModalGrado]   = useState(false)
   const [modalEliminar, setModalEliminar] = useState(null)
-  const [guardando, setGuardando] = useState(false)
-  const [error, setError] = useState('')
-  const [editando, setEditando] = useState(null)
-  const [form, setForm] = useState({ nombre: '', nivel: 'primaria', orden: '', monto_matricula: '', monto_mensualidad: '' })
+  const [guardando, setGuardando]     = useState(false)
+  const [error, setError]             = useState('')
+  const [editando, setEditando]       = useState(null)
+  const [form, setForm]               = useState({ nombre: '', nivel: 'primaria', orden: '', monto_matricula: '', monto_mensualidad: '' })
   const [yearEscolar, setYearEscolar] = useState(new Date().getFullYear())
   const [guardandoYear, setGuardandoYear] = useState(false)
+
+  // Materias por grado
+  const [panelMaterias, setPanelMaterias]       = useState(null)  // grado seleccionado
+  const [todasMaterias, setTodasMaterias]       = useState([])
+  const [materiasGrado, setMateriasGrado]       = useState([])    // ids asignados al grado
+  const [guardandoMaterias, setGuardandoMaterias] = useState(false)
+  const [buscarMateria, setBuscarMateria]       = useState('')
 
   const niveles = ['primera_infancia', 'primaria', 'secundaria', 'bachillerato']
 
@@ -52,40 +70,87 @@ export default function Configuracion() {
   }
 
   const nivelColor = {
-    primera_infancia: { bg: '#fdf4ff', color: '#7e22ce' },
-    inicial:          { bg: '#fdf4ff', color: '#7e22ce' },
-    primaria:         { bg: '#f3eeff', color: '#5B2D8E' },
-    secundaria:       { bg: '#f0fdf4', color: '#166534' },
-    bachillerato:     { bg: '#fef3c7', color: '#92400e' },
+    primera_infancia: { bg: '#e0f7f6', color: '#0e9490' },
+    inicial:          { bg: '#e0f7f6', color: '#0e9490' },
+    primaria:         { bg: '#fef9c3', color: '#a16207' },
+    secundaria:       { bg: '#fff0e6', color: '#c2410c' },
+    bachillerato:     { bg: '#f3eeff', color: '#5B2D8E' },
   }
 
   useEffect(() => { cargarDatos() }, [])
 
   async function cargarDatos() {
     setLoading(true)
-    const [{ data: gra }, { data: config }] = await Promise.all([
+    const [{ data: gra }, { data: config }, { data: mats }] = await Promise.all([
       supabase.from('grados').select('*').order('orden', { ascending: true }),
-      supabase.from('configuracion').select('valor').eq('clave', 'year_escolar_activo').single()
+      supabase.from('configuracion').select('valor').eq('clave', 'year_escolar_activo').single(),
+      supabase.from('materias').select('*').order('nombre', { ascending: true }),
     ])
     setGrados(gra || [])
     if (config?.valor) setYearEscolar(parseInt(config.valor))
+    setTodasMaterias(mats || [])
     setLoading(false)
+  }
+
+  async function abrirPanelMaterias(grado) {
+    setPanelMaterias(grado)
+    setBuscarMateria('')
+    const { data } = await supabase
+      .from('materia_grado')
+      .select('materia_id')
+      .eq('grado_id', grado.id)
+    setMateriasGrado(data?.map(d => d.materia_id) || [])
+  }
+
+  async function guardarMaterias() {
+    setGuardandoMaterias(true)
+
+    // Obtener asignaciones actuales
+    const { data: actuales } = await supabase
+      .from('materia_grado')
+      .select('materia_id')
+      .eq('grado_id', panelMaterias.id)
+    const actualesIds = actuales?.map(d => d.materia_id) || []
+
+    const agregar  = materiasGrado.filter(id => !actualesIds.includes(id))
+    const eliminar = actualesIds.filter(id => !materiasGrado.includes(id))
+
+    if (agregar.length > 0) {
+      await supabase.from('materia_grado').insert(
+        agregar.map(materia_id => ({ grado_id: panelMaterias.id, materia_id }))
+      )
+    }
+    if (eliminar.length > 0) {
+      await supabase.from('materia_grado')
+        .delete()
+        .eq('grado_id', panelMaterias.id)
+        .in('materia_id', eliminar)
+    }
+
+    toast.success(`Materias de ${panelMaterias.nombre} actualizadas`)
+    setGuardandoMaterias(false)
+    setPanelMaterias(null)
+  }
+
+  function toggleMateria(id) {
+    setMateriasGrado(prev =>
+      prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]
+    )
   }
 
   async function guardarGrado() {
     if (!form.nombre || !form.nivel || !form.orden) { setError('Nombre, nivel y orden son obligatorios'); return }
     setGuardando(true); setError('')
     const payload = {
-      nombre: form.nombre,
-      nivel: form.nivel,
-      orden: parseInt(form.orden),
-      monto_matricula: form.monto_matricula ? parseFloat(form.monto_matricula) : null,
+      nombre: form.nombre, nivel: form.nivel, orden: parseInt(form.orden),
+      monto_matricula:   form.monto_matricula   ? parseFloat(form.monto_matricula)   : null,
       monto_mensualidad: form.monto_mensualidad ? parseFloat(form.monto_mensualidad) : null,
     }
     if (editando) { await supabase.from('grados').update(payload).eq('id', editando.id) }
-    else { await supabase.from('grados').insert([payload]) }
+    else          { await supabase.from('grados').insert([payload]) }
     setModalGrado(false); setEditando(null); resetForm()
-    toast.success(editando ? 'Grado actualizado' : 'Grado creado'); cargarDatos(); setGuardando(false)
+    toast.success(editando ? 'Grado actualizado' : 'Grado creado')
+    cargarDatos(); setGuardando(false)
   }
 
   async function eliminarGrado(grado) {
@@ -101,11 +166,15 @@ export default function Configuracion() {
 
   function resetForm() { setForm({ nombre: '', nivel: 'primaria', orden: '', monto_matricula: '', monto_mensualidad: '' }); setError('') }
 
+  const materiasFiltradas = todasMaterias.filter(m =>
+    m.nombre.toLowerCase().includes(buscarMateria.toLowerCase())
+  )
+
   return (
     <div style={{ fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ color: '#3d1f61', fontSize: 22, fontWeight: 800, marginBottom: 4, letterSpacing: '-0.5px' }}>Configuración</h1>
-        <p style={{ color: '#b0a8c0', fontSize: 13, fontWeight: 500 }}>Gestión de grados y año escolar</p>
+        <p style={{ color: '#b0a8c0', fontSize: 13, fontWeight: 500 }}>Gestión de grados, materias y año escolar</p>
       </div>
 
       {/* Año escolar */}
@@ -118,20 +187,14 @@ export default function Configuracion() {
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <input
-            style={{ ...s.input, maxWidth: 130, fontWeight: 800, fontSize: 18, textAlign: 'center', color: '#3d1f61' }}
-            type="number"
-            value={yearEscolar}
-            onChange={e => setYearEscolar(parseInt(e.target.value))}
-          />
+          <input style={{ ...s.input, maxWidth: 130, fontWeight: 800, fontSize: 18, textAlign: 'center', color: '#3d1f61' }}
+            type="number" value={yearEscolar} onChange={e => setYearEscolar(parseInt(e.target.value))} />
           <button onClick={async () => {
             setGuardandoYear(true)
             await supabase.from('configuracion').update({ valor: yearEscolar.toString() }).eq('clave', 'year_escolar_activo')
             toast.success('Año escolar actualizado'); setGuardandoYear(false)
           }} style={s.btnPrimary} disabled={guardandoYear}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <IcoSave />{guardandoYear ? 'Guardado' : 'Guardar'}
-            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><IcoSave />{guardandoYear ? 'Guardado' : 'Guardar'}</span>
           </button>
         </div>
       </div>
@@ -146,9 +209,7 @@ export default function Configuracion() {
               <div style={{ fontSize: 12, color: '#b0a8c0', fontWeight: 500 }}>{grados.length} grados configurados</div>
             </div>
           </div>
-          <button onClick={() => { resetForm(); setEditando(null); setModalGrado(true) }} style={s.btnPrimary}>
-            + Nuevo grado
-          </button>
+          <button onClick={() => { resetForm(); setEditando(null); setModalGrado(true) }} style={s.btnPrimary}>+ Nuevo grado</button>
         </div>
 
         {loading ? (
@@ -167,29 +228,20 @@ export default function Configuracion() {
             <tbody>
               {grados.map((g, idx) => (
                 <tr key={g.id} style={{ ...s.tr, background: idx % 2 === 0 ? '#fff' : '#fdfcff' }}>
-                  <td style={s.td}>
-                    <span style={{ fontWeight: 700, color: '#b0a8c0', fontSize: 12 }}>#{g.orden}</span>
-                  </td>
-                  <td style={s.td}>
-                    <span style={{ fontWeight: 700, color: '#3d1f61', fontSize: 13 }}>{g.nombre}</span>
-                  </td>
+                  <td style={s.td}><span style={{ fontWeight: 700, color: '#b0a8c0', fontSize: 12 }}>#{g.orden}</span></td>
+                  <td style={s.td}><span style={{ fontWeight: 700, color: '#3d1f61', fontSize: 13 }}>{g.nombre}</span></td>
                   <td style={s.td}>
                     <span style={{ ...s.badge, background: nivelColor[g.nivel]?.bg || '#f3f4f6', color: nivelColor[g.nivel]?.color || '#6b7280' }}>
                       {nivelLabel[g.nivel] || g.nivel}
                     </span>
                   </td>
-                  <td style={s.td}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: g.monto_matricula ? '#5B2D8E' : '#d1d5db' }}>
-                      {g.monto_matricula ? `$${parseFloat(g.monto_matricula).toFixed(2)}` : '—'}
-                    </span>
-                  </td>
-                  <td style={s.td}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: g.monto_mensualidad ? '#5B2D8E' : '#d1d5db' }}>
-                      {g.monto_mensualidad ? `$${parseFloat(g.monto_mensualidad).toFixed(2)}` : '—'}
-                    </span>
-                  </td>
+                  <td style={s.td}><span style={{ fontSize: 13, fontWeight: 700, color: g.monto_matricula ? '#5B2D8E' : '#d1d5db' }}>{g.monto_matricula ? `$${parseFloat(g.monto_matricula).toFixed(2)}` : '—'}</span></td>
+                  <td style={s.td}><span style={{ fontSize: 13, fontWeight: 700, color: g.monto_mensualidad ? '#5B2D8E' : '#d1d5db' }}>{g.monto_mensualidad ? `$${parseFloat(g.monto_mensualidad).toFixed(2)}` : '—'}</span></td>
                   <td style={s.td}>
                     <div style={{ display: 'flex', gap: 6 }}>
+                      <button onClick={() => abrirPanelMaterias(g)} style={s.btnMaterias}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><IcoBook /> Materias</span>
+                      </button>
                       <button onClick={() => abrirEditar(g)} style={s.btnEditar}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><IcoEdit /> Editar</span>
                       </button>
@@ -202,6 +254,101 @@ export default function Configuracion() {
           </table>
         )}
       </div>
+
+      {/* Panel lateral — Materias del grado */}
+      {panelMaterias && (
+        <>
+          {/* Overlay */}
+          <div onClick={() => setPanelMaterias(null)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 90 }} />
+
+          {/* Panel */}
+          <div style={{
+            position: 'fixed', top: 0, right: 0, bottom: 0, width: 420,
+            background: '#fff', zIndex: 100, display: 'flex', flexDirection: 'column',
+            boxShadow: '-8px 0 40px rgba(61,31,97,0.18)',
+            fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif',
+          }}>
+            {/* Header del panel */}
+            <div style={{ padding: '24px 24px 16px', borderBottom: '1px solid #f3eeff' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: '#3d1f61', letterSpacing: '-0.3px' }}>
+                    {panelMaterias.nombre}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+                    <span style={{ ...s.badge, background: nivelColor[panelMaterias.nivel]?.bg, color: nivelColor[panelMaterias.nivel]?.color, fontSize: 11 }}>
+                      {nivelLabel[panelMaterias.nivel] || panelMaterias.nivel}
+                    </span>
+                    <span style={{ fontSize: 12, color: '#b0a8c0', fontWeight: 600 }}>
+                      {materiasGrado.length} materia{materiasGrado.length !== 1 ? 's' : ''} asignada{materiasGrado.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                </div>
+                <button onClick={() => setPanelMaterias(null)}
+                  style={{ background: '#f3eeff', border: 'none', borderRadius: 8, padding: '6px 8px', cursor: 'pointer', color: '#5B2D8E' }}>
+                  <IcoClose />
+                </button>
+              </div>
+
+              {/* Buscador */}
+              <input
+                value={buscarMateria}
+                onChange={e => setBuscarMateria(e.target.value)}
+                placeholder="Buscar materia..."
+                style={{ ...s.input, marginTop: 14, fontSize: 13 }}
+              />
+            </div>
+
+            {/* Lista de materias con checkboxes */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '12px 24px' }}>
+              {materiasFiltradas.length === 0 ? (
+                <p style={{ color: '#b0a8c0', fontSize: 13, textAlign: 'center', padding: 24 }}>Sin resultados</p>
+              ) : (
+                materiasFiltradas.map(m => {
+                  const checked = materiasGrado.includes(m.id)
+                  return (
+                    <div key={m.id}
+                      onClick={() => toggleMateria(m.id)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        padding: '10px 12px', borderRadius: 10, cursor: 'pointer',
+                        background: checked ? '#f3eeff' : 'transparent',
+                        marginBottom: 4, transition: 'background 0.12s',
+                        border: checked ? '1px solid #d8c8f0' : '1px solid transparent',
+                      }}>
+                      {/* Checkbox visual */}
+                      <div style={{
+                        width: 20, height: 20, borderRadius: 6, flexShrink: 0,
+                        background: checked ? 'linear-gradient(135deg, #5B2D8E, #3d1f61)' : '#fff',
+                        border: checked ? 'none' : '2px solid #d1d5db',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        {checked && (
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12"/>
+                          </svg>
+                        )}
+                      </div>
+                      <span style={{ fontSize: 13, fontWeight: checked ? 700 : 500, color: checked ? '#3d1f61' : '#374151' }}>
+                        {m.nombre}
+                      </span>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+
+            {/* Footer con acciones */}
+            <div style={{ padding: '16px 24px', borderTop: '1px solid #f3eeff', display: 'flex', gap: 10 }}>
+              <button onClick={() => setPanelMaterias(null)} style={{ ...s.btnSecondary, flex: 1 }}>Cancelar</button>
+              <button onClick={guardarMaterias} style={{ ...s.btnPrimary, flex: 2 }} disabled={guardandoMaterias}>
+                {guardandoMaterias ? 'Guardando...' : `Guardar ${materiasGrado.length} materias`}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Modal grado */}
       {modalGrado && (
@@ -254,20 +401,21 @@ export default function Configuracion() {
 }
 
 const s = {
-  table: { width: '100%', borderCollapse: 'collapse' },
-  th: { padding: '10px 18px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: '0.6px' },
-  tr: { borderTop: '1px solid #f3eeff' },
-  td: { padding: '12px 18px', fontSize: 13, color: '#333' },
-  badge: { padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 },
-  btnPrimary: { padding: '10px 20px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #5B2D8E, #3d1f61)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' },
+  table:        { width: '100%', borderCollapse: 'collapse' },
+  th:           { padding: '10px 18px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: '0.6px' },
+  tr:           { borderTop: '1px solid #f3eeff' },
+  td:           { padding: '12px 18px', fontSize: 13, color: '#333' },
+  badge:        { padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 },
+  btnPrimary:   { padding: '10px 20px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #5B2D8E, #3d1f61)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' },
   btnSecondary: { padding: '10px 20px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#555', fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' },
-  btnEditar: { padding: '6px 12px', borderRadius: 8, border: 'none', background: '#f3eeff', color: '#5B2D8E', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' },
-  btnEliminar: { padding: '6px 12px', borderRadius: 8, border: 'none', background: '#fee2e2', color: '#dc2626', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' },
-  modalBg: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 16 },
-  modalBox: { background: '#fff', borderRadius: 16, padding: '28px 24px', width: '100%', maxWidth: 480, boxShadow: '0 20px 60px rgba(0,0,0,0.25)', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' },
-  modalTitle: { color: '#3d1f61', fontSize: 17, fontWeight: 800, marginBottom: 20, letterSpacing: '-0.3px' },
-  grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 },
-  field: { marginBottom: 14 },
-  label: { display: 'block', fontSize: 10, fontWeight: 700, color: '#5B2D8E', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' },
-  input: { width: '100%', padding: '10px 14px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: 14, background: '#f9fafb', color: '#222', boxSizing: 'border-box', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' },
+  btnEditar:    { padding: '6px 12px', borderRadius: 8, border: 'none', background: '#f3eeff', color: '#5B2D8E', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' },
+  btnMaterias:  { padding: '6px 12px', borderRadius: 8, border: 'none', background: '#e0f7f6', color: '#0e9490', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' },
+  btnEliminar:  { padding: '6px 12px', borderRadius: 8, border: 'none', background: '#fee2e2', color: '#dc2626', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' },
+  modalBg:      { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 16 },
+  modalBox:     { background: '#fff', borderRadius: 16, padding: '28px 24px', width: '100%', maxWidth: 480, boxShadow: '0 20px 60px rgba(0,0,0,0.25)', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' },
+  modalTitle:   { color: '#3d1f61', fontSize: 17, fontWeight: 800, marginBottom: 20, letterSpacing: '-0.3px' },
+  grid2:        { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 },
+  field:        { marginBottom: 14 },
+  label:        { display: 'block', fontSize: 10, fontWeight: 700, color: '#5B2D8E', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' },
+  input:        { width: '100%', padding: '10px 14px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: 14, background: '#f9fafb', color: '#222', boxSizing: 'border-box', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' },
 }
