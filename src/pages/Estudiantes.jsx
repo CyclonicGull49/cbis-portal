@@ -3,7 +3,278 @@ import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 
-function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion }) {
+// ── SVG Icons ────────────────────────────────────────────────
+const IcoFile = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+    <polyline points="14 2 14 8 20 8"/>
+  </svg>
+)
+const IcoImage = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2"/>
+    <circle cx="8.5" cy="8.5" r="1.5"/>
+    <polyline points="21 15 16 10 5 21"/>
+  </svg>
+)
+const IcoUpload = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="16 16 12 12 8 16"/>
+    <line x1="12" y1="12" x2="12" y2="21"/>
+    <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+  </svg>
+)
+const IcoDownload = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+    <polyline points="7 10 12 15 17 10"/>
+    <line x1="12" y1="15" x2="12" y2="3"/>
+  </svg>
+)
+const IcoTrash = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3 6 5 6 21 6"/>
+    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+    <path d="M10 11v6M14 11v6"/>
+    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+  </svg>
+)
+const IcoCheck = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="20 6 9 17 4 12"/>
+  </svg>
+)
+const IcoVaccine = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="m18 2 4 4"/><path d="m17 7 3-3"/><path d="M19 9 8.7 19.3c-1 1-2.5 1-3.4 0l-.6-.6c-1-1-1-2.5 0-3.4L15 5"/>
+    <path d="m9 11 4 4"/><path d="m5 19-3 3"/><path d="m14 4 6 6"/>
+  </svg>
+)
+
+const TIPOS_DOC = [
+  { key: 'partida_nacimiento', label: 'Partida de nacimiento',   icon: 'file' },
+  { key: 'dui_encargado',      label: 'DUI del encargado',        icon: 'file' },
+  { key: 'foto_estudiante',    label: 'Foto del estudiante',      icon: 'image' },
+  { key: 'constancia_medica',  label: 'Constancia médica',        icon: 'file' },
+  { key: 'esquema_vacunacion', label: 'Esquema de vacunación',    icon: 'vaccine', soloInicial: true },
+]
+
+function TabDocumentos({ estudiante, puedeSubir, esAdmin }) {
+  const [docs, setDocs]           = useState([])
+  const [loadingDocs, setLoading] = useState(true)
+  const [subiendo, setSubiendo]   = useState(null)   // key del tipo en proceso
+  const [confirm, setConfirm]     = useState(null)   // doc a eliminar
+  const [urlFirmada, setUrlFirmada] = useState(null) // { url, nombre }
+
+  const esInicial = ['primera_infancia', 'inicial'].includes(estudiante.grados?.nivel)
+  const tipos = TIPOS_DOC.filter(t => !t.soloInicial || esInicial)
+
+  useEffect(() => { cargarDocs() }, [estudiante.id])
+
+  async function cargarDocs() {
+    setLoading(true)
+    const { data } = await supabase
+      .from('documentos_estudiante')
+      .select('*')
+      .eq('estudiante_id', estudiante.id)
+    setDocs(data || [])
+    setLoading(false)
+  }
+
+  async function subirDoc(tipo, file) {
+    const maxMB = 10
+    if (file.size > maxMB * 1024 * 1024) { toast.error(`Máximo ${maxMB}MB por archivo`); return }
+    const ext  = file.name.split('.').pop().toLowerCase()
+    const path = `${estudiante.id}/${tipo}.${ext}`
+    setSubiendo(tipo)
+
+    // Subir al storage (upsert)
+    const { error: uploadError } = await supabase.storage
+      .from('documentos-estudiantes')
+      .upload(path, file, { upsert: true })
+
+    if (uploadError) { toast.error('Error al subir el archivo'); setSubiendo(null); return }
+
+    // Generar signed URL de larga duración (10 años)
+    const { data: signed } = await supabase.storage
+      .from('documentos-estudiantes')
+      .createSignedUrl(path, 60 * 60 * 24 * 365 * 10)
+
+    // Guardar/actualizar registro en tabla
+    await supabase.from('documentos_estudiante').upsert({
+      estudiante_id: estudiante.id,
+      tipo,
+      nombre_archivo: file.name,
+      storage_path:   path,
+      url:            signed?.signedUrl || '',
+    }, { onConflict: 'estudiante_id,tipo' })
+
+    toast.success('Documento guardado')
+    cargarDocs()
+    setSubiendo(null)
+  }
+
+  async function eliminarDoc(doc) {
+    await supabase.storage.from('documentos-estudiantes').remove([doc.storage_path])
+    await supabase.from('documentos_estudiante').delete().eq('id', doc.id)
+    toast.success('Documento eliminado')
+    setConfirm(null)
+    cargarDocs()
+  }
+
+  async function verDoc(doc) {
+    // Regenerar signed URL fresca para abrir
+    const { data } = await supabase.storage
+      .from('documentos-estudiantes')
+      .createSignedUrl(doc.storage_path, 60 * 60) // 1 hora
+    if (data?.signedUrl) window.open(data.signedUrl, '_blank')
+    else toast.error('No se pudo abrir el documento')
+  }
+
+  const docPorTipo = (key) => docs.find(d => d.tipo === key)
+
+  const esPDF = (nombre) => nombre?.toLowerCase().endsWith('.pdf')
+
+  if (loadingDocs) return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 40 }}>
+      <div style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid #e0d6f0', borderTopColor: '#5B2D8E', animation: 'spin 0.8s linear infinite' }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+    </div>
+  )
+
+  return (
+    <div>
+      {!puedeSubir && (
+        <div style={{ background: '#faf8ff', borderRadius: 10, padding: '10px 14px', marginBottom: 16, fontSize: 12, color: '#b0a8c0', fontWeight: 600 }}>
+          Tu rol no tiene permisos para subir documentos.
+        </div>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        {tipos.map(({ key, label, icon }) => {
+          const doc        = docPorTipo(key)
+          const cargando   = subiendo === key
+          const tieneDoc   = !!doc
+          const esImg      = doc && !esPDF(doc.nombre_archivo)
+
+          return (
+            <div key={key} style={{
+              borderRadius: 14,
+              border: tieneDoc ? '1.5px solid #c9b8e8' : '1.5px dashed #d8d0e8',
+              background: tieneDoc ? '#faf8ff' : '#fdfdff',
+              padding: '16px',
+              display: 'flex', flexDirection: 'column', gap: 10,
+              transition: 'all 0.15s',
+            }}>
+              {/* Header del card */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                  background: tieneDoc ? 'linear-gradient(135deg, #5B2D8E, #3d1f61)' : '#f0ecf8',
+                  color: tieneDoc ? '#fff' : '#b0a8c0',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {icon === 'image' ? <IcoImage /> : icon === 'vaccine' ? <IcoVaccine /> : <IcoFile />}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#3d1f61', letterSpacing: '-0.1px', lineHeight: 1.3 }}>{label}</div>
+                  {tieneDoc ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 3 }}>
+                      <div style={{ width: 14, height: 14, borderRadius: '50%', background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
+                        <IcoCheck />
+                      </div>
+                      <span style={{ fontSize: 11, color: '#16a34a', fontWeight: 600 }}>Subido</span>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 11, color: '#b0a8c0', marginTop: 3, fontWeight: 500 }}>Pendiente</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Nombre del archivo si existe */}
+              {tieneDoc && (
+                <div style={{
+                  background: '#f0ecf8', borderRadius: 8, padding: '6px 10px',
+                  fontSize: 11, color: '#5B2D8E', fontWeight: 600,
+                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                  display: 'flex', alignItems: 'center', gap: 5,
+                }}>
+                  {esImg ? <IcoImage /> : <IcoFile />}
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.nombre_archivo}</span>
+                </div>
+              )}
+
+              {/* Acciones */}
+              <div style={{ display: 'flex', gap: 6, marginTop: 'auto' }}>
+                {tieneDoc && (
+                  <button onClick={() => verDoc(doc)} style={ds.btnVer}>
+                    <IcoDownload /> Ver
+                  </button>
+                )}
+                {puedeSubir && (
+                  <label style={{ ...ds.btnSubir, opacity: cargando ? 0.6 : 1, cursor: cargando ? 'not-allowed' : 'pointer', flex: tieneDoc ? undefined : 1 }}>
+                    {cargando ? (
+                      'Subiendo...'
+                    ) : (
+                      <><IcoUpload /> {tieneDoc ? 'Reemplazar' : 'Subir'}</>
+                    )}
+                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display: 'none' }}
+                      disabled={cargando}
+                      onChange={e => { if (e.target.files[0]) subirDoc(key, e.target.files[0]); e.target.value = '' }}
+                    />
+                  </label>
+                )}
+                {tieneDoc && esAdmin && (
+                  <button onClick={() => setConfirm(doc)} style={ds.btnEliminar} title="Eliminar">
+                    <IcoTrash />
+                  </button>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Resumen */}
+      <div style={{ marginTop: 16, padding: '10px 16px', background: '#faf8ff', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 12, color: '#b0a8c0', fontWeight: 600 }}>
+          {docs.length} de {tipos.length} documentos subidos
+        </span>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {tipos.map(({ key }) => (
+            <div key={key} style={{ width: 8, height: 8, borderRadius: '50%', background: docPorTipo(key) ? '#16a34a' : '#e0d6f0' }} />
+          ))}
+        </div>
+      </div>
+
+      {/* Modal confirmar eliminación */}
+      {confirm && (
+        <div style={s.modalBg} onClick={() => setConfirm(null)}>
+          <div style={{ ...s.modalBox, maxWidth: 380, textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+            <h2 style={{ ...s.modalTitle, color: '#dc2626' }}>Eliminar documento</h2>
+            <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 24, lineHeight: 1.7 }}>
+              Eliminar <b style={{ color: '#3d1f61' }}>{confirm.nombre_archivo}</b>?<br/>Esta acción no se puede deshacer.
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              <button onClick={() => setConfirm(null)} style={s.btnSecondary}>Cancelar</button>
+              <button onClick={() => eliminarDoc(confirm)} style={{ ...s.btnPrimary, background: '#dc2626' }}>Eliminar</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+const ds = {
+  btnVer:      { display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: 8, border: 'none', background: '#f0ecf8', color: '#5B2D8E', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' },
+  btnSubir:    { display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #5B2D8E, #3d1f61)', color: '#fff', fontWeight: 700, fontSize: 12, fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' },
+  btnEliminar: { display: 'flex', alignItems: 'center', padding: '7px 10px', borderRadius: 8, border: 'none', background: '#fee2e2', color: '#dc2626', cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' },
+}
+
+// ─────────────────────────────────────────────────────────────
+
+function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion, perfil }) {
   const [tab, setTab] = useState(0)
   const [modalCorreo, setModalCorreo] = useState(false)
   const [nuevoCorreo, setNuevoCorreo] = useState('')
@@ -11,9 +282,12 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion }) {
   const [verificandoEliminar, setVerificandoEliminar] = useState(false)
   const [tienePagos, setTienePagos] = useState(false)
 
+  const puedeSubir = ['admin', 'recepcion', 'registro_academico', 'padre'].includes(perfil?.rol)
+  const esAdmin    = perfil?.rol === 'admin'
+
   const tabs = esRecepcion
-    ? ['General', 'Familia', 'Salud']
-    : ['General', 'Familia', 'Salud', 'Acciones']
+    ? ['General', 'Familia', 'Salud', 'Documentos']
+    : ['General', 'Familia', 'Salud', 'Documentos', 'Acciones']
 
   const Dato = ({ label, val }) => (
     <div style={{ marginBottom: 12 }}>
@@ -131,7 +405,11 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion }) {
         </div>
       )}
 
-      {tab === 3 && !esRecepcion && (
+      {tab === 3 && (
+        <TabDocumentos estudiante={estudiante} puedeSubir={puedeSubir} esAdmin={esAdmin} />
+      )}
+
+      {tab === 4 && !esRecepcion && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <button onClick={() => { setNuevoCorreo(estudiante.correo_institucional || ''); setModalCorreo(true) }}
             style={{ padding: '12px 18px', borderRadius: 10, border: '1.5px solid #e0d6f0', background: '#faf8ff', color: '#5B2D8E', fontWeight: 700, fontSize: 13, cursor: 'pointer', textAlign: 'left', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
@@ -467,7 +745,7 @@ export default function Estudiantes() {
               </div>
               <button onClick={() => setEstudianteDetalle(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#aaa' }}>✕</button>
             </div>
-            <FichaTabs estudiante={estudianteDetalle} esRecepcion={esRecepcion} onUpdate={(updated) => { setEstudianteDetalle(updated); cargarDatos() }} onDelete={() => { setEstudianteDetalle(null); cargarDatos() }} />
+            <FichaTabs estudiante={estudianteDetalle} esRecepcion={esRecepcion} perfil={perfil} onUpdate={(updated) => { setEstudianteDetalle(updated); cargarDatos() }} onDelete={() => { setEstudianteDetalle(null); cargarDatos() }} />
           </div>
         </div>
       )}
