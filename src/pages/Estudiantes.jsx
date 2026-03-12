@@ -562,25 +562,36 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion, perfil }) {
     setCreandoCuenta(true)
     const password = generarPassword()
 
+    // Guardar sesión del admin ANTES del signUp
+    const { data: { session: sessionAdmin } } = await supabase.auth.getSession()
+
     const { data, error: authErr } = await supabase.auth.signUp({ email: emailPortal, password })
     if (authErr) { toast.error('Error auth: ' + authErr.message); setCreandoCuenta(false); return }
     
     const userId = data?.user?.id
     if (!userId) { toast.error('No se obtuvo ID del usuario'); setCreandoCuenta(false); return }
 
-    const { data: rpcData, error: rpcErr } = await supabase.rpc('crear_perfil_alumno', {
+    const { error: rpcErr } = await supabase.rpc('crear_perfil_alumno', {
       p_id:            userId,
       p_nombre:        estudiante.nombre,
       p_apellido:      estudiante.apellido,
       p_email:         emailPortal,
       p_estudiante_id: estudiante.id,
     })
-    
+
+    // Restaurar sesión del admin
+    if (sessionAdmin) {
+      await supabase.auth.setSession({
+        access_token:  sessionAdmin.access_token,
+        refresh_token: sessionAdmin.refresh_token,
+      })
+    }
+
     if (rpcErr) { toast.error('RPC error: ' + rpcErr.message); setCreandoCuenta(false); return }
-    if (rpcData?.error === 'ya_existe') { toast.error('Ya existe un perfil con ID: ' + rpcData.id); setCreandoCuenta(false); return }
 
     setCredenciales({ email: emailPortal, password })
     setCuentaPortal({ email: emailPortal, activo: true })
+    toast.success('Acceso creado exitosamente')
     setCreandoCuenta(false)
   }
 
