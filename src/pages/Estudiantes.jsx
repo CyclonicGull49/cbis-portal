@@ -579,12 +579,13 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion, perfil }) {
       p_estudiante_id: estudiante.id,
     })
 
-    // Restaurar sesión del admin
+    // Restaurar sesión del admin y recargar
     if (sessionAdmin) {
       await supabase.auth.setSession({
         access_token:  sessionAdmin.access_token,
         refresh_token: sessionAdmin.refresh_token,
       })
+      window.location.reload()
     }
 
     if (rpcErr) { toast.error('RPC error: ' + rpcErr.message); setCreandoCuenta(false); return }
