@@ -17,14 +17,25 @@ export default function Usuarios() {
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
   const [passwordGenerado, setPasswordGenerado] = useState(null)
-  const [form, setForm] = useState({ nombre: '', apellido: '', email: '', rol: 'recepcion' })
+  const [grados, setGrados] = useState([])
+  const [estudiantes, setEstudiantes] = useState([])
+  const [form, setForm] = useState({ nombre: '', apellido: '', email: '', rol: 'recepcion', grado_id: '', estudiante_id: '' })
 
-  useEffect(() => { cargarUsuarios() }, [])
+  useEffect(() => { cargarUsuarios(); cargarExtras() }, [])
 
   async function cargarUsuarios() {
     setLoading(true)
-    const { data } = await supabase.from('perfiles').select('*').order('creado_en', { ascending: false })
+    const { data } = await supabase.from('perfiles').select('*, grados(nombre)').order('creado_en', { ascending: false })
     setUsuarios(data || []); setLoading(false)
+  }
+
+  async function cargarExtras() {
+    const [{ data: gra }, { data: est }] = await Promise.all([
+      supabase.from('grados').select('id, nombre, nivel').order('orden', { ascending: true }),
+      supabase.from('estudiantes').select('id, nombre, apellido, grados(nombre)').eq('estado', 'activo').order('apellido', { ascending: true }),
+    ])
+    setGrados(gra || [])
+    setEstudiantes(est || [])
   }
 
   function generarPasswordTemporal() {
@@ -34,11 +45,19 @@ export default function Usuarios() {
 
   async function crearUsuario() {
     if (!form.nombre || !form.apellido || !form.email || !form.rol) { setError('Todos los campos son obligatorios'); return }
+    if (form.rol === 'docente' && !form.grado_id) { setError('Selecciona el grado encargado'); return }
+    if (form.rol === 'alumno' && !form.estudiante_id) { setError('Selecciona el estudiante vinculado'); return }
     setGuardando(true); setError('')
     const passwordTemp = generarPasswordTemporal()
     const { data, error: authError } = await supabase.auth.signUp({ email: form.email, password: passwordTemp })
     if (authError) { setError('Error: ' + authError.message); setGuardando(false); return }
-    const { error: perfilError } = await supabase.from('perfiles').insert([{ id: data.user.id, nombre: form.nombre, apellido: form.apellido, email: form.email, rol: form.rol, activo: true }])
+    const perfil = {
+      id: data.user.id, nombre: form.nombre, apellido: form.apellido,
+      email: form.email, rol: form.rol, activo: true,
+      grado_id:      form.rol === 'docente' ? parseInt(form.grado_id) : null,
+      estudiante_id: form.rol === 'alumno'  ? parseInt(form.estudiante_id) : null,
+    }
+    const { error: perfilError } = await supabase.from('perfiles').insert([perfil])
     if (perfilError) { setError('Error al crear perfil: ' + perfilError.message); setGuardando(false); return }
     const infoGuardada = { nombre: form.nombre, apellido: form.apellido, email: form.email, password: passwordTemp }
     setModalAbierto(false); resetForm(); setPasswordGenerado(infoGuardada); cargarUsuarios(); setGuardando(false)
@@ -56,14 +75,33 @@ export default function Usuarios() {
     toast.success('Usuario eliminado'); cargarUsuarios(); setModalConfirm(null)
   }
 
-  function resetForm() { setForm({ nombre: '', apellido: '', email: '', rol: 'recepcion' }); setError('') }
+  function resetForm() { setForm({ nombre: '', apellido: '', email: '', rol: 'recepcion', grado_id: '', estudiante_id: '' }); setError('') }
+
+  const ROLES = [
+    { value: 'admin',               label: 'Administrador' },
+    { value: 'direccion_academica', label: 'Dirección Académica' },
+    { value: 'registro_academico',  label: 'Registro Académico' },
+    { value: 'recepcion',           label: 'Recepción' },
+    { value: 'docente',             label: 'Docente' },
+    { value: 'alumno',              label: 'Alumno / Familia' },
+  ]
 
   const rolColor = {
-    admin:     { bg: '#fef3c7', color: '#92400e' },
-    recepcion: { bg: '#f3eeff', color: '#5B2D8E' },
-    docente:   { bg: '#f0fdf4', color: '#166534' },
-    alumno:    { bg: '#fdf4ff', color: '#7e22ce' },
-    padre:     { bg: '#fff7ed', color: '#c2410c' },
+    admin:               { bg: '#fef3c7', color: '#92400e' },
+    direccion_academica: { bg: '#fdf4ff', color: '#7e22ce' },
+    registro_academico:  { bg: '#f0fdf4', color: '#166534' },
+    recepcion:           { bg: '#f3eeff', color: '#5B2D8E' },
+    docente:             { bg: '#e0f7f6', color: '#0e9490' },
+    alumno:              { bg: '#fff0e6', color: '#c2410c' },
+  }
+
+  const rolLabel = {
+    admin:               'Administrador',
+    direccion_academica: 'Dirección Académica',
+    registro_academico:  'Registro Académico',
+    recepcion:           'Recepción',
+    docente:             'Docente',
+    alumno:              'Alumno / Familia',
   }
 
   return (
@@ -83,7 +121,7 @@ export default function Usuarios() {
           <table style={s.table}>
             <thead>
               <tr style={{ background: '#faf8ff' }}>
-                {['Usuario', 'Email', 'Rol', 'Estado', 'Acciones'].map(h => (
+                {['Usuario', 'Email', 'Rol', 'Detalle', 'Estado', 'Acciones'].map(h => (
                   <th key={h} style={s.th}>{h}</th>
                 ))}
               </tr>
@@ -103,9 +141,22 @@ export default function Usuarios() {
                   </td>
                   <td style={s.td}><span style={{ fontSize: 13, color: '#6b7280' }}>{u.email}</span></td>
                   <td style={s.td}>
-                    <span style={{ ...s.badge, background: rolColor[u.rol]?.bg, color: rolColor[u.rol]?.color, textTransform: 'capitalize' }}>
-                      {u.rol}
+                    <span style={{ ...s.badge, background: rolColor[u.rol]?.bg || '#f3f4f6', color: rolColor[u.rol]?.color || '#6b7280' }}>
+                      {rolLabel[u.rol] || u.rol}
                     </span>
+                  </td>
+                  <td style={s.td}>
+                    {u.rol === 'docente' && u.grados ? (
+                      <span style={{ fontSize: 12, color: '#0e9490', fontWeight: 600, background: '#e0f7f6', padding: '3px 10px', borderRadius: 20 }}>
+                        {u.grados.nombre}
+                      </span>
+                    ) : u.rol === 'alumno' && u.estudiante_id ? (
+                      <span style={{ fontSize: 12, color: '#c2410c', fontWeight: 600, background: '#fff0e6', padding: '3px 10px', borderRadius: 20 }}>
+                        ID #{u.estudiante_id}
+                      </span>
+                    ) : (
+                      <span style={{ color: '#d1d5db', fontSize: 12 }}>—</span>
+                    )}
                   </td>
                   <td style={s.td}>
                     <span style={{ ...s.badge, background: u.activo ? '#dcfce7' : '#fee2e2', color: u.activo ? '#16a34a' : '#dc2626' }}>
@@ -143,14 +194,36 @@ export default function Usuarios() {
             <div style={s.field}><label style={s.label}>Correo electrónico *</label><input style={s.input} type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="correo@cbis.edu.sv" /></div>
             <div style={s.field}>
               <label style={s.label}>Rol *</label>
-              <select style={s.input} value={form.rol} onChange={e => setForm({ ...form, rol: e.target.value })}>
-                <option value="recepcion">Recepción</option>
-                <option value="docente">Docente</option>
-                <option value="alumno">Alumno</option>
-                <option value="padre">Padre de familia</option>
-                <option value="admin">Administrador</option>
+              <select style={s.input} value={form.rol} onChange={e => setForm({ ...form, rol: e.target.value, grado_id: '', estudiante_id: '' })}>
+                {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
               </select>
             </div>
+
+            {/* Campo extra: grado encargado para docente */}
+            {form.rol === 'docente' && (
+              <div style={s.field}>
+                <label style={s.label}>Grado encargado *</label>
+                <select style={s.input} value={form.grado_id} onChange={e => setForm({ ...form, grado_id: e.target.value })}>
+                  <option value="">Selecciona un grado...</option>
+                  {grados.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
+                </select>
+              </div>
+            )}
+
+            {/* Campo extra: estudiante vinculado para alumno */}
+            {form.rol === 'alumno' && (
+              <div style={s.field}>
+                <label style={s.label}>Estudiante vinculado *</label>
+                <select style={s.input} value={form.estudiante_id} onChange={e => setForm({ ...form, estudiante_id: e.target.value })}>
+                  <option value="">Selecciona un estudiante...</option>
+                  {estudiantes.map(e => (
+                    <option key={e.id} value={e.id}>
+                      {e.apellido}, {e.nombre} — {e.grados?.nombre || 'Sin grado'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             {error && <p style={{ color: '#ef4444', fontSize: 13, marginBottom: 12 }}>{error}</p>}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button onClick={() => { setModalAbierto(false); resetForm() }} style={s.btnSecondary}>Cancelar</button>
