@@ -562,22 +562,22 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion, perfil }) {
     setCreandoCuenta(true)
     const password = generarPassword()
 
-    // 1. Crear usuario en Auth
     const { data, error: authErr } = await supabase.auth.signUp({ email: emailPortal, password })
-    if (authErr) { toast.error('Error: ' + authErr.message); setCreandoCuenta(false); return }
+    if (authErr) { toast.error('Error auth: ' + authErr.message); setCreandoCuenta(false); return }
+    
+    const userId = data?.user?.id
+    if (!userId) { toast.error('No se obtuvo ID del usuario'); setCreandoCuenta(false); return }
 
-    console.log('estudiante.id:', estudiante.id)
-    console.log('tipo:', typeof estudiante.id)
-
-    // 2. Insertar perfil via RPC con SECURITY DEFINER (evita problema de sesión)
-    const { error: rpcErr } = await supabase.rpc('crear_perfil_alumno', {
-      p_id:            data.user.id,
+    const { data: rpcData, error: rpcErr } = await supabase.rpc('crear_perfil_alumno', {
+      p_id:            userId,
       p_nombre:        estudiante.nombre,
       p_apellido:      estudiante.apellido,
       p_email:         emailPortal,
       p_estudiante_id: estudiante.id,
     })
-    if (rpcErr) { toast.error('Error al crear perfil: ' + rpcErr.message); setCreandoCuenta(false); return }
+    
+    if (rpcErr) { toast.error('RPC error: ' + rpcErr.message); setCreandoCuenta(false); return }
+    if (rpcData?.error === 'ya_existe') { toast.error('Ya existe un perfil con ID: ' + rpcData.id); setCreandoCuenta(false); return }
 
     setCredenciales({ email: emailPortal, password })
     setCuentaPortal({ email: emailPortal, activo: true })
