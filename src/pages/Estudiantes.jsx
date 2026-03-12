@@ -535,6 +535,45 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion, perfil }) {
   const [verificandoEliminar, setVerificandoEliminar] = useState(false)
   const [tienePagos, setTienePagos] = useState(false)
 
+  // Acceso al portal
+  const [cuentaPortal, setCuentaPortal] = useState(null)
+  const [emailPortal, setEmailPortal]   = useState('')
+  const [creandoCuenta, setCreandoCuenta] = useState(false)
+  const [credenciales, setCredenciales] = useState(null)
+
+  useEffect(() => { verificarCuentaPortal() }, [estudiante.id])
+
+  async function verificarCuentaPortal() {
+    const { data } = await supabase
+      .from('perfiles')
+      .select('id, email, activo')
+      .eq('estudiante_id', estudiante.id)
+      .single()
+    setCuentaPortal(data || null)
+  }
+
+  function generarPassword() {
+    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
+    return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+  }
+
+  async function crearAccesoPortal() {
+    if (!emailPortal) { toast.error('Ingresa un correo electrónico'); return }
+    setCreandoCuenta(true)
+    const password = generarPassword()
+    const { data, error: authErr } = await supabase.auth.signUp({ email: emailPortal, password })
+    if (authErr) { toast.error('Error: ' + authErr.message); setCreandoCuenta(false); return }
+    const { error: perfilErr } = await supabase.from('perfiles').insert([{
+      id: data.user.id, nombre: estudiante.nombre, apellido: estudiante.apellido,
+      email: emailPortal, rol: 'alumno', activo: true,
+      estudiante_id: estudiante.id,
+    }])
+    if (perfilErr) { toast.error('Error al crear perfil'); setCreandoCuenta(false); return }
+    setCredenciales({ email: emailPortal, password })
+    setCuentaPortal({ email: emailPortal, activo: true })
+    setCreandoCuenta(false)
+  }
+
   const puedeSubir = ['admin', 'recepcion', 'registro_academico', 'padre'].includes(perfil?.rol)
   const esAdmin    = perfil?.rol === 'admin'
 
@@ -667,7 +706,60 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion, perfil }) {
       )}
 
       {tab === 5 && !esRecepcion && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+          {/* ── Acceso al portal ───────────────────────────── */}
+          <div style={{ background: '#faf8ff', borderRadius: 14, padding: '18px 20px', border: '1.5px solid #e8e0f0' }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: '#3d1f61', marginBottom: 4, letterSpacing: '-0.2px' }}>Acceso al portal</div>
+            <div style={{ fontSize: 12, color: '#b0a8c0', fontWeight: 500, marginBottom: 14 }}>
+              Cuenta para que el alumno/familia acceda a CBIS+
+            </div>
+
+            {cuentaPortal ? (
+              /* Ya tiene cuenta */
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, color: '#b0a8c0', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>Correo de acceso</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#3d1f61' }}>{cuentaPortal.email}</div>
+                </div>
+                <span style={{ padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: cuentaPortal.activo ? '#dcfce7' : '#fee2e2', color: cuentaPortal.activo ? '#16a34a' : '#dc2626' }}>
+                  {cuentaPortal.activo ? 'Activa' : 'Inactiva'}
+                </span>
+              </div>
+            ) : (
+              /* Sin cuenta — crear */
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  type="email"
+                  value={emailPortal}
+                  onChange={e => setEmailPortal(e.target.value)}
+                  placeholder="correo@ejemplo.com"
+                  style={{ ...s.input, flex: 1, fontSize: 13 }}
+                />
+                <button onClick={crearAccesoPortal} disabled={creandoCuenta} style={s.btnPrimary}>
+                  {creandoCuenta ? 'Creando...' : 'Crear acceso'}
+                </button>
+              </div>
+            )}
+
+            {/* Credenciales generadas */}
+            {credenciales && (
+              <div style={{ marginTop: 14, background: '#f3eeff', border: '1.5px solid #d8c8f0', borderRadius: 12, padding: '14px 16px' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>
+                  ✓ Cuenta creada — comparte estas credenciales
+                </div>
+                {[['Correo', credenciales.email], ['Contraseña temporal', credenciales.password]].map(([label, val]) => (
+                  <div key={label} style={{ marginBottom: 8 }}>
+                    <div style={{ fontSize: 10, color: '#b0a8c0', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>{label}</div>
+                    <div style={{ fontFamily: 'monospace', fontSize: 14, fontWeight: 700, color: '#3d1f61', background: '#fff', borderRadius: 8, padding: '6px 10px', letterSpacing: 1 }}>{val}</div>
+                  </div>
+                ))}
+                <div style={{ fontSize: 11, color: '#b0a8c0', marginTop: 6 }}>El alumno deberá cambiar la contraseña en su primer ingreso.</div>
+              </div>
+            )}
+          </div>
+
+          {/* ── Otras acciones ─────────────────────────────── */}
           <button onClick={() => { setNuevoCorreo(estudiante.correo_institucional || ''); setModalCorreo(true) }}
             style={{ padding: '12px 18px', borderRadius: 10, border: '1.5px solid #e0d6f0', background: '#faf8ff', color: '#5B2D8E', fontWeight: 700, fontSize: 13, cursor: 'pointer', textAlign: 'left', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
             Editar correo institucional

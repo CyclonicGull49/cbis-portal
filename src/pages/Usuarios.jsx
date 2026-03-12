@@ -83,7 +83,6 @@ export default function Usuarios() {
     { value: 'registro_academico',  label: 'Registro Académico' },
     { value: 'recepcion',           label: 'Recepción' },
     { value: 'docente',             label: 'Docente' },
-    { value: 'alumno',              label: 'Alumno / Familia' },
   ]
 
   const rolColor = {
