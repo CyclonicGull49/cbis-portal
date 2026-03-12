@@ -103,7 +103,44 @@ export default function Layout({ pagina, setPagina, children }) {
     { id: 'reportes',    label: 'Reportes',    icon: Icons.reportes },
   ]
 
-  const menu = perfil?.rol === 'admin' ? menuAdmin : menuRecepcion
+  const menuDireccion = [
+    { id: 'dashboard',    label: 'Dashboard',    icon: Icons.dashboard },
+    { id: 'estudiantes',  label: 'Estudiantes',  icon: Icons.estudiantes },
+    { id: 'cobros',       label: 'Cobros',       icon: Icons.cobros },
+    { id: 'contabilidad', label: 'Contabilidad', icon: Icons.contabilidad },
+    { id: 'reportes',     label: 'Reportes',     icon: Icons.reportes },
+  ]
+
+  const menuRegistro = [
+    { id: 'dashboard',    label: 'Dashboard',    icon: Icons.dashboard },
+    { id: 'estudiantes',  label: 'Estudiantes',  icon: Icons.estudiantes },
+    { id: 'cobros',       label: 'Cobros',       icon: Icons.cobros },
+    { id: 'matricula',    label: 'Matrícula',    icon: Icons.matricula },
+    { id: 'reportes',     label: 'Reportes',     icon: Icons.reportes },
+  ]
+
+  const menuDocente = [
+    { id: 'dashboard',   label: 'Dashboard',   icon: Icons.dashboard },
+    { id: 'estudiantes', label: 'Estudiantes', icon: Icons.estudiantes },
+  ]
+
+  const menuAlumno = [
+    { id: 'mi-perfil',    label: 'Mi Perfil',    icon: Icons.estudiantes },
+    { id: 'mis-notas',    label: 'Mis Notas',    icon: Icons.reportes },
+    { id: 'mis-cobros',   label: 'Mis Cobros',   icon: Icons.cobros },
+    { id: 'mis-docs',     label: 'Documentos',   icon: Icons.contabilidad },
+  ]
+
+  const menuPorRol = {
+    admin:               menuAdmin,
+    direccion_academica: menuDireccion,
+    registro_academico:  menuRegistro,
+    recepcion:           menuRecepcion,
+    docente:             menuDocente,
+    alumno:              menuAlumno,
+  }
+
+  const menu = menuPorRol[perfil?.rol] || menuRecepcion
 
   return (
     <>
@@ -200,7 +237,14 @@ export default function Layout({ pagina, setPagina, children }) {
                   {perfil?.nombre} {perfil?.apellido}
                 </div>
                 <div style={{ color: CBIS_COLORS.gold, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  {perfil?.rol}
+                  {{
+                    admin:               'Administrador',
+                    direccion_academica: 'Dirección Académica',
+                    registro_academico:  'Registro Académico',
+                    recepcion:           'Recepción',
+                    docente:             'Docente',
+                    alumno:              'Alumno',
+                  }[perfil?.rol] || perfil?.rol}
                 </div>
               </div>
             </div>

@@ -9,6 +9,7 @@ import Usuarios from './Usuarios'
 import Configuracion from './Configuracion'
 import Matricula from './Matricula'
 import Reportes from './Reportes'
+import PerfilAlumno from './PerfilAlumno'
 
 // KPI icon SVGs
 const KpiIcons = {
@@ -286,7 +287,9 @@ function DashboardHome() {
 }
 
 export default function Dashboard() {
-  const [pagina, setPagina] = useState('dashboard')
+  const { perfil } = useAuth()
+  const esAlumno = perfil?.rol === 'alumno'
+  const [pagina, setPagina] = useState(esAlumno ? 'mi-perfil' : 'dashboard')
 
   function renderPagina() {
     switch (pagina) {
@@ -298,7 +301,12 @@ export default function Dashboard() {
       case 'usuarios':      return <Usuarios />
       case 'configuracion': return <Configuracion />
       case 'matricula':     return <Matricula />
-      default:              return <DashboardHome />
+      // Vistas alumno
+      case 'mi-perfil':     return <PerfilAlumno />
+      case 'mis-cobros':    return <PerfilAlumno defaultTab="cobros" />
+      case 'mis-docs':      return <PerfilAlumno defaultTab="docs" />
+      case 'mis-notas':     return <PerfilAlumno defaultTab="notas" />
+      default:              return esAlumno ? <PerfilAlumno /> : <DashboardHome />
     }
   }
 
