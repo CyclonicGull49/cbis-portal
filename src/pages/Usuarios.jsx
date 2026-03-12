@@ -46,19 +46,22 @@ export default function Usuarios() {
   async function crearUsuario() {
     if (!form.nombre || !form.apellido || !form.email || !form.rol) { setError('Todos los campos son obligatorios'); return }
     if (form.rol === 'docente' && !form.grado_id) { setError('Selecciona el grado encargado'); return }
-    if (form.rol === 'alumno' && !form.estudiante_id) { setError('Selecciona el estudiante vinculado'); return }
     setGuardando(true); setError('')
     const passwordTemp = generarPasswordTemporal()
+
     const { data, error: authError } = await supabase.auth.signUp({ email: form.email, password: passwordTemp })
     if (authError) { setError('Error: ' + authError.message); setGuardando(false); return }
-    const perfil = {
-      id: data.user.id, nombre: form.nombre, apellido: form.apellido,
-      email: form.email, rol: form.rol, activo: true,
-      grado_id:      form.rol === 'docente' ? parseInt(form.grado_id) : null,
-      estudiante_id: form.rol === 'alumno'  ? parseInt(form.estudiante_id) : null,
-    }
-    const { error: perfilError } = await supabase.from('perfiles').insert([perfil])
-    if (perfilError) { setError('Error al crear perfil: ' + perfilError.message); setGuardando(false); return }
+
+    const { error: rpcErr } = await supabase.rpc('crear_perfil_staff', {
+      p_id:       data.user.id,
+      p_nombre:   form.nombre,
+      p_apellido: form.apellido,
+      p_email:    form.email,
+      p_rol:      form.rol,
+      p_grado_id: form.rol === 'docente' ? parseInt(form.grado_id) : null,
+    })
+    if (rpcErr) { setError('Error al crear perfil: ' + rpcErr.message); setGuardando(false); return }
+
     const infoGuardada = { nombre: form.nombre, apellido: form.apellido, email: form.email, password: passwordTemp }
     setModalAbierto(false); resetForm(); setPasswordGenerado(infoGuardada); cargarUsuarios(); setGuardando(false)
   }
