@@ -566,6 +566,9 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion, perfil }) {
     const { data, error: authErr } = await supabase.auth.signUp({ email: emailPortal, password })
     if (authErr) { toast.error('Error: ' + authErr.message); setCreandoCuenta(false); return }
 
+    console.log('estudiante.id:', estudiante.id)
+    console.log('tipo:', typeof estudiante.id)
+
     // 2. Insertar perfil via RPC con SECURITY DEFINER (evita problema de sesión)
     const { error: rpcErr } = await supabase.rpc('crear_perfil_alumno', {
       p_id:            data.user.id,
