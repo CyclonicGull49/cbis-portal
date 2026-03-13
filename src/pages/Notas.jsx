@@ -148,7 +148,6 @@ export default function Notas() {
       supabase.from('estudiantes')
         .select('id, nombre, apellido')
         .eq('grado_id', gradoId)
-        .eq('activo', true)
         .order('apellido'),
       materiaId === 'todas'
         ? supabase.from('notas').select('*').eq('grado_id', gradoId).eq('año_escolar', yearEscolar)
