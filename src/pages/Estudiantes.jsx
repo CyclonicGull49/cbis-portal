@@ -579,18 +579,17 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion, perfil }) {
       p_estudiante_id: estudiante.id,
     })
 
-    // Restaurar sesión del admin y recargar
+    // Restaurar sesión del admin en background (sin reload inmediato)
     if (sessionAdmin) {
       await supabase.auth.setSession({
         access_token:  sessionAdmin.access_token,
         refresh_token: sessionAdmin.refresh_token,
       })
-      window.location.reload()
     }
 
     if (rpcErr) { toast.error('RPC error: ' + rpcErr.message); setCreandoCuenta(false); return }
 
-    setCredenciales({ email: emailPortal, password })
+    setCredenciales({ email: emailPortal, password, sessionAdmin })
     setCuentaPortal({ email: emailPortal, activo: true })
     toast.success('Acceso creado exitosamente')
     setCreandoCuenta(false)
@@ -776,7 +775,12 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion, perfil }) {
                     <div style={{ fontFamily: 'monospace', fontSize: 14, fontWeight: 700, color: '#3d1f61', background: '#fff', borderRadius: 8, padding: '6px 10px', letterSpacing: 1 }}>{val}</div>
                   </div>
                 ))}
-                <div style={{ fontSize: 11, color: '#b0a8c0', marginTop: 6 }}>El alumno deberá cambiar la contraseña en su primer ingreso.</div>
+                <div style={{ fontSize: 11, color: '#b0a8c0', marginTop: 6, marginBottom: 12 }}>El alumno deberá cambiar la contraseña en su primer ingreso.</div>
+                <button
+                  onClick={() => window.location.reload()}
+                  style={{ width: '100%', padding: '10px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #5B2D8E, #3d1f61)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
+                  ✓ Listo, ya anoté las credenciales
+                </button>
               </div>
             )}
           </div>
