@@ -75,6 +75,7 @@ export default function Usuarios() {
 
   async function eliminarUsuario(usuario) {
     await supabase.from('perfiles').delete().eq('id', usuario.id)
+    await supabase.rpc('eliminar_usuario_auth', { p_perfil_id: usuario.id })
     toast.success('Usuario eliminado'); cargarUsuarios(); setModalConfirm(null)
   }
 
