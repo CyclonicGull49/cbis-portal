@@ -9,6 +9,7 @@ import Usuarios from './Usuarios'
 import Configuracion from './Configuracion'
 import Matricula from './Matricula'
 import Reportes from './Reportes'
+import Notas from './Notas'
 import PerfilAlumno from './PerfilAlumno'
 
 // KPI icon SVGs
@@ -297,6 +298,7 @@ export default function Dashboard() {
       case 'dashboard':     return <DashboardHome />
       case 'estudiantes':   return <Estudiantes />
       case 'cobros':        return <Cobros />
+      case 'notas':         return <Notas />
       case 'contabilidad':  return <Contabilidad />
       case 'usuarios':      return <Usuarios />
       case 'configuracion': return <Configuracion />

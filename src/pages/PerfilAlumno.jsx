@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
+import { useYearEscolar } from '../hooks/useYearEscolar'
 import toast from 'react-hot-toast'
 
 const TIPOS_DOC = [
@@ -145,11 +146,7 @@ export default function PerfilAlumno({ seccion = 'perfil' }) {
 
       {/* ── Mis Notas ────────────────────────────────────────── */}
       {seccion === 'notas' && (
-        <div style={{ textAlign: 'center', padding: '60px 0', background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)' }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>📝</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#3d1f61', marginBottom: 6 }}>Módulo de notas en desarrollo</div>
-          <div style={{ fontSize: 13, color: '#b0a8c0', fontWeight: 500 }}>Pronto podrás ver tus calificaciones aquí.</div>
-        </div>
+        <Boletin estudianteId={perfil?.estudiante_id} gradoId={estudiante?.grado_id} nivel={estudiante?.grados?.nivel} />
       )}
 
       {/* ── Mis Cobros ───────────────────────────────────────── */}
@@ -275,6 +272,106 @@ export default function PerfilAlumno({ seccion = 'perfil' }) {
         </div>
       )}
 
+    </div>
+  )
+}
+
+function promedio(vals) {
+  const v = vals.filter(x => x !== null && x !== undefined)
+  if (!v.length) return null
+  return v.reduce((a, b) => a + parseFloat(b), 0) / v.length
+}
+
+function Boletin({ estudianteId, gradoId, nivel }) {
+  const { yearEscolar } = useYearEscolar()
+  const [materias, setMaterias]   = useState([])
+  const [notas, setNotas]         = useState({})
+  const [loading, setLoading]     = useState(true)
+
+  const numPeriodos = ['bachillerato'].includes(nivel) ? 4 : 3
+
+  useEffect(() => {
+    if (!estudianteId || !gradoId || !yearEscolar) return
+    async function cargar() {
+      setLoading(true)
+      const [{ data: mgs }, { data: ns }] = await Promise.all([
+        supabase.from('materia_grado').select('materia_id, materias(id, nombre)').eq('grado_id', gradoId),
+        supabase.from('notas').select('*').eq('estudiante_id', estudianteId).eq('grado_id', gradoId).eq('año_escolar', yearEscolar),
+      ])
+      setMaterias(mgs?.map(m => m.materias) || [])
+      const mapa = {}
+      for (const n of (ns || [])) {
+        mapa[`${n.materia_id}-${n.periodo}-${n.tipo}`] = n.nota
+      }
+      setNotas(mapa)
+      setLoading(false)
+    }
+    cargar()
+  }, [estudianteId, gradoId, yearEscolar])
+
+  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: '#b0a8c0', fontSize: 13 }}>Cargando boletín...</div>
+
+  if (!materias.length) return (
+    <div style={{ textAlign: 'center', padding: '60px 0', background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)' }}>
+      <div style={{ fontSize: 36, marginBottom: 12 }}>📝</div>
+      <div style={{ fontSize: 14, fontWeight: 700, color: '#3d1f61', marginBottom: 6 }}>Aún no hay notas registradas</div>
+      <div style={{ fontSize: 13, color: '#b0a8c0' }}>Las notas aparecerán aquí una vez que el docente las registre.</div>
+    </div>
+  )
+
+  const periodoLabel = nivel === 'bachillerato' ? 'Bimestre' : 'Trimestre'
+
+  return (
+    <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', overflow: 'auto' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 600 }}>
+        <thead>
+          <tr style={{ background: '#faf8ff' }}>
+            <th style={{ padding: '12px 18px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Materia</th>
+            {Array.from({ length: numPeriodos }, (_, i) => (
+              <th key={i} style={{ padding: '12px 8px', fontSize: 10, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: '0.6px', textAlign: 'center', borderLeft: '2px solid #e9e3f5' }}>
+                {periodoLabel} {i + 1}
+              </th>
+            ))}
+            <th style={{ padding: '12px 12px', fontSize: 10, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: '0.6px', textAlign: 'center', borderLeft: '2px solid #e9e3f5' }}>
+              Final
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {materias.map((m, idx) => {
+            const promediosPeriodo = Array.from({ length: numPeriodos }, (_, i) => {
+              const ord = notas[`${m.id}-${i + 1}-ordinaria`] ?? null
+              const exa = notas[`${m.id}-${i + 1}-examen`]    ?? null
+              return promedio([ord, exa])
+            })
+            const notaFinal = promedio(promediosPeriodo)
+
+            return (
+              <tr key={m.id} style={{ borderTop: '1px solid #f3eeff', background: idx % 2 === 0 ? '#fff' : '#fdfcff' }}>
+                <td style={{ padding: '12px 18px', fontSize: 13, fontWeight: 600, color: '#3d1f61' }}>{m.nombre}</td>
+                {promediosPeriodo.map((p, i) => (
+                  <td key={i} style={{ padding: '12px 8px', textAlign: 'center', borderLeft: '2px solid #e9e3f5' }}>
+                    <span style={{
+                      fontSize: 14, fontWeight: 700,
+                      color: p === null ? '#ccc' : p < 5 ? '#dc2626' : p < 7 ? '#a16207' : '#16a34a'
+                    }}>
+                      {p !== null ? p.toFixed(1) : '—'}
+                    </span>
+                  </td>
+                ))}
+                <td style={{ padding: '12px 12px', textAlign: 'center', borderLeft: '2px solid #e9e3f5' }}>
+                  <span style={{
+                    fontSize: 15, fontWeight: 900,
+                    color: notaFinal === null ? '#ccc' : notaFinal < 5 ? '#dc2626' : notaFinal < 7 ? '#a16207' : '#16a34a'
+                  }}>
+                    {notaFinal !== null ? notaFinal.toFixed(1) : '—'}
+                  </span>
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
     </div>
   )
 }

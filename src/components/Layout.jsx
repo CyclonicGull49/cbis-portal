@@ -87,6 +87,7 @@ export default function Layout({ pagina, setPagina, children }) {
   const menuAdmin = [
     { id: 'dashboard',     label: 'Dashboard',     icon: Icons.dashboard },
     { id: 'estudiantes',   label: 'Estudiantes',   icon: Icons.estudiantes },
+    { id: 'notas',         label: 'Notas',         icon: Icons.reportes },
     { id: 'cobros',        label: 'Cobros',        icon: Icons.cobros },
     { id: 'contabilidad',  label: 'Contabilidad',  icon: Icons.contabilidad },
     { id: 'matricula',     label: 'Matrícula',     icon: Icons.matricula },
@@ -106,6 +107,7 @@ export default function Layout({ pagina, setPagina, children }) {
   const menuDireccion = [
     { id: 'dashboard',    label: 'Dashboard',    icon: Icons.dashboard },
     { id: 'estudiantes',  label: 'Estudiantes',  icon: Icons.estudiantes },
+    { id: 'notas',        label: 'Notas',        icon: Icons.reportes },
     { id: 'cobros',       label: 'Cobros',       icon: Icons.cobros },
     { id: 'contabilidad', label: 'Contabilidad', icon: Icons.contabilidad },
     { id: 'reportes',     label: 'Reportes',     icon: Icons.reportes },
@@ -114,6 +116,7 @@ export default function Layout({ pagina, setPagina, children }) {
   const menuRegistro = [
     { id: 'dashboard',    label: 'Dashboard',    icon: Icons.dashboard },
     { id: 'estudiantes',  label: 'Estudiantes',  icon: Icons.estudiantes },
+    { id: 'notas',        label: 'Notas',        icon: Icons.reportes },
     { id: 'cobros',       label: 'Cobros',       icon: Icons.cobros },
     { id: 'matricula',    label: 'Matrícula',    icon: Icons.matricula },
     { id: 'reportes',     label: 'Reportes',     icon: Icons.reportes },
@@ -121,6 +124,7 @@ export default function Layout({ pagina, setPagina, children }) {
 
   const menuDocente = [
     { id: 'dashboard',   label: 'Dashboard',   icon: Icons.dashboard },
+    { id: 'notas',       label: 'Notas',       icon: Icons.reportes },
     { id: 'estudiantes', label: 'Estudiantes', icon: Icons.estudiantes },
   ]
 
