@@ -37,7 +37,7 @@ export default function PerfilAlumno({ seccion = 'perfil' }) {
   async function cargarDatos() {
     setLoading(true)
     const [{ data: est }, { data: cob }, { data: d }] = await Promise.all([
-      supabase.from('estudiantes').select('*, grados(nombre, nivel)').eq('id', perfil.estudiante_id).single(),
+      supabase.from('estudiantes').select('*, grados(nombre, nivel, componentes_nota)').eq('id', perfil.estudiante_id).single(),
       supabase.from('cobros').select('*, conceptos_cobro(nombre)').eq('estudiante_id', perfil.estudiante_id).order('fecha_vencimiento', { ascending: true }),
       supabase.from('documentos_estudiante').select('*').eq('estudiante_id', perfil.estudiante_id),
     ])
@@ -146,7 +146,7 @@ export default function PerfilAlumno({ seccion = 'perfil' }) {
 
       {/* ── Mis Notas ────────────────────────────────────────── */}
       {seccion === 'notas' && (
-        <Boletin estudianteId={perfil?.estudiante_id} gradoId={estudiante?.grado_id} nivel={estudiante?.grados?.nivel} />
+        <Boletin estudianteId={perfil?.estudiante_id} gradoId={estudiante?.grado_id} nivel={estudiante?.grados?.nivel} componentesNota={estudiante?.grados?.componentes_nota} />
       )}
 
       {/* ── Mis Cobros ───────────────────────────────────────── */}
@@ -276,29 +276,45 @@ export default function PerfilAlumno({ seccion = 'perfil' }) {
   )
 }
 
-function promedio(vals) {
-  const v = vals.filter(x => x !== null && x !== undefined)
-  if (!v.length) return null
-  return v.reduce((a, b) => a + parseFloat(b), 0) / v.length
+const PESOS_NOTA = { ac: 0.35, ai: 0.35, em: 0.10, ep: 0.10, ef: 0.20 }
+const PERIODO_LABEL_BOLETIN = { ac: 'AC', ai: 'AI', em: 'EM', ep: 'EP', ef: 'EF' }
+
+function calcNFT(componentes, notasMap) {
+  const vals = componentes.map(c => notasMap[c])
+  if (vals.some(v => v === null || v === undefined)) return null
+  return componentes.reduce((sum, c) => sum + parseFloat(notasMap[c]) * PESOS_NOTA[c], 0)
 }
 
-function Boletin({ estudianteId, gradoId, nivel }) {
-  const { yearEscolar } = useYearEscolar()
-  const [materias, setMaterias]   = useState([])
-  const [notas, setNotas]         = useState({})
-  const [loading, setLoading]     = useState(true)
+function colorNota(n) {
+  if (n === null || n === undefined) return '#ccc'
+  if (n < 5) return '#dc2626'
+  if (n < 7) return '#a16207'
+  return '#16a34a'
+}
 
-  const numPeriodos = ['bachillerato'].includes(nivel) ? 4 : 3
+function Boletin({ estudianteId, gradoId, nivel, componentesNota }) {
+  const { yearEscolar } = useYearEscolar()
+  const [materias, setMaterias] = useState([])
+  const [notas, setNotas]       = useState({})
+  const [loading, setLoading]   = useState(true)
+
+  const componentes  = componentesNota?.split(',') || ['ac', 'ai', 'em', 'ef']
+  const numPeriodos  = nivel === 'bachillerato' ? 4 : 3
+  const periodoLabel = nivel === 'bachillerato' ? 'Bimestre' : 'Trimestre'
 
   useEffect(() => {
     if (!estudianteId || !gradoId || !yearEscolar) return
     async function cargar() {
       setLoading(true)
       const [{ data: mgs }, { data: ns }] = await Promise.all([
-        supabase.from('materia_grado').select('materia_id, materias(id, nombre)').eq('grado_id', gradoId),
+        supabase.from('materia_grado').select('materia_id').eq('grado_id', gradoId),
         supabase.from('notas').select('*').eq('estudiante_id', estudianteId).eq('grado_id', gradoId).eq('año_escolar', yearEscolar),
       ])
-      setMaterias(mgs?.map(m => m.materias) || [])
+      if (mgs?.length) {
+        const ids = mgs.map(m => m.materia_id)
+        const { data: ms } = await supabase.from('materias').select('id, nombre').in('id', ids).order('nombre')
+        setMaterias(ms || [])
+      }
       const mapa = {}
       for (const n of (ns || [])) {
         mapa[`${n.materia_id}-${n.periodo}-${n.tipo}`] = n.nota
@@ -319,52 +335,45 @@ function Boletin({ estudianteId, gradoId, nivel }) {
     </div>
   )
 
-  const periodoLabel = nivel === 'bachillerato' ? 'Bimestre' : 'Trimestre'
-
   return (
     <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', overflow: 'auto' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 600 }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 500 }}>
         <thead>
           <tr style={{ background: '#faf8ff' }}>
             <th style={{ padding: '12px 18px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Materia</th>
             {Array.from({ length: numPeriodos }, (_, i) => (
-              <th key={i} style={{ padding: '12px 8px', fontSize: 10, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: '0.6px', textAlign: 'center', borderLeft: '2px solid #e9e3f5' }}>
+              <th key={i} style={{ padding: '12px 8px', fontSize: 10, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', textAlign: 'center', borderLeft: '2px solid #e9e3f5' }}>
                 {periodoLabel} {i + 1}
               </th>
             ))}
-            <th style={{ padding: '12px 12px', fontSize: 10, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: '0.6px', textAlign: 'center', borderLeft: '2px solid #e9e3f5' }}>
-              Final
+            <th style={{ padding: '12px 12px', fontSize: 10, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', textAlign: 'center', borderLeft: '2px solid #c9b8e8' }}>
+              ACU
             </th>
           </tr>
         </thead>
         <tbody>
           {materias.map((m, idx) => {
-            const promediosPeriodo = Array.from({ length: numPeriodos }, (_, i) => {
-              const ord = notas[`${m.id}-${i + 1}-ordinaria`] ?? null
-              const exa = notas[`${m.id}-${i + 1}-examen`]    ?? null
-              return promedio([ord, exa])
+            const nftsPeriodo = Array.from({ length: numPeriodos }, (_, i) => {
+              const map = {}
+              for (const c of componentes) map[c] = notas[`${m.id}-${i + 1}-${c}`] ?? null
+              return calcNFT(componentes, map)
             })
-            const notaFinal = promedio(promediosPeriodo)
+            const nftsValidos = nftsPeriodo.filter(v => v !== null)
+            const notaFinal = nftsValidos.length ? nftsValidos.reduce((a, b) => a + b, 0) / nftsValidos.length : null
 
             return (
               <tr key={m.id} style={{ borderTop: '1px solid #f3eeff', background: idx % 2 === 0 ? '#fff' : '#fdfcff' }}>
                 <td style={{ padding: '12px 18px', fontSize: 13, fontWeight: 600, color: '#3d1f61' }}>{m.nombre}</td>
-                {promediosPeriodo.map((p, i) => (
+                {nftsPeriodo.map((nft, i) => (
                   <td key={i} style={{ padding: '12px 8px', textAlign: 'center', borderLeft: '2px solid #e9e3f5' }}>
-                    <span style={{
-                      fontSize: 14, fontWeight: 700,
-                      color: p === null ? '#ccc' : p < 5 ? '#dc2626' : p < 7 ? '#a16207' : '#16a34a'
-                    }}>
-                      {p !== null ? p.toFixed(1) : '—'}
+                    <span style={{ fontSize: 14, fontWeight: 700, color: colorNota(nft) }}>
+                      {nft !== null ? nft.toFixed(2) : '—'}
                     </span>
                   </td>
                 ))}
-                <td style={{ padding: '12px 12px', textAlign: 'center', borderLeft: '2px solid #e9e3f5' }}>
-                  <span style={{
-                    fontSize: 15, fontWeight: 900,
-                    color: notaFinal === null ? '#ccc' : notaFinal < 5 ? '#dc2626' : notaFinal < 7 ? '#a16207' : '#16a34a'
-                  }}>
-                    {notaFinal !== null ? notaFinal.toFixed(1) : '—'}
+                <td style={{ padding: '12px 12px', textAlign: 'center', borderLeft: '2px solid #c9b8e8' }}>
+                  <span style={{ fontSize: 15, fontWeight: 900, color: colorNota(notaFinal) }}>
+                    {notaFinal !== null ? notaFinal.toFixed(2) : '—'}
                   </span>
                 </td>
               </tr>
