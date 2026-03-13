@@ -146,7 +146,7 @@ export default function PerfilAlumno({ seccion = 'perfil' }) {
 
       {/* ── Mis Notas ────────────────────────────────────────── */}
       {seccion === 'notas' && (
-        <Boletin estudianteId={perfil?.estudiante_id} gradoId={estudiante?.grado_id} nivel={estudiante?.grados?.nivel} componentesNota={estudiante?.grados?.componentes_nota} />
+        <Boletin estudianteId={perfil?.estudiante_id} gradoId={perfil?.grado_id || estudiante?.grado_id} nivel={estudiante?.grados?.nivel} componentesNota={estudiante?.grados?.componentes_nota} />
       )}
 
       {/* ── Mis Cobros ───────────────────────────────────────── */}
@@ -303,12 +303,13 @@ function Boletin({ estudianteId, gradoId, nivel, componentesNota }) {
   const periodoLabel = nivel === 'bachillerato' ? 'Bimestre' : 'Trimestre'
 
   useEffect(() => {
-    if (!estudianteId || !gradoId || !yearEscolar) return
+    const year = yearEscolar || new Date().getFullYear()
+    if (!estudianteId || !gradoId) return
     async function cargar() {
       setLoading(true)
       const [{ data: mgs }, { data: ns }] = await Promise.all([
         supabase.from('materia_grado').select('materia_id').eq('grado_id', gradoId),
-        supabase.from('notas').select('*').eq('estudiante_id', estudianteId).eq('grado_id', gradoId).eq('año_escolar', yearEscolar),
+        supabase.from('notas').select('*').eq('estudiante_id', estudianteId).eq('grado_id', gradoId).eq('año_escolar', year),
       ])
       if (mgs?.length) {
         const ids = mgs.map(m => m.materia_id)

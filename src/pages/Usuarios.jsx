@@ -104,7 +104,75 @@ export default function Usuarios() {
     registro_academico:  'Registro Académico',
     recepcion:           'Recepción',
     docente:             'Docente',
-    alumno:              'Alumno / Familia',
+    alumno:              'Alumno',
+  }
+
+  const staff  = usuarios.filter(u => u.rol !== 'alumno')
+  const alumnos = usuarios.filter(u => u.rol === 'alumno')
+
+  function TablaUsuarios({ lista, titulo, subtitulo, colorAcento }) {
+    if (!lista.length) return null
+    return (
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+          <h2 style={{ fontSize: 15, fontWeight: 800, color: '#3d1f61', margin: 0 }}>{titulo}</h2>
+          <span style={{ fontSize: 11, fontWeight: 700, color: colorAcento, background: colorAcento + '18', padding: '2px 10px', borderRadius: 20 }}>{lista.length}</span>
+        </div>
+        <div style={s.card}>
+          <table style={s.table}>
+            <thead>
+              <tr style={{ background: '#faf8ff' }}>
+                {['Usuario', 'Email', 'Rol', 'Detalle', 'Estado', 'Acciones'].map(h => (
+                  <th key={h} style={s.th}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {lista.map((u, idx) => (
+                <tr key={u.id} style={{ ...s.tr, background: idx % 2 === 0 ? '#fff' : '#fdfcff' }}>
+                  <td style={s.td}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 34, height: 34, borderRadius: '50%', background: `linear-gradient(135deg, #3d1f61, #5B2D8E)`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 12, flexShrink: 0 }}>
+                        {u.nombre?.charAt(0)}{u.apellido?.charAt(0)}
+                      </div>
+                      <div style={{ fontWeight: 700, color: '#3d1f61', fontSize: 13 }}>{u.nombre} {u.apellido}</div>
+                    </div>
+                  </td>
+                  <td style={s.td}><span style={{ fontSize: 13, color: '#6b7280' }}>{u.email}</span></td>
+                  <td style={s.td}>
+                    <span style={{ ...s.badge, background: rolColor[u.rol]?.bg || '#f3f4f6', color: rolColor[u.rol]?.color || '#6b7280' }}>
+                      {rolLabel[u.rol] || u.rol}
+                    </span>
+                  </td>
+                  <td style={s.td}>
+                    {u.rol === 'docente' && u.grados ? (
+                      <span style={{ fontSize: 12, color: '#0e9490', fontWeight: 600, background: '#e0f7f6', padding: '3px 10px', borderRadius: 20 }}>{u.grados.nombre}</span>
+                    ) : u.rol === 'alumno' && u.estudiante_id ? (
+                      <span style={{ fontSize: 12, color: '#c2410c', fontWeight: 600, background: '#fff0e6', padding: '3px 10px', borderRadius: 20 }}>ID #{u.estudiante_id}</span>
+                    ) : (
+                      <span style={{ color: '#d1d5db', fontSize: 12 }}>—</span>
+                    )}
+                  </td>
+                  <td style={s.td}>
+                    <span style={{ ...s.badge, background: u.activo ? '#dcfce7' : '#fee2e2', color: u.activo ? '#16a34a' : '#dc2626' }}>
+                      {u.activo ? 'Activo' : 'Inactivo'}
+                    </span>
+                  </td>
+                  <td style={s.td}>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button onClick={() => setModalConfirm({ tipo: 'toggle', usuario: u })} style={u.activo ? s.btnDesactivar : s.btnActivar}>
+                        {u.activo ? 'Desactivar' : 'Activar'}
+                      </button>
+                      <button onClick={() => setModalConfirm({ tipo: 'eliminar', usuario: u })} style={s.btnEliminar}>Eliminar</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -117,73 +185,14 @@ export default function Usuarios() {
         <button onClick={() => setModalAbierto(true)} style={s.btnPrimary}>+ Nuevo usuario</button>
       </div>
 
-      <div style={s.card}>
-        {loading ? (
-          <p style={{ textAlign: 'center', color: '#b0a8c0', padding: 48, fontSize: 13 }}>Cargando...</p>
-        ) : (
-          <table style={s.table}>
-            <thead>
-              <tr style={{ background: '#faf8ff' }}>
-                {['Usuario', 'Email', 'Rol', 'Detalle', 'Estado', 'Acciones'].map(h => (
-                  <th key={h} style={s.th}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {usuarios.map((u, idx) => (
-                <tr key={u.id} style={{ ...s.tr, background: idx % 2 === 0 ? '#fff' : '#fdfcff' }}>
-                  <td style={s.td}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{ width: 34, height: 34, borderRadius: '50%', background: `linear-gradient(135deg, #3d1f61, #5B2D8E)`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 12, flexShrink: 0 }}>
-                        {u.nombre?.charAt(0)}{u.apellido?.charAt(0)}
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 700, color: '#3d1f61', fontSize: 13 }}>{u.nombre} {u.apellido}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td style={s.td}><span style={{ fontSize: 13, color: '#6b7280' }}>{u.email}</span></td>
-                  <td style={s.td}>
-                    <span style={{ ...s.badge, background: rolColor[u.rol]?.bg || '#f3f4f6', color: rolColor[u.rol]?.color || '#6b7280' }}>
-                      {rolLabel[u.rol] || u.rol}
-                    </span>
-                  </td>
-                  <td style={s.td}>
-                    {u.rol === 'docente' && u.grados ? (
-                      <span style={{ fontSize: 12, color: '#0e9490', fontWeight: 600, background: '#e0f7f6', padding: '3px 10px', borderRadius: 20 }}>
-                        {u.grados.nombre}
-                      </span>
-                    ) : u.rol === 'alumno' && u.estudiante_id ? (
-                      <span style={{ fontSize: 12, color: '#c2410c', fontWeight: 600, background: '#fff0e6', padding: '3px 10px', borderRadius: 20 }}>
-                        ID #{u.estudiante_id}
-                      </span>
-                    ) : (
-                      <span style={{ color: '#d1d5db', fontSize: 12 }}>—</span>
-                    )}
-                  </td>
-                  <td style={s.td}>
-                    <span style={{ ...s.badge, background: u.activo ? '#dcfce7' : '#fee2e2', color: u.activo ? '#16a34a' : '#dc2626' }}>
-                      {u.activo ? 'Activo' : 'Inactivo'}
-                    </span>
-                  </td>
-                  <td style={s.td}>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <button onClick={() => setModalConfirm({ tipo: 'toggle', usuario: u })}
-                        style={u.activo ? s.btnDesactivar : s.btnActivar}>
-                        {u.activo ? 'Desactivar' : 'Activar'}
-                      </button>
-                      <button onClick={() => setModalConfirm({ tipo: 'eliminar', usuario: u })}
-                        style={s.btnEliminar}>
-                        Eliminar
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      {loading ? (
+        <p style={{ textAlign: 'center', color: '#b0a8c0', padding: 48, fontSize: 13 }}>Cargando...</p>
+      ) : (
+        <>
+          <TablaUsuarios lista={staff} titulo="Personal" colorAcento="#5B2D8E" />
+          <TablaUsuarios lista={alumnos} titulo="Alumnos" colorAcento="#c2410c" />
+        </>
+      )}
 
       {/* Modal nuevo usuario */}
       {modalAbierto && (

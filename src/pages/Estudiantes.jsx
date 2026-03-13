@@ -984,7 +984,7 @@ export default function Estudiantes() {
             </>
           )}
           {!esRecepcion && (
-            <button onClick={() => { resetForm(); setModalAbierto(true) }} style={s.btnPrimary}>+ Nuevo estudiante</button>
+            <div />
           )}
         </div>
       </div>
