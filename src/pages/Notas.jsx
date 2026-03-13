@@ -140,7 +140,7 @@ export default function Notas() {
           mat = ms || []
         }
       }
-      setMaterias(mat); setMateriaId('todas'); setEstudiantes([]); setNotas({}); setPreview({})
+      setMaterias(mat); setMateriaId('todas'); setNotas({}); setPreview({})
     }
     cargar()
   }, [gradoId, yearEscolar])
