@@ -302,11 +302,12 @@ export default function Dashboard() {
       case 'configuracion': return <Configuracion />
       case 'matricula':     return <Matricula />
       // Vistas alumno
-      case 'mi-perfil':     return <PerfilAlumno />
-      case 'mis-cobros':    return <PerfilAlumno defaultTab="cobros" />
-      case 'mis-docs':      return <PerfilAlumno defaultTab="docs" />
-      case 'mis-notas':     return <PerfilAlumno defaultTab="notas" />
-      default:              return esAlumno ? <PerfilAlumno /> : <DashboardHome />
+      case 'mi-perfil':     return <PerfilAlumno seccion="perfil" />
+      case 'mis-cobros':    return <PerfilAlumno seccion="cobros" />
+      case 'mis-docs':      return <PerfilAlumno seccion="docs" />
+      case 'mis-notas':     return <PerfilAlumno seccion="notas" />
+      case 'mi-config':     return <PerfilAlumno seccion="config" />
+      default:              return esAlumno ? <PerfilAlumno seccion="perfil" /> : <DashboardHome />
     }
   }
 

@@ -125,10 +125,11 @@ export default function Layout({ pagina, setPagina, children }) {
   ]
 
   const menuAlumno = [
-    { id: 'mi-perfil',    label: 'Mi Perfil',    icon: Icons.estudiantes },
-    { id: 'mis-notas',    label: 'Mis Notas',    icon: Icons.reportes },
-    { id: 'mis-cobros',   label: 'Mis Cobros',   icon: Icons.cobros },
-    { id: 'mis-docs',     label: 'Documentos',   icon: Icons.contabilidad },
+    { id: 'mi-perfil',    label: 'Mi Perfil',       icon: Icons.estudiantes },
+    { id: 'mis-notas',    label: 'Mis Notas',        icon: Icons.reportes },
+    { id: 'mis-cobros',   label: 'Mis Cobros',       icon: Icons.cobros },
+    { id: 'mis-docs',     label: 'Documentos',       icon: Icons.contabilidad },
+    { id: 'mi-config',    label: 'Configuración',    icon: Icons.configuracion },
   ]
 
   const menuPorRol = {
