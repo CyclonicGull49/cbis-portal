@@ -1,45 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
-
-// ── Icons ─────────────────────────────────────────────────────
-const IcoUser = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-    <circle cx="12" cy="7" r="4"/>
-  </svg>
-)
-const IcoDoc = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-    <polyline points="14 2 14 8 20 8"/>
-  </svg>
-)
-const IcoCobro = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="12" y1="1" x2="12" y2="23"/>
-    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-  </svg>
-)
-const IcoAlert = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10"/>
-    <line x1="12" y1="8" x2="12" y2="12"/>
-    <line x1="12" y1="16" x2="12.01" y2="16"/>
-  </svg>
-)
-const IcoCheck = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="20 6 9 17 4 12"/>
-  </svg>
-)
-const IcoDownload = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-    <polyline points="7 10 12 15 17 10"/>
-    <line x1="12" y1="15" x2="12" y2="3"/>
-  </svg>
-)
+import toast from 'react-hot-toast'
 
 const TIPOS_DOC = [
   { key: 'partida_nacimiento', label: 'Partida de nacimiento' },
@@ -59,11 +21,14 @@ const nivelColor = {
 
 export default function PerfilAlumno({ defaultTab = 'perfil' }) {
   const { perfil } = useAuth()
-  const [tab, setTab]             = useState(defaultTab)
+  const [tab, setTab]               = useState(defaultTab)
   const [estudiante, setEstudiante] = useState(null)
-  const [cobros, setCobros]       = useState([])
-  const [docs, setDocs]           = useState([])
-  const [loading, setLoading]     = useState(true)
+  const [cobros, setCobros]         = useState([])
+  const [docs, setDocs]             = useState([])
+  const [loading, setLoading]       = useState(true)
+  const [passNueva, setPassNueva]   = useState('')
+  const [passConfirm, setPassConfirm] = useState('')
+  const [cambiandoPass, setCambiandoPass] = useState(false)
 
   useEffect(() => {
     if (perfil?.estudiante_id) cargarDatos()
@@ -71,30 +36,33 @@ export default function PerfilAlumno({ defaultTab = 'perfil' }) {
 
   async function cargarDatos() {
     setLoading(true)
-    const [{ data: est }, { data: cob }, { data: docs }] = await Promise.all([
-      supabase.from('estudiantes')
-        .select('*, grados(nombre, nivel)')
-        .eq('id', perfil.estudiante_id)
-        .single(),
-      supabase.from('cobros')
-        .select('*, conceptos_cobro(nombre)')
-        .eq('estudiante_id', perfil.estudiante_id)
-        .order('fecha_vencimiento', { ascending: true }),
-      supabase.from('documentos_estudiante')
-        .select('*')
-        .eq('estudiante_id', perfil.estudiante_id),
+    const [{ data: est }, { data: cob }, { data: d }] = await Promise.all([
+      supabase.from('estudiantes').select('*, grados(nombre, nivel)').eq('id', perfil.estudiante_id).single(),
+      supabase.from('cobros').select('*, conceptos_cobro(nombre)').eq('estudiante_id', perfil.estudiante_id).order('fecha_vencimiento', { ascending: true }),
+      supabase.from('documentos_estudiante').select('*').eq('estudiante_id', perfil.estudiante_id),
     ])
     setEstudiante(est)
     setCobros(cob || [])
-    setDocs(docs || [])
+    setDocs(d || [])
     setLoading(false)
   }
 
   async function verDoc(doc) {
-    const { data } = await supabase.storage
-      .from('documentos-estudiantes')
-      .createSignedUrl(doc.storage_path, 60 * 60)
+    const { data } = await supabase.storage.from('documentos-estudiantes').createSignedUrl(doc.storage_path, 3600)
     if (data?.signedUrl) window.open(data.signedUrl, '_blank')
+    else toast.error('No se pudo abrir el documento')
+  }
+
+  async function cambiarPassword() {
+    if (!passNueva || !passConfirm) { toast.error('Completa todos los campos'); return }
+    if (passNueva.length < 6) { toast.error('Mínimo 6 caracteres'); return }
+    if (passNueva !== passConfirm) { toast.error('Las contraseñas no coinciden'); return }
+    setCambiandoPass(true)
+    const { error } = await supabase.auth.updateUser({ password: passNueva })
+    if (error) { toast.error('Error: ' + error.message); setCambiandoPass(false); return }
+    toast.success('Contraseña actualizada correctamente')
+    setPassNueva(''); setPassConfirm('')
+    setCambiandoPass(false)
   }
 
   if (loading) return (
@@ -109,91 +77,97 @@ export default function PerfilAlumno({ defaultTab = 'perfil' }) {
     </div>
   )
 
-  const esInicial    = ['primera_infancia', 'inicial'].includes(estudiante.grados?.nivel)
-  const tiposDoc     = TIPOS_DOC.filter(t => !t.soloInicial || esInicial)
-  const cobrosPend   = cobros.filter(c => c.estado === 'pendiente')
-  const cobrosVenc   = cobrosPend.filter(c => c.fecha_vencimiento && new Date(c.fecha_vencimiento) < new Date())
-  const totalPend    = cobrosPend.reduce((a, c) => a + parseFloat(c.monto), 0)
-  const docsSubidos  = tiposDoc.filter(t => docs.find(d => d.tipo === t.key)).length
-  const nivel        = nivelColor[estudiante.grados?.nivel] || nivelColor.primaria
+  const esInicial   = ['primera_infancia', 'inicial'].includes(estudiante.grados?.nivel)
+  const tiposDoc    = TIPOS_DOC.filter(t => !t.soloInicial || esInicial)
+  const cobrosPend  = cobros.filter(c => c.estado === 'pendiente')
+  const cobrosVenc  = cobrosPend.filter(c => c.fecha_vencimiento && new Date(c.fecha_vencimiento) < new Date())
+  const totalPend   = cobrosPend.reduce((a, c) => a + parseFloat(c.monto), 0)
+  const docsSubidos = tiposDoc.filter(t => docs.find(d => d.tipo === t.key)).length
+  const nivel       = nivelColor[estudiante.grados?.nivel] || nivelColor.primaria
 
   const tabs = [
-    { id: 'perfil',    label: 'Mi Perfil' },
-    { id: 'cobros',    label: `Mis Cobros ${cobrosPend.length > 0 ? `(${cobrosPend.length})` : ''}` },
-    { id: 'docs',      label: `Documentos (${docsSubidos}/${tiposDoc.length})` },
+    { id: 'perfil',  label: 'Mi Perfil' },
+    { id: 'cobros',  label: `Cobros (${cobrosPend.length})` },
+    { id: 'docs',    label: `Documentos (${docsSubidos}/${tiposDoc.length})` },
+    { id: 'config',  label: 'Configuración' },
   ]
 
   return (
     <div style={{ fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
 
-      {/* Header del alumno */}
+      {/* Header */}
       <div style={{
         background: 'linear-gradient(135deg, #1a0d30, #3d1f61)',
-        borderRadius: 20, padding: '28px 32px', marginBottom: 24,
+        borderRadius: 20, padding: '24px 28px', marginBottom: 24,
         position: 'relative', overflow: 'hidden',
       }}>
-        {/* Grid decorativo */}
-        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)', backgroundSize: '32px 32px', borderRadius: 20 }} />
+        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
 
-        {/* Fila superior: avatar + nombre + grado */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 20, position: 'relative', zIndex: 1 }}>
+        {/* Nombre */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 20, position: 'relative', zIndex: 1 }}>
           <div style={{
-            width: 64, height: 64, borderRadius: '50%', flexShrink: 0,
+            width: 60, height: 60, borderRadius: '50%', flexShrink: 0,
             background: 'linear-gradient(135deg, #D4A017, #b8860b)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#fff', fontWeight: 900, fontSize: 22,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+            color: '#fff', fontWeight: 900, fontSize: 20,
+            boxShadow: '0 6px 20px rgba(0,0,0,0.3)',
           }}>
             {estudiante.nombre?.charAt(0)}{estudiante.apellido?.charAt(0)}
           </div>
           <div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px', marginBottom: 6 }}>
+            <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.4px', marginBottom: 6 }}>
               {estudiante.nombre} {estudiante.apellido}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
               <span style={{ ...nivel, padding: '3px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>
                 {estudiante.grados?.nombre}
               </span>
               {estudiante.nie && (
-                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>
-                  NIE: {estudiante.nie}
-                </span>
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>NIE: {estudiante.nie}</span>
               )}
             </div>
           </div>
         </div>
 
-        {/* KPIs clickeables */}
+        {/* KPIs — divs en lugar de buttons para evitar problemas de estilos */}
         <div style={{ display: 'flex', gap: 12, position: 'relative', zIndex: 1 }}>
-          {/* Cobros pendientes */}
-          <button onClick={() => setTab('cobros')} style={{
-            flex: 1, background: cobrosVenc.length > 0 ? 'rgba(220,38,38,0.15)' : 'rgba(255,255,255,0.08)',
-            border: cobrosVenc.length > 0 ? '1px solid rgba(220,38,38,0.4)' : '1px solid rgba(255,255,255,0.12)',
-            borderRadius: 14, padding: '14px 20px', cursor: 'pointer', textAlign: 'left',
-            fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', transition: 'all 0.15s',
+          <div onClick={() => setTab('cobros')} style={{
+            flex: 1, borderRadius: 14, padding: '14px 18px', cursor: 'pointer',
+            background: cobrosVenc.length > 0 ? 'rgba(220,38,38,0.2)' : 'rgba(255,255,255,0.08)',
+            border: cobrosVenc.length > 0 ? '1px solid rgba(220,38,38,0.5)' : '1px solid rgba(255,255,255,0.12)',
           }}>
-            <div style={{ fontSize: 24, fontWeight: 900, color: cobrosVenc.length > 0 ? '#fca5a5' : '#fff', lineHeight: 1 }}>
+            <div style={{ fontSize: 26, fontWeight: 900, color: cobrosVenc.length > 0 ? '#fca5a5' : '#fff', lineHeight: 1, marginBottom: 4 }}>
               ${totalPend.toFixed(0)}
             </div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: 4 }}>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               {cobrosVenc.length > 0 ? `${cobrosVenc.length} vencido${cobrosVenc.length !== 1 ? 's' : ''}` : `${cobrosPend.length} pendiente${cobrosPend.length !== 1 ? 's' : ''}`}
             </div>
-          </button>
+          </div>
 
-          {/* Documentos */}
-          <button onClick={() => setTab('docs')} style={{
-            flex: 1, background: 'rgba(255,255,255,0.08)',
+          <div onClick={() => setTab('docs')} style={{
+            flex: 1, borderRadius: 14, padding: '14px 18px', cursor: 'pointer',
+            background: 'rgba(255,255,255,0.08)',
             border: '1px solid rgba(255,255,255,0.12)',
-            borderRadius: 14, padding: '14px 20px', cursor: 'pointer', textAlign: 'left',
-            fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', transition: 'all 0.15s',
           }}>
-            <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', lineHeight: 1 }}>
-              {docsSubidos}<span style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>/{tiposDoc.length}</span>
+            <div style={{ fontSize: 26, fontWeight: 900, color: '#fff', lineHeight: 1, marginBottom: 4 }}>
+              {docsSubidos}<span style={{ fontSize: 14, color: 'rgba(255,255,255,0.35)', fontWeight: 600 }}>/{tiposDoc.length}</span>
             </div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: 4 }}>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               Documentos
             </div>
-          </button>
+          </div>
+
+          <div onClick={() => setTab('config')} style={{
+            borderRadius: 14, padding: '14px 18px', cursor: 'pointer',
+            background: 'rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </div>
         </div>
       </div>
 
@@ -201,29 +175,29 @@ export default function PerfilAlumno({ defaultTab = 'perfil' }) {
       <div style={{ display: 'flex', borderBottom: '2px solid #f3eeff', marginBottom: 20 }}>
         {tabs.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
-            padding: '10px 20px', border: 'none', background: 'none', cursor: 'pointer',
+            padding: '10px 18px', border: 'none', background: 'none', cursor: 'pointer',
             fontSize: 13, fontWeight: tab === t.id ? 800 : 500,
             fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif',
             color: tab === t.id ? '#5B2D8E' : '#aaa',
             borderBottom: tab === t.id ? '2px solid #5B2D8E' : '2px solid transparent',
-            marginBottom: -2,
+            marginBottom: -2, whiteSpace: 'nowrap',
           }}>{t.label}</button>
         ))}
       </div>
 
-      {/* ── Tab: Mi Perfil ─────────────────────────────────────── */}
+      {/* Mi Perfil */}
       {tab === 'perfil' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           {[
-            { label: 'Nombre completo',   val: `${estudiante.nombre} ${estudiante.apellido}` },
-            { label: 'NIE',               val: estudiante.nie },
-            { label: 'Grado',             val: estudiante.grados?.nombre },
-            { label: 'Género',            val: estudiante.genero },
+            { label: 'Nombre completo',    val: `${estudiante.nombre} ${estudiante.apellido}` },
+            { label: 'NIE',                val: estudiante.nie },
+            { label: 'Grado',              val: estudiante.grados?.nombre },
+            { label: 'Género',             val: estudiante.genero },
             { label: 'Fecha de nacimiento', val: estudiante.fecha_nacimiento ? new Date(estudiante.fecha_nacimiento + 'T12:00:00').toLocaleDateString('es-SV') : null },
             { label: 'Correo institucional', val: estudiante.correo_institucional },
-            { label: 'Dirección',         val: estudiante.direccion },
-            { label: 'Municipio',         val: estudiante.municipio },
-            { label: 'Encargado',         val: estudiante.nombre_tutor || estudiante.nombre_padre || estudiante.nombre_madre },
+            { label: 'Dirección',          val: estudiante.direccion },
+            { label: 'Municipio',          val: estudiante.municipio },
+            { label: 'Encargado',          val: estudiante.nombre_tutor || estudiante.nombre_padre || estudiante.nombre_madre },
             { label: 'Teléfono encargado', val: estudiante.telefono_tutor || estudiante.telefono_padre || estudiante.telefono_madre },
           ].map(({ label, val }) => (
             <div key={label} style={{ background: '#fff', borderRadius: 12, padding: '14px 18px', boxShadow: '0 2px 8px rgba(61,31,97,0.05)' }}>
@@ -234,18 +208,17 @@ export default function PerfilAlumno({ defaultTab = 'perfil' }) {
         </div>
       )}
 
-      {/* ── Tab: Mis Cobros ──────────────────────────────────────── */}
+      {/* Cobros */}
       {tab === 'cobros' && (
         <div>
-          {cobrosPend.length > 0 && cobrosVenc.length > 0 && (
+          {cobrosVenc.length > 0 && (
             <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ color: '#dc2626' }}><IcoAlert /></span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
               <span style={{ fontSize: 13, color: '#dc2626', fontWeight: 600 }}>
-                Tienes {cobrosVenc.length} cobro{cobrosVenc.length !== 1 ? 's' : ''} vencido{cobrosVenc.length !== 1 ? 's' : ''}. Por favor contáctate con la recepción.
+                Tienes {cobrosVenc.length} cobro{cobrosVenc.length !== 1 ? 's' : ''} vencido{cobrosVenc.length !== 1 ? 's' : ''}. Contáctate con recepción.
               </span>
             </div>
           )}
-
           <div style={{ background: '#fff', borderRadius: 14, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
@@ -280,14 +253,12 @@ export default function PerfilAlumno({ defaultTab = 'perfil' }) {
                 })}
               </tbody>
             </table>
-            {cobros.length === 0 && (
-              <p style={{ textAlign: 'center', padding: 40, color: '#b0a8c0', fontSize: 13 }}>Sin cobros registrados</p>
-            )}
+            {cobros.length === 0 && <p style={{ textAlign: 'center', padding: 40, color: '#b0a8c0', fontSize: 13 }}>Sin cobros registrados</p>}
           </div>
         </div>
       )}
 
-      {/* ── Tab: Documentos ─────────────────────────────────────── */}
+      {/* Documentos */}
       {tab === 'docs' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           {tiposDoc.map(({ key, label }) => {
@@ -296,7 +267,6 @@ export default function PerfilAlumno({ defaultTab = 'perfil' }) {
               <div key={key} style={{
                 background: '#fff', borderRadius: 14, padding: 18,
                 border: doc ? '1.5px solid #c9b8e8' : '1.5px dashed #e0d6f0',
-                boxShadow: '0 2px 8px rgba(61,31,97,0.05)',
                 display: 'flex', alignItems: 'center', gap: 14,
               }}>
                 <div style={{
@@ -305,36 +275,66 @@ export default function PerfilAlumno({ defaultTab = 'perfil' }) {
                   color: doc ? '#fff' : '#b0a8c0',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <IcoDoc />
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                  </svg>
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: '#3d1f61', marginBottom: 3 }}>{label}</div>
-                  {doc ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <IcoCheck />
-                      </div>
-                      <span style={{ fontSize: 11, color: '#16a34a', fontWeight: 600 }}>Disponible</span>
-                    </div>
-                  ) : (
-                    <span style={{ fontSize: 11, color: '#b0a8c0', fontWeight: 500 }}>No subido aún</span>
-                  )}
+                  {doc
+                    ? <span style={{ fontSize: 11, color: '#16a34a', fontWeight: 600 }}>✓ Disponible</span>
+                    : <span style={{ fontSize: 11, color: '#b0a8c0', fontWeight: 500 }}>No subido aún</span>
+                  }
                 </div>
                 {doc && (
                   <button onClick={() => verDoc(doc)} style={{
-                    display: 'flex', alignItems: 'center', gap: 5,
                     padding: '7px 12px', borderRadius: 8, border: 'none',
                     background: '#f3eeff', color: '#5B2D8E', fontWeight: 700, fontSize: 12,
-                    cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', flexShrink: 0,
-                  }}>
-                    <IcoDownload /> Ver
-                  </button>
+                    cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif',
+                  }}>Ver</button>
                 )}
               </div>
             )
           })}
         </div>
       )}
+
+      {/* Configuración */}
+      {tab === 'config' && (
+        <div style={{ maxWidth: 480 }}>
+          <div style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', borderTop: '4px solid #5B2D8E' }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: '#3d1f61', marginBottom: 4 }}>Cambiar contraseña</div>
+            <div style={{ fontSize: 12, color: '#b0a8c0', fontWeight: 500, marginBottom: 20 }}>
+              Si recibiste una contraseña temporal, cámbiala aquí.
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={s.label}>Nueva contraseña</label>
+              <input type="password" style={s.input} value={passNueva} onChange={e => setPassNueva(e.target.value)} placeholder="Mínimo 6 caracteres" />
+            </div>
+            <div style={{ marginBottom: 20 }}>
+              <label style={s.label}>Confirmar contraseña</label>
+              <input type="password" style={s.input} value={passConfirm} onChange={e => setPassConfirm(e.target.value)} placeholder="Repite la nueva contraseña" />
+            </div>
+            {passNueva && passConfirm && passNueva !== passConfirm && (
+              <div style={{ fontSize: 12, color: '#dc2626', fontWeight: 600, marginBottom: 12 }}>Las contraseñas no coinciden</div>
+            )}
+            <button onClick={cambiarPassword} disabled={cambiandoPass} style={{
+              width: '100%', padding: 12, borderRadius: 10, border: 'none',
+              background: 'linear-gradient(135deg, #5B2D8E, #3d1f61)',
+              color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer',
+              fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif',
+              opacity: cambiandoPass ? 0.7 : 1,
+            }}>
+              {cambiandoPass ? 'Actualizando...' : 'Actualizar contraseña'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
+}
+
+const s = {
+  label: { display: 'block', fontSize: 10, fontWeight: 700, color: '#5B2D8E', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' },
+  input: { width: '100%', padding: '10px 14px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: 14, background: '#f9fafb', color: '#222', boxSizing: 'border-box', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' },
 }
