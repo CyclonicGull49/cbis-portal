@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { useYearEscolar } from '../hooks/useYearEscolar'
@@ -34,7 +34,19 @@ function colorNota(n) {
 
 function NotaInput({ value, onChange, onPreview, disabled }) {
   const [local, setLocal] = useState(value ?? '')
+  const timerRef = React.useRef(null)
+
   useEffect(() => { setLocal(value ?? '') }, [value])
+
+  // Limpiar timer al desmontar
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current) }, [])
+
+  function tryGuardar(v) {
+    const n = parseFloat(v)
+    if (v === '' || v === null) { onChange(null); return }
+    if (isNaN(n) || n < 0 || n > 10) return
+    onChange(Math.round(n * 10) / 10)
+  }
 
   function handleChange(e) {
     const v = e.target.value
@@ -42,9 +54,15 @@ function NotaInput({ value, onChange, onPreview, disabled }) {
     const n = parseFloat(v)
     if (!isNaN(n) && n >= 0 && n <= 10) onPreview?.(Math.round(n * 10) / 10)
     else if (v === '') onPreview?.(null)
+
+    // Guardar automáticamente 800ms después de dejar de escribir
+    if (timerRef.current) clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => tryGuardar(v), 800)
   }
 
-  async function handleBlur() {
+  function handleBlur() {
+    // Cancelar debounce y guardar inmediatamente al salir
+    if (timerRef.current) clearTimeout(timerRef.current)
     const n = parseFloat(local)
     if (local === '' || local === null) { onChange(null); return }
     if (isNaN(n) || n < 0 || n > 10) {
