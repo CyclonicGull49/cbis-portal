@@ -146,16 +146,14 @@ export default function Notas() {
   }, [gradoId, yearEscolar])
 
   // ── Cargar estudiantes y notas ─────────────────────────────
-  useEffect(() => { if (gradoId) cargarDatos() }, [gradoId, materiaId, yearEscolar])
+  useEffect(() => { if (gradoId) cargarDatos() }, [gradoId, yearEscolar])
 
   async function cargarDatos() {
     setLoading(true); setPreview({})
     const year = yearEscolar || new Date().getFullYear()
     const [{ data: ests }, { data: ns }] = await Promise.all([
       supabase.from('estudiantes').select('id, nombre, apellido').eq('grado_id', gradoId).order('apellido'),
-      materiaId === 'todas'
-        ? supabase.from('notas').select('*').eq('grado_id', gradoId).eq('año_escolar', year)
-        : supabase.from('notas').select('*').eq('grado_id', gradoId).eq('materia_id', materiaId).eq('año_escolar', year),
+      supabase.from('notas').select('*').eq('grado_id', gradoId).eq('año_escolar', year),
     ])
     setEstudiantes(ests || [])
     const mapa = {}
