@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { useYearEscolar } from '../hooks/useYearEscolar'
@@ -44,7 +44,7 @@ function NotaInput({ value, onChange, onPreview, disabled }) {
     else if (v === '') onPreview?.(null)
   }
 
-  function handleBlur() {
+  async function handleBlur() {
     const n = parseFloat(local)
     if (local === '' || local === null) { onChange(null); return }
     if (isNaN(n) || n < 0 || n > 10) {
@@ -72,7 +72,7 @@ function NotaInput({ value, onChange, onPreview, disabled }) {
   )
 }
 
-export default function Notas() {
+export default function Notas({ onVerEstudiante }) {
   const { perfil } = useAuth()
   const { yearEscolar } = useYearEscolar()
 
@@ -88,13 +88,20 @@ export default function Notas() {
   const [notas, setNotas]             = useState({})
   const [preview, setPreview]         = useState({})
   const [loading, setLoading]         = useState(false)
+  const [busqueda, setBusqueda]       = useState('')
 
   const componentes  = gradoInfo?.componentes_nota?.split(',') || ['ac', 'ai', 'em', 'ef']
   const numPeriodos  = gradoInfo?.nivel === 'bachillerato' ? 4 : 3
   const periodoLabel = gradoInfo?.nivel === 'bachillerato' ? 'Bimestre' : 'Trimestre'
   const nivel        = nivelColor[gradoInfo?.nivel] || nivelColor.primaria
 
-  // Preview tiene prioridad sobre DB para el cálculo del NFT en tiempo real
+  // Filtrar estudiantes por búsqueda
+  const estudiantesFiltrados = estudiantes.filter(e =>
+    busqueda === '' ||
+    `${e.nombre} ${e.apellido}`.toLowerCase().includes(busqueda.toLowerCase()) ||
+    `${e.apellido} ${e.nombre}`.toLowerCase().includes(busqueda.toLowerCase())
+  )
+
   function getVal(estId, matId, periodo, tipo) {
     const key = `${estId}-${matId}-${periodo}-${tipo}`
     return preview[key] !== undefined ? preview[key] : (notas[key]?.nota ?? null)
@@ -140,7 +147,7 @@ export default function Notas() {
           mat = ms || []
         }
       }
-     setMaterias(mat); setMateriaId('todas')
+      setMaterias(mat); setMateriaId('todas'); setBusqueda('')
     }
     cargar()
   }, [gradoId, yearEscolar])
@@ -174,17 +181,70 @@ export default function Notas() {
     }
 
     const payload = { estudiante_id: estudianteId, materia_id: matId, grado_id: gradoId, año_escolar: year, periodo, tipo, nota: valor, docente_id: perfil.id }
-    const { data } = existe
+    const { data, error } = existe
       ? await supabase.from('notas').update({ nota: valor, docente_id: perfil.id }).eq('id', existe.id).select().single()
       : await supabase.from('notas').insert(payload).select().single()
+
+    if (error) {
+      toast.error('Error al guardar nota')
+      return
+    }
     if (data) {
       setNotas(n => ({ ...n, [key]: data }))
       setPreview(p => { const c = { ...p }; delete c[key]; return c })
+      toast.success('Nota guardada', { duration: 1200, icon: '✓', style: { fontSize: 13, fontWeight: 600, color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0' } })
     }
   }
 
   function setPreviewVal(estId, matId, periodo, tipo, val) {
     setPreview(p => ({ ...p, [`${estId}-${matId}-${periodo}-${tipo}`]: val }))
+  }
+
+  // ── Nombre clickeable ──────────────────────────────────────
+  function NombreEstudiante({ est }) {
+    const canClick = !!onVerEstudiante
+    return (
+      <td style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, color: canClick ? '#5B2D8E' : '#3d1f61', whiteSpace: 'nowrap' }}>
+        <span
+          onClick={() => canClick && onVerEstudiante(est.id)}
+          style={{
+            cursor: canClick ? 'pointer' : 'default',
+            borderBottom: canClick ? '1px dashed #c9b8e8' : 'none',
+            paddingBottom: canClick ? 1 : 0,
+            transition: 'color 0.15s',
+          }}
+          onMouseEnter={e => { if (canClick) e.target.style.color = '#3d1f61' }}
+          onMouseLeave={e => { if (canClick) e.target.style.color = '#5B2D8E' }}
+        >
+          {est.apellido}, {est.nombre}
+        </span>
+      </td>
+    )
+  }
+
+  // ── Barra de búsqueda ──────────────────────────────────────
+  function BarraBusqueda() {
+    if (!gradoId || !estudiantes.length) return null
+    return (
+      <div style={{ position: 'relative', minWidth: 220 }}>
+        <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#b0a8c0', fontSize: 14 }}>🔍</span>
+        <input
+          type="text"
+          placeholder="Buscar estudiante..."
+          value={busqueda}
+          onChange={e => setBusqueda(e.target.value)}
+          style={{
+            width: '100%', padding: '10px 14px 10px 34px', borderRadius: 10,
+            border: '1.5px solid #e5e7eb', fontSize: 13, background: '#fff',
+            color: '#222', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif',
+            outline: 'none', boxSizing: 'border-box',
+          }}
+        />
+        {busqueda && (
+          <button onClick={() => setBusqueda('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#b0a8c0', fontSize: 16, lineHeight: 1 }}>×</button>
+        )}
+      </div>
+    )
   }
 
   // ── Tabla resumen ──────────────────────────────────────────
@@ -194,7 +254,10 @@ export default function Notas() {
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 500 }}>
           <thead>
             <tr style={{ background: '#faf8ff' }}>
-              <th style={{ ...s.th, textAlign: 'left', width: 200 }}>Estudiante</th>
+              <th style={{ ...s.th, textAlign: 'left', width: 200 }}>
+                Estudiante
+                {busqueda && <span style={{ fontWeight: 400, color: '#b0a8c0', marginLeft: 6, fontSize: 10 }}>{estudiantesFiltrados.length} resultado{estudiantesFiltrados.length !== 1 ? 's' : ''}</span>}
+              </th>
               {materias.map(m => (
                 <th key={m.id} style={{ ...s.th, borderLeft: '1px solid #e9e3f5' }}>
                   <div style={{ maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: '0 auto' }} title={m.nombre}>{m.nombre}</div>
@@ -204,7 +267,7 @@ export default function Notas() {
             </tr>
           </thead>
           <tbody>
-            {estudiantes.map((est, idx) => {
+            {estudiantesFiltrados.map((est, idx) => {
               const nftsPorMateria = materias.map(m => {
                 const vals = Array.from({ length: numPeriodos }, (_, i) => calcNFT(componentes, getNotasMap(est.id, m.id, i + 1))).filter(v => v !== null)
                 return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
@@ -213,7 +276,7 @@ export default function Notas() {
               const prom = validos.length ? validos.reduce((a, b) => a + b, 0) / validos.length : null
               return (
                 <tr key={est.id} style={{ borderTop: '1px solid #f3eeff', background: idx % 2 === 0 ? '#fff' : '#fdfcff' }}>
-                  <td style={{ padding: '10px 16px', fontSize: 13, fontWeight: 600, color: '#3d1f61', whiteSpace: 'nowrap' }}>{est.apellido}, {est.nombre}</td>
+                  <NombreEstudiante est={est} />
                   {nftsPorMateria.map((n, i) => (
                     <td key={i} style={{ padding: '10px 8px', textAlign: 'center', borderLeft: '1px solid #f3eeff' }}>
                       <span style={{ fontSize: 13, fontWeight: 700, color: colorNota(n) }}>{n !== null ? n.toFixed(2) : '—'}</span>
@@ -225,7 +288,11 @@ export default function Notas() {
                 </tr>
               )
             })}
-            {!estudiantes.length && <tr><td colSpan={99} style={{ textAlign: 'center', padding: 40, color: '#b0a8c0', fontSize: 13 }}>No hay estudiantes en este grado</td></tr>}
+            {estudiantesFiltrados.length === 0 && (
+              <tr><td colSpan={99} style={{ textAlign: 'center', padding: 40, color: '#b0a8c0', fontSize: 13 }}>
+                {busqueda ? `No se encontró ningún estudiante con "${busqueda}"` : 'No hay estudiantes en este grado'}
+              </td></tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -251,7 +318,10 @@ export default function Notas() {
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
           <thead>
             <tr style={{ background: '#faf8ff' }}>
-              <th style={{ ...s.th, textAlign: 'left', width: 200 }}>Estudiante</th>
+              <th style={{ ...s.th, textAlign: 'left', width: 200 }}>
+                Estudiante
+                {busqueda && <span style={{ fontWeight: 400, color: '#b0a8c0', marginLeft: 6, fontSize: 10 }}>{estudiantesFiltrados.length} resultado{estudiantesFiltrados.length !== 1 ? 's' : ''}</span>}
+              </th>
               {Array.from({ length: numPeriodos }, (_, i) => (
                 <th key={i} colSpan={componentes.length + 1} style={{ ...s.th, borderLeft: '2px solid #e9e3f5' }}>{periodoLabel} {i + 1}</th>
               ))}
@@ -271,13 +341,13 @@ export default function Notas() {
             </tr>
           </thead>
           <tbody>
-            {estudiantes.map((est, idx) => {
+            {estudiantesFiltrados.map((est, idx) => {
               const nfts = Array.from({ length: numPeriodos }, (_, i) => calcNFT(componentes, getNotasMap(est.id, materiaId, i + 1)))
               const validos = nfts.filter(v => v !== null)
               const notaFinal = validos.length ? validos.reduce((a, b) => a + b, 0) / validos.length : null
               return (
                 <tr key={est.id} style={{ borderTop: '1px solid #f3eeff', background: idx % 2 === 0 ? '#fff' : '#fdfcff' }}>
-                  <td style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, color: '#3d1f61', whiteSpace: 'nowrap' }}>{est.apellido}, {est.nombre}</td>
+                  <NombreEstudiante est={est} />
                   {Array.from({ length: numPeriodos }, (_, i) => {
                     const periodo = i + 1
                     const map = getNotasMap(est.id, materiaId, periodo)
@@ -306,7 +376,11 @@ export default function Notas() {
                 </tr>
               )
             })}
-            {!estudiantes.length && <tr><td colSpan={99} style={{ textAlign: 'center', padding: 40, color: '#b0a8c0', fontSize: 13 }}>No hay estudiantes en este grado</td></tr>}
+            {estudiantesFiltrados.length === 0 && (
+              <tr><td colSpan={99} style={{ textAlign: 'center', padding: 40, color: '#b0a8c0', fontSize: 13 }}>
+                {busqueda ? `No se encontró ningún estudiante con "${busqueda}"` : 'No hay estudiantes en este grado'}
+              </td></tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -315,25 +389,31 @@ export default function Notas() {
 
   return (
     <div style={{ fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
-      <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+
+      {/* Selectores + búsqueda */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap', alignItems: 'flex-end' }}>
         {!esDocente && (
-          <div style={{ flex: 1, minWidth: 200 }}>
+          <div style={{ flex: 1, minWidth: 180 }}>
             <label style={s.label}>Grado</label>
             <select style={s.select} value={gradoId || ''} onChange={e => {
               const id = parseInt(e.target.value)
-              setGradoId(id); setGradoInfo(grados.find(g => g.id === id))
+              setGradoId(id); setGradoInfo(grados.find(g => g.id === id)); setBusqueda('')
             }}>
               <option value="">Selecciona un grado</option>
               {grados.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
             </select>
           </div>
         )}
-        <div style={{ flex: 1, minWidth: 200 }}>
+        <div style={{ flex: 1, minWidth: 180 }}>
           <label style={s.label}>Materia</label>
-          <select style={s.select} value={materiaId} onChange={e => setMateriaId(e.target.value)} disabled={!gradoId}>
+          <select style={s.select} value={materiaId} onChange={e => { setMateriaId(e.target.value); setBusqueda('') }} disabled={!gradoId}>
             <option value="todas">Ver todas las materias</option>
             {materias.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
           </select>
+        </div>
+        <div style={{ flex: 1, minWidth: 180 }}>
+          <label style={s.label}>Buscar</label>
+          <BarraBusqueda />
         </div>
       </div>
 

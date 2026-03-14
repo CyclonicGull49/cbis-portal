@@ -293,17 +293,20 @@ export default function Dashboard() {
   const [pagina, setPagina] = useState(esAlumno ? 'mi-perfil' : 'dashboard')
 
   function renderPagina() {
+    if (pagina.startsWith('perfil-estudiante-')) {
+      const id = parseInt(pagina.replace('perfil-estudiante-', ''))
+      return <Estudiantes estudianteIdInicial={id} onVolver={() => setPagina('notas')} />
+    }
     switch (pagina) {
       case 'reportes':      return <Reportes />
       case 'dashboard':     return <DashboardHome />
       case 'estudiantes':   return <Estudiantes />
       case 'cobros':        return <Cobros />
-      case 'notas':         return <Notas />
+      case 'notas':         return <Notas onVerEstudiante={id => setPagina(`perfil-estudiante-${id}`)} />
       case 'contabilidad':  return <Contabilidad />
       case 'usuarios':      return <Usuarios />
       case 'configuracion': return <Configuracion />
       case 'matricula':     return <Matricula />
-      // Vistas alumno
       case 'mi-perfil':     return <PerfilAlumno seccion="perfil" />
       case 'mis-cobros':    return <PerfilAlumno seccion="cobros" />
       case 'mis-docs':      return <PerfilAlumno seccion="docs" />

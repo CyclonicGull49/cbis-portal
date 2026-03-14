@@ -855,7 +855,7 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion, perfil }) {
   )
 }
 
-export default function Estudiantes() {
+export default function Estudiantes({ estudianteIdInicial, onVolver }) {
   const { perfil } = useAuth()
   const esRecepcion = perfil?.rol === 'recepcion'
   const [estudianteDetalle, setEstudianteDetalle] = useState(null)
@@ -869,6 +869,14 @@ export default function Estudiantes() {
   const [error, setError] = useState('')
 
   useEffect(() => { cargarDatos() }, [])
+
+  // Abrir estudiante directamente si viene desde Notas
+  useEffect(() => {
+    if (estudianteIdInicial && estudiantes.length) {
+      const est = estudiantes.find(e => e.id === estudianteIdInicial)
+      if (est) setEstudianteDetalle(est)
+    }
+  }, [estudianteIdInicial, estudiantes])
 
   async function cambiarEstado(e, estudiante) {
     e.stopPropagation()
@@ -970,6 +978,11 @@ export default function Estudiantes() {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
         <div>
+          {onVolver && (
+            <button onClick={onVolver} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#5B2D8E', fontSize: 13, fontWeight: 700, padding: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 6 }}>
+              ← Volver a Notas
+            </button>
+          )}
           <h1 style={{ color: '#3d1f61', fontSize: 22, fontWeight: 800, marginBottom: 4, letterSpacing: '-0.5px' }}>Estudiantes</h1>
           <p style={{ color: '#b0a8c0', fontSize: 13, fontWeight: 500 }}>{estudiantes.length} estudiantes registrados</p>
         </div>
