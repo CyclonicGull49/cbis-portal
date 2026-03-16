@@ -20,6 +20,18 @@ export default function Usuarios() {
   const [grados, setGrados] = useState([])
   const [estudiantes, setEstudiantes] = useState([])
   const [form, setForm] = useState({ nombre: '', apellido: '', email: '', rol: 'recepcion', grado_id: '', estudiante_id: '' })
+  const [resetando, setResetando] = useState(null) // id del usuario reseteando
+
+  async function resetearPassword(usuario) {
+    if (!usuario.email) { toast.error('Este usuario no tiene correo registrado'); return }
+    setResetando(usuario.id)
+    const { error } = await supabase.auth.resetPasswordForEmail(usuario.email, {
+      redirectTo: `${window.location.origin}/dashboard`,
+    })
+    setResetando(null)
+    if (error) toast.error('Error al enviar correo')
+    else toast.success(`Enlace enviado a ${usuario.email}`)
+  }
 
   useEffect(() => { cargarUsuarios(); cargarExtras() }, [])
 
@@ -162,6 +174,11 @@ export default function Usuarios() {
                     <div style={{ display: 'flex', gap: 6 }}>
                       <button onClick={() => setModalConfirm({ tipo: 'toggle', usuario: u })} style={u.activo ? s.btnDesactivar : s.btnActivar}>
                         {u.activo ? 'Desactivar' : 'Activar'}
+                      </button>
+                      <button onClick={() => resetearPassword(u)}
+                        disabled={resetando === u.id}
+                        style={{ ...s.btnEliminar, background: '#eff6ff', color: '#2563eb' }}>
+                        {resetando === u.id ? '...' : '🔑 Reset'}
                       </button>
                       <button onClick={() => setModalConfirm({ tipo: 'eliminar', usuario: u })} style={s.btnEliminar}>Eliminar</button>
                     </div>

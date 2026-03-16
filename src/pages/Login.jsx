@@ -1,13 +1,16 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { supabase } from '../supabase'
 
 export default function Login() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [email, setEmail]               = useState('')
+  const [password, setPassword]         = useState('')
+  const [loading, setLoading]           = useState(false)
+  const [error, setError]               = useState('')
   const [focusedField, setFocusedField] = useState(null)
+  const [resetSent, setResetSent]       = useState(false)
+  const [resetLoading, setResetLoading] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
 
@@ -16,10 +19,19 @@ export default function Login() {
     setLoading(true)
     setError('')
     const { error } = await login(email, password)
-    if (error) {
-      setError('Correo o contraseña incorrectos')
-    }
+    if (error) setError('Correo o contraseña incorrectos')
     setLoading(false)
+  }
+
+  async function handleForgotPassword() {
+    if (!email) { setError('Ingresa tu correo primero'); return }
+    setResetLoading(true)
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/dashboard`,
+    })
+    setResetLoading(false)
+    if (error) { setError('Error al enviar el correo. Verifica tu dirección.') }
+    else { setResetSent(true) }
   }
 
   return (
@@ -681,6 +693,18 @@ export default function Login() {
                 <span className="btn-shimmer" />
                 {loading ? 'Verificando...' : 'Acceder'}
               </button>
+
+              {/* Olvidé mi contraseña */}
+              {resetSent ? (
+                <div style={{ marginTop: 16, padding: '12px 16px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, fontSize: 13, color: '#16a34a', fontWeight: 600, textAlign: 'center' }}>
+                  ✓ Revisa tu correo — te enviamos el enlace para restablecer tu contraseña
+                </div>
+              ) : (
+                <button type="button" onClick={handleForgotPassword} disabled={resetLoading}
+                  style={{ width: '100%', marginTop: 12, background: 'none', border: 'none', color: '#9ca3af', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', padding: '6px 0' }}>
+                  {resetLoading ? 'Enviando...' : '¿Olvidaste tu contraseña?'}
+                </button>
+              )}
             </form>
 
             <div className="form-footer">

@@ -188,6 +188,7 @@ export default function Layout({ pagina, setPagina, children }) {
     { id: 'estudiantes',  label: 'Estudiantes',  icon: Icons.estudiantes },
     { id: 'matricula',    label: 'Matrícula',    icon: Icons.matricula },
     { id: 'notas',        label: 'Notas',        icon: Icons.notas },
+    { id: 'asistencia',   label: 'Asistencia',   icon: Icons.asistencia },
     { id: 'boletas',      label: 'Boletas',      icon: Icons.boletas },
     { id: 'cobros',       label: 'Cobros',       icon: Icons.cobros },
     { id: 'reportes',     label: 'Reportes',     icon: Icons.reportes },

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
+import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 
 const IcoEdit = () => (
@@ -41,6 +42,51 @@ const IcoClose = () => (
 )
 
 export default function Configuracion() {
+  const { perfil } = useAuth()
+  const isAdmin = perfil?.rol === 'admin'
+
+  // ── Perfil personal ───────────────────────────────────────
+  const [perfilForm, setPerfilForm]     = useState({ nombre: '', apellido: '' })
+  const [pwForm, setPwForm]             = useState({ nueva: '', confirmar: '' })
+  const [guardandoPerfil, setGuardandoPerfil] = useState(false)
+  const [guardandoPw, setGuardandoPw]   = useState(false)
+  const [resetEnviado, setResetEnviado] = useState(false)
+
+  useEffect(() => {
+    if (perfil) setPerfilForm({ nombre: perfil.nombre || '', apellido: perfil.apellido || '' })
+  }, [perfil])
+
+  async function guardarPerfil() {
+    setGuardandoPerfil(true)
+    const { error } = await supabase.from('perfiles')
+      .update({ nombre: perfilForm.nombre, apellido: perfilForm.apellido })
+      .eq('id', perfil.id)
+    if (error) toast.error('Error al guardar')
+    else toast.success('Perfil actualizado')
+    setGuardandoPerfil(false)
+  }
+
+  async function cambiarPassword() {
+    if (!pwForm.nueva || pwForm.nueva.length < 6) { toast.error('Mínimo 6 caracteres'); return }
+    if (pwForm.nueva !== pwForm.confirmar) { toast.error('Las contraseñas no coinciden'); return }
+    setGuardandoPw(true)
+    const { error } = await supabase.auth.updateUser({ password: pwForm.nueva })
+    if (error) toast.error('Error al cambiar contraseña')
+    else { toast.success('Contraseña actualizada'); setPwForm({ nueva: '', confirmar: '' }) }
+    setGuardandoPw(false)
+  }
+
+  async function enviarReset() {
+    const email = perfil?.email
+    if (!email) { toast.error('No hay correo en tu perfil'); return }
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/dashboard`,
+    })
+    if (error) toast.error('Error al enviar correo')
+    else { setResetEnviado(true); toast.success('Correo enviado') }
+  }
+
+  // ── Sistema (admin only) ──────────────────────────────────
   const [grados, setGrados]           = useState([])
   const [loading, setLoading]         = useState(true)
   const [modalGrado, setModalGrado]   = useState(false)
@@ -174,8 +220,65 @@ export default function Configuracion() {
     <div style={{ fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ color: '#3d1f61', fontSize: 22, fontWeight: 800, marginBottom: 4, letterSpacing: '-0.5px' }}>Configuración</h1>
-        <p style={{ color: '#b0a8c0', fontSize: 13, fontWeight: 500 }}>Gestión de grados, materias y año escolar</p>
+        <p style={{ color: '#b0a8c0', fontSize: 13, fontWeight: 500 }}>
+          {isAdmin ? 'Perfil personal y configuración del sistema' : 'Tu perfil y seguridad de cuenta'}
+        </p>
       </div>
+
+      {/* ── PERFIL PERSONAL (todos los roles) ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16, marginBottom: 24 }}>
+
+        {/* Datos personales */}
+        <div style={{ background: '#fff', borderRadius: 16, padding: '22px 24px', boxShadow: '0 2px 16px rgba(61,31,97,0.07)', borderTop: '4px solid #5B2D8E' }}>
+          <div style={{ fontSize: 14, fontWeight: 800, color: '#3d1f61', marginBottom: 4 }}>Datos personales</div>
+          <div style={{ fontSize: 12, color: '#b0a8c0', fontWeight: 500, marginBottom: 18 }}>{perfil?.email}</div>
+          <div style={s.field}>
+            <label style={s.label}>Nombre</label>
+            <input style={s.input} value={perfilForm.nombre} onChange={e => setPerfilForm({ ...perfilForm, nombre: e.target.value })} />
+          </div>
+          <div style={s.field}>
+            <label style={s.label}>Apellido</label>
+            <input style={s.input} value={perfilForm.apellido} onChange={e => setPerfilForm({ ...perfilForm, apellido: e.target.value })} />
+          </div>
+          <button onClick={guardarPerfil} disabled={guardandoPerfil} style={{ ...s.btnPrimary, width: '100%' }}>
+            {guardandoPerfil ? 'Guardando...' : 'Guardar datos'}
+          </button>
+        </div>
+
+        {/* Seguridad */}
+        <div style={{ background: '#fff', borderRadius: 16, padding: '22px 24px', boxShadow: '0 2px 16px rgba(61,31,97,0.07)', borderTop: '4px solid #D4A017' }}>
+          <div style={{ fontSize: 14, fontWeight: 800, color: '#3d1f61', marginBottom: 4 }}>Seguridad</div>
+          <div style={{ fontSize: 12, color: '#b0a8c0', fontWeight: 500, marginBottom: 18 }}>Cambia tu contraseña o solicita un enlace de restablecimiento</div>
+          <div style={s.field}>
+            <label style={s.label}>Nueva contraseña</label>
+            <input style={s.input} type="password" placeholder="Mínimo 6 caracteres"
+              value={pwForm.nueva} onChange={e => setPwForm({ ...pwForm, nueva: e.target.value })} />
+          </div>
+          <div style={s.field}>
+            <label style={s.label}>Confirmar contraseña</label>
+            <input style={s.input} type="password" placeholder="Repite la nueva contraseña"
+              value={pwForm.confirmar} onChange={e => setPwForm({ ...pwForm, confirmar: e.target.value })} />
+          </div>
+          <button onClick={cambiarPassword} disabled={guardandoPw} style={{ ...s.btnPrimary, width: '100%', marginBottom: 10 }}>
+            {guardandoPw ? 'Actualizando...' : 'Actualizar contraseña'}
+          </button>
+          <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 12, marginTop: 4 }}>
+            {resetEnviado ? (
+              <div style={{ fontSize: 12, color: '#16a34a', fontWeight: 600, textAlign: 'center', padding: '8px 0' }}>
+                ✓ Revisa tu correo — te enviamos el enlace
+              </div>
+            ) : (
+              <button onClick={enviarReset}
+                style={{ width: '100%', padding: '9px 0', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fafafa', color: '#6b7280', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                Enviarme enlace de restablecimiento
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── CONFIGURACIÓN DEL SISTEMA (solo admin) ── */}
+      {isAdmin && (<>
 
       {/* Año escolar */}
       <div style={{ background: '#fff', borderRadius: 16, padding: '22px 24px', boxShadow: '0 2px 16px rgba(61,31,97,0.07)', marginBottom: 20, borderTop: '4px solid #D4A017' }}>
@@ -396,6 +499,8 @@ export default function Configuracion() {
           </div>
         </div>
       )}
+
+      </>)} {/* fin isAdmin */}
     </div>
   )
 }
