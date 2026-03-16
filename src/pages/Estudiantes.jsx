@@ -930,14 +930,44 @@ export default function Estudiantes({ estudianteIdInicial, onVolver }) {
   )
 
   function descargarPlantilla() {
-    const headers = ['nombres', 'apellidos', 'fecha_nacimiento', 'genero', 'nie', 'correo', 'direccion', 'grado']
-    const ejemplo = ['Camilo Aryéh', 'Velis Figueroa', '2015-03-10', 'masculino', '12345678', 'camilo@cbis.edu.sv', 'Sonsonate, El Salvador', 'Sección 4']
-    const csv = [headers.join(','), ejemplo.join(',')].join('\n')
+    // Grados disponibles como comentario de referencia
+    const gradosRef = grados.map(g => g.nombre).join(' | ')
+    const headers = [
+      // Obligatorios
+      'nombre', 'apellido', 'nie', 'genero', 'fecha_nacimiento', 'grado', 'tipo_ingreso',
+      // Contacto
+      'telefono_contacto', 'email_contacto', 'correo_institucional',
+      'direccion', 'municipio', 'departamento',
+      // Padre
+      'nombre_padre', 'dui_padre', 'telefono_padre', 'correo_padre', 'trabajo_padre', 'direccion_padre',
+      // Madre
+      'nombre_madre', 'dui_madre', 'telefono_madre', 'correo_madre', 'trabajo_madre', 'direccion_madre',
+      // Tutor/Encargado
+      'nombre_tutor', 'dui_tutor', 'telefono_tutor', 'correo_tutor', 'trabajo_tutor', 'direccion_tutor',
+      // Emergencia y salud
+      'contacto_emergencia', 'telefono_emergencia', 'enfermedades_alergias', 'medicamento_permanente',
+      // Datos adicionales
+      'nacionalidad', 'lugar_nacimiento', 'iglesia',
+    ]
+    const ejemplo = [
+      'Camilo Aryéh', 'Velis Figueroa', '12345678', 'masculino', '2015-03-10', 'Sección 4', 'antiguo',
+      '7890-1234', 'camilo@cbis.edu.sv', 'camilo.velis@cbis.edu.sv',
+      'Col. La Paz, Sonsonate', 'Sonsonate', 'Sonsonate',
+      'Nelson Velis', '00000000-0', '7000-0000', 'nelson@email.com', 'Empresa X', 'Sonsonate',
+      'María Figueroa', '11111111-1', '7111-1111', 'maria@email.com', 'Empresa Y', 'Sonsonate',
+      '', '', '', '', '', '',
+      'Abuela Ana', '7222-2222', '', '',
+      'Salvadoreño', 'Sonsonate', 'Iglesia Bautista',
+    ]
+    // Comentario con grados válidos
+    const comentario = `# GRADOS VÁLIDOS: ${gradosRef}\n# GÉNERO: masculino | femenino\n# TIPO_INGRESO: nuevo | antiguo\n# FECHA: formato YYYY-MM-DD (ej. 2015-03-10)\n`
+    const csv = comentario + [headers.join(','), ejemplo.join(',')].join('\n')
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url; a.download = 'plantilla_estudiantes_cbis.csv'; a.click()
     URL.revokeObjectURL(url)
+    toast.success('Plantilla descargada — revisa los comentarios al inicio del archivo')
   }
 
   function normalizar(str) {
@@ -947,25 +977,128 @@ export default function Estudiantes({ estudianteIdInicial, onVolver }) {
   async function importarCSV(ev) {
     const file = ev.target.files[0]
     if (!file) return
-    const text = await new Promise(resolve => { const r = new FileReader(); r.onload = e => resolve(e.target.result); r.readAsText(file, 'UTF-8') })
-    const lineas = text.trim().split('\n')
-    const headers = lineas[0].split(',').map(h => h.trim().toLowerCase())
-    const filas = lineas.slice(1)
-    if (filas.length === 0) { toast.error('El archivo está vacío'); ev.target.value = ''; return }
-    const datos = filas.map(fila => { const valores = fila.split(',').map(v => v.trim()); const obj = {}; headers.forEach((h, i) => { obj[h] = valores[i] || '' }); return obj })
-    const niesCSV = datos.map(e => e.nie)
-    const duplicadosInternos = niesCSV.filter((nie, i) => niesCSV.indexOf(nie) !== i)
-    if (duplicadosInternos.length > 0) { toast.error(`NIEs duplicados en archivo: ${[...new Set(duplicadosInternos)].join(', ')}`); ev.target.value = ''; return }
-    const { data: existentes } = await supabase.from('estudiantes').select('nie').in('nie', niesCSV)
-    if (existentes && existentes.length > 0) { toast.error(`NIE ya existe: ${existentes.map(e => e.nie).join(', ')}`); ev.target.value = ''; return }
-    const { data: gds } = await supabase.from('grados').select('id, nombre')
-    const gradoMap = {}
-    gds?.forEach(g => { gradoMap[normalizar(g.nombre)] = g.id })
-    const gradosInvalidos = datos.filter(est => !gradoMap[normalizar(est.grado)]).map(e => e.grado)
-    if (gradosInvalidos.length > 0) { toast.error(`Grados no encontrados: ${[...new Set(gradosInvalidos)].join(', ')}`); ev.target.value = ''; return }
-    const registros = datos.map(est => ({ nombre: est.nombres, apellido: est.apellidos, fecha_nacimiento: est.fecha_nacimiento || null, genero: est.genero, nie: est.nie, correo_institucional: est.correo || null, direccion: est.direccion || null, grado_id: gradoMap[normalizar(est.grado)], estado: 'activo', tipo_ingreso: 'antiguo' }))
-    const { error } = await supabase.from('estudiantes').insert(registros)
-    if (error) { toast.error(`Error al importar: ${error.message}`) } else { toast.success(`${registros.length} estudiante(s) importado(s) exitosamente`); cargarDatos() }
+    const toastId = toast.loading('Procesando archivo...')
+
+    try {
+      const text = await new Promise((resolve, reject) => {
+        const r = new FileReader()
+        r.onload = e => resolve(e.target.result)
+        r.onerror = reject
+        r.readAsText(file, 'UTF-8')
+      })
+
+      // Filtrar líneas de comentario (#) y vacías
+      const lineas = text.trim().split('\n').filter(l => !l.startsWith('#') && l.trim() !== '')
+      if (lineas.length < 2) { toast.error('El archivo está vacío o solo tiene encabezados', { id: toastId }); ev.target.value = ''; return }
+
+      const headers = lineas[0].split(',').map(h => h.trim().toLowerCase().replace(/\s+/g, '_'))
+      const filas   = lineas.slice(1)
+
+      // Parsear respetando campos entre comillas
+      function parseFila(linea) {
+        const vals = []; let cur = ''; let inQ = false
+        for (const ch of linea) {
+          if (ch === '"') { inQ = !inQ }
+          else if (ch === ',' && !inQ) { vals.push(cur.trim()); cur = '' }
+          else cur += ch
+        }
+        vals.push(cur.trim())
+        return vals
+      }
+
+      const datos = filas.map(fila => {
+        const valores = parseFila(fila)
+        const obj = {}
+        headers.forEach((h, i) => { obj[h] = valores[i] || '' })
+        return obj
+      })
+
+      // Validaciones
+      const faltanObligatorios = datos.filter(e => !e.nombre || !e.apellido || !e.grado)
+      if (faltanObligatorios.length > 0) {
+        toast.error(`Filas sin nombre, apellido o grado: fila(s) ${faltanObligatorios.map((_, i) => i+2).join(', ')}`, { id: toastId })
+        ev.target.value = ''; return
+      }
+
+      const niesCSV = datos.map(e => e.nie).filter(Boolean)
+      if (niesCSV.length > 0) {
+        const duplicadosInternos = niesCSV.filter((nie, i) => niesCSV.indexOf(nie) !== i)
+        if (duplicadosInternos.length > 0) {
+          toast.error(`NIEs duplicados en el archivo: ${[...new Set(duplicadosInternos)].join(', ')}`, { id: toastId })
+          ev.target.value = ''; return
+        }
+        const { data: existentes } = await supabase.from('estudiantes').select('nie').in('nie', niesCSV)
+        if (existentes?.length > 0) {
+          toast.error(`NIE ya existe en el sistema: ${existentes.map(e => e.nie).join(', ')}`, { id: toastId })
+          ev.target.value = ''; return
+        }
+      }
+
+      // Mapa de grados
+      const { data: gds } = await supabase.from('grados').select('id, nombre')
+      const gradoMap = {}
+      gds?.forEach(g => { gradoMap[normalizar(g.nombre)] = g.id })
+      const gradosInvalidos = datos.filter(est => !gradoMap[normalizar(est.grado)]).map(e => `"${e.grado}"`)
+      if (gradosInvalidos.length > 0) {
+        toast.error(`Grados no reconocidos: ${[...new Set(gradosInvalidos)].join(', ')}`, { id: toastId })
+        ev.target.value = ''; return
+      }
+
+      // Construir registros con todos los campos
+      const yearActual = new Date().getFullYear()
+      const registros = datos.map(e => ({
+        nombre:                e.nombre,
+        apellido:              e.apellido,
+        nie:                   e.nie || null,
+        genero:                e.genero || null,
+        fecha_nacimiento:      e.fecha_nacimiento || null,
+        grado_id:              gradoMap[normalizar(e.grado)],
+        tipo_ingreso:          ['nuevo','antiguo'].includes(e.tipo_ingreso) ? e.tipo_ingreso : 'nuevo',
+        estado:                'activo',
+        year_escolar:          yearActual,
+        telefono_contacto:     e.telefono_contacto || null,
+        email_contacto:        e.email_contacto || null,
+        correo_institucional:  e.correo_institucional || null,
+        direccion:             e.direccion || null,
+        municipio:             e.municipio || null,
+        departamento:          e.departamento || null,
+        nombre_padre:          e.nombre_padre || null,
+        dui_padre:             e.dui_padre || null,
+        telefono_padre:        e.telefono_padre || null,
+        correo_padre:          e.correo_padre || null,
+        trabajo_padre:         e.trabajo_padre || null,
+        direccion_padre:       e.direccion_padre || null,
+        nombre_madre:          e.nombre_madre || null,
+        dui_madre:             e.dui_madre || null,
+        telefono_madre:        e.telefono_madre || null,
+        correo_madre:          e.correo_madre || null,
+        trabajo_madre:         e.trabajo_madre || null,
+        direccion_madre:       e.direccion_madre || null,
+        nombre_tutor:          e.nombre_tutor || null,
+        dui_tutor:             e.dui_tutor || null,
+        telefono_tutor:        e.telefono_tutor || null,
+        correo_tutor:          e.correo_tutor || null,
+        trabajo_tutor:         e.trabajo_tutor || null,
+        direccion_tutor:       e.direccion_tutor || null,
+        contacto_emergencia:   e.contacto_emergencia || null,
+        telefono_emergencia:   e.telefono_emergencia || null,
+        enfermedades_alergias: e.enfermedades_alergias || null,
+        medicamento_permanente:e.medicamento_permanente || null,
+        nacionalidad:          e.nacionalidad || null,
+        lugar_nacimiento:      e.lugar_nacimiento || null,
+        iglesia:               e.iglesia || null,
+      }))
+
+      const { error } = await supabase.from('estudiantes').insert(registros)
+      if (error) {
+        toast.error(`Error al importar: ${error.message}`, { id: toastId })
+      } else {
+        toast.success(`${registros.length} estudiante(s) importado(s) exitosamente`, { id: toastId })
+        cargarDatos()
+      }
+    } catch (err) {
+      toast.error('Error al leer el archivo', { id: toastId })
+    }
     ev.target.value = ''
   }
 
