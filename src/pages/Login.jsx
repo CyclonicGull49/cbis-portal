@@ -365,10 +365,110 @@ export default function Login() {
         /* Responsive */
         @media (max-width: 768px) {
           .login-left { display: none; }
+          .login-root { background: #fff; }
+
           .login-right {
             width: 100%;
-            padding: 40px 28px;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: flex-start;
+            min-height: 100vh;
           }
+
+          .login-form-wrap {
+            max-width: 100%;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+          }
+
+          /* Header móvil con branding */
+          .mobile-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 48px 32px 36px;
+            background: linear-gradient(160deg, #1a0d30 0%, #2d1554 55%, #3d1f61 100%);
+            position: relative;
+            overflow: hidden;
+          }
+
+          .mobile-header::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+              linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 32px 32px;
+          }
+
+          .mobile-header::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0; right: 0;
+            height: 28px;
+            background: #fff;
+            border-radius: 24px 24px 0 0;
+          }
+
+          .mobile-header-content {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            text-align: center;
+          }
+
+          .mobile-logo {
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            object-fit: cover;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+          }
+
+          .mobile-brand-name {
+            color: #fff;
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+          }
+
+          .mobile-lema {
+            color: rgba(255,255,255,0.5);
+            font-size: 12px;
+            font-style: italic;
+            letter-spacing: 0.2px;
+          }
+
+          /* Área del formulario */
+          .mobile-form-area {
+            padding: 28px 28px 40px;
+            flex: 1;
+          }
+
+          .form-header {
+            margin-bottom: 28px;
+          }
+
+          .form-header h2 {
+            font-size: 22px;
+          }
+        }
+
+        @media (min-width: 769px) {
+          .mobile-header { display: none; }
+          .mobile-form-area { display: contents; }
         }
       `}</style>
 
@@ -471,10 +571,28 @@ export default function Login() {
         {/* Panel derecho */}
         <div className="login-right">
           <div className="login-form-wrap">
-            <div className="form-header">
-              <h2>Bienvenido</h2>
-              <p>Ingresa tus credenciales para continuar</p>
+
+            {/* Header móvil — solo visible en <768px */}
+            <div className="mobile-header">
+              <div className="mobile-header-content">
+                <img src="/logo.png" alt="CBIS" className="mobile-logo" />
+                <div className="mobile-brand-name">
+                  CBIS
+                  <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
+                    <rect x="11" y="2" width="6" height="24" rx="3" fill="#D4A017"/>
+                    <rect x="2" y="11" width="24" height="6" rx="3" fill="#D4A017"/>
+                  </svg>
+                </div>
+                <div className="mobile-lema">Fe, Cultura, Innovación y Disciplina</div>
+              </div>
             </div>
+
+            {/* Formulario */}
+            <div className="mobile-form-area">
+              <div className="form-header">
+                <h2>Bienvenido</h2>
+                <p>Ingresa tus credenciales para continuar</p>
+              </div>
 
             <form onSubmit={handleLogin}>
               <div className="field-group">
@@ -535,8 +653,9 @@ export default function Login() {
             </form>
 
             <div className="form-footer">
-              CBIS · Sonsonate, El Salvador
-            </div>
+                CBIS · Sonsonate, El Salvador
+              </div>
+            </div>{/* fin mobile-form-area */}
           </div>
         </div>
       </div>
