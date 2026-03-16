@@ -4,6 +4,16 @@ import { useAuth } from '../context/AuthContext'
 import { useYearEscolar } from '../hooks/useYearEscolar'
 import toast from 'react-hot-toast'
 
+function useBreakpoint() {
+  const [bp, setBp] = useState(() => window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop')
+  useEffect(() => {
+    const fn = () => setBp(window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop')
+    window.addEventListener('resize', fn)
+    return () => window.removeEventListener('resize', fn)
+  }, [])
+  return bp
+}
+
 const ESTADOS = [
   { value: 'presente',    label: 'Presente',    color: '#1A7A4A', bg: '#dcfce7', dot: '#16a34a' },
   { value: 'ausente',     label: 'Ausente',     color: '#C0392B', bg: '#fee2e2', dot: '#dc2626' },
@@ -30,6 +40,8 @@ export default function Asistencia() {
   const { perfil } = useAuth()
   const { yearEscolar } = useYearEscolar()
   const year = yearEscolar || new Date().getFullYear()
+  const bp = useBreakpoint()
+  const isMobile = bp === 'mobile'
 
   const isAdmin = ['admin', 'registro_academico', 'direccion_academica'].includes(perfil?.rol)
   const isDocente = perfil?.rol === 'docente'
@@ -223,11 +235,11 @@ export default function Asistencia() {
 
           {/* Marcar todos */}
           {estudiantes.length > 0 && (
-            <div style={{ flex: '1 1 auto', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-              <span style={s.label}>Marcar todos:</span>
+            <div style={{ flex: '1 1 auto', display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ ...s.label, marginBottom: 0 }}>Marcar todos:</span>
               {ESTADOS.map(e => (
                 <button key={e.value} onClick={() => marcarTodos(e.value)}
-                  style={{ padding: '6px 12px', borderRadius: 8, border: `1.5px solid ${e.dot}`, background: e.bg, color: e.color, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  style={{ padding: isMobile ? '6px 10px' : '6px 12px', borderRadius: 8, border: `1.5px solid ${e.dot}`, background: e.bg, color: e.color, fontSize: isMobile ? 11 : 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
                   {e.label}
                 </button>
               ))}
@@ -271,66 +283,107 @@ export default function Asistencia() {
               </div>
             </div>
 
-            {/* Tabla */}
-            <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: '#1a2d5a' }}>
-                    <th style={{ ...s.th, width: 36 }}>#</th>
-                    <th style={{ ...s.th, textAlign: 'left' }}>Estudiante</th>
-                    {ESTADOS.map(e => (
-                      <th key={e.value} style={{ ...s.th, width: 90 }}>{e.label}</th>
-                    ))}
-                    <th style={{ ...s.th, textAlign: 'left' }}>Observación</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {estudiantes.map((est, idx) => {
-                    const estadoActual = asistencia[est.id] || 'presente'
-                    const info         = estadoInfo(estadoActual)
-                    const permiso      = permisosMap[est.id]
-                    return (
-                      <tr key={est.id}
-                        style={{ background: idx % 2 === 0 ? '#fff' : '#f4f7fc', borderBottom: '1px solid #eee' }}>
-                        <td style={{ ...s.td, color: '#b0a8c0', fontSize: 12 }}>{idx + 1}</td>
-                        <td style={s.td}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ width: 8, height: 8, borderRadius: '50%', background: info.dot, flexShrink: 0 }} />
-                            <div>
-                              <div style={{ fontWeight: 700, color: '#0f1d40', fontSize: 13 }}>
-                                {est.apellido}, {est.nombre}
-                              </div>
-                              {permiso && (
-                                <span style={{ fontSize: 11, fontWeight: 700, padding: '1px 7px', borderRadius: 20, background: TIPO_PERMISO[permiso.tipo]?.bg || '#f3f4f6', color: TIPO_PERMISO[permiso.tipo]?.color || '#374151' }}>
-                                  🗓 Permiso {TIPO_PERMISO[permiso.tipo]?.label}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </td>
+            {/* Tabla desktop / Tarjetas móvil */}
+            {isMobile ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {estudiantes.map((est, idx) => {
+                  const estadoActual = asistencia[est.id] || 'presente'
+                  const permiso      = permisosMap[est.id]
+                  return (
+                    <div key={est.id} style={{ background: '#fff', borderRadius: 14, boxShadow: '0 2px 12px rgba(61,31,97,0.07)', padding: 14 }}>
+                      {/* Nombre */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                        <div>
+                          <div style={{ fontWeight: 700, color: '#0f1d40', fontSize: 14 }}>{est.apellido}, {est.nombre}</div>
+                          {permiso && (
+                            <span style={{ fontSize: 11, fontWeight: 700, padding: '1px 8px', borderRadius: 20, background: TIPO_PERMISO[permiso.tipo]?.bg || '#f3f4f6', color: TIPO_PERMISO[permiso.tipo]?.color || '#374151' }}>
+                              🗓 Permiso {TIPO_PERMISO[permiso.tipo]?.label}
+                            </span>
+                          )}
+                        </div>
+                        <span style={{ width: 10, height: 10, borderRadius: '50%', background: estadoInfo(estadoActual).dot, display: 'inline-block', marginTop: 4 }} />
+                      </div>
+                      {/* Botones de estado */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6, marginBottom: 8 }}>
                         {ESTADOS.map(e => (
-                          <td key={e.value} style={{ ...s.td, textAlign: 'center' }}>
-                            <input type="radio"
-                              name={`est-${est.id}`}
-                              value={e.value}
-                              checked={estadoActual === e.value}
-                              onChange={() => setAsistencia(prev => ({ ...prev, [est.id]: e.value }))}
-                              style={{ accentColor: e.dot, width: 16, height: 16, cursor: 'pointer' }} />
-                          </td>
+                          <button key={e.value} onClick={() => setAsistencia(prev => ({ ...prev, [est.id]: e.value }))}
+                            style={{ padding: '8px 4px', borderRadius: 10, border: `2px solid ${estadoActual === e.value ? e.dot : '#e5e7eb'}`, background: estadoActual === e.value ? e.bg : '#fafafa', color: estadoActual === e.value ? e.color : '#9ca3af', fontWeight: estadoActual === e.value ? 800 : 500, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>
+                            {e.label}
+                          </button>
                         ))}
-                        <td style={s.td}>
-                          <input type="text"
-                            placeholder={estadoActual !== 'presente' ? 'Motivo...' : ''}
-                            value={observaciones[est.id] || ''}
-                            onChange={e => setObservaciones(prev => ({ ...prev, [est.id]: e.target.value }))}
-                            style={{ width: '100%', padding: '5px 8px', borderRadius: 6, border: '1px solid #e5e7eb', fontSize: 12, fontFamily: 'inherit', background: estadoActual !== 'presente' ? '#fffbeb' : '#fff' }} />
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+                      </div>
+                      {/* Observación */}
+                      {estadoActual !== 'presente' && (
+                        <input type="text" placeholder="Motivo u observación..."
+                          value={observaciones[est.id] || ''}
+                          onChange={e => setObservaciones(prev => ({ ...prev, [est.id]: e.target.value }))}
+                          style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 13, fontFamily: 'inherit', background: '#fffbeb' }} />
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: '#1a2d5a' }}>
+                      <th style={{ ...s.th, width: 36 }}>#</th>
+                      <th style={{ ...s.th, textAlign: 'left' }}>Estudiante</th>
+                      {ESTADOS.map(e => (
+                        <th key={e.value} style={{ ...s.th, width: 90 }}>{e.label}</th>
+                      ))}
+                      <th style={{ ...s.th, textAlign: 'left' }}>Observación</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {estudiantes.map((est, idx) => {
+                      const estadoActual = asistencia[est.id] || 'presente'
+                      const info         = estadoInfo(estadoActual)
+                      const permiso      = permisosMap[est.id]
+                      return (
+                        <tr key={est.id}
+                          style={{ background: idx % 2 === 0 ? '#fff' : '#f4f7fc', borderBottom: '1px solid #eee' }}>
+                          <td style={{ ...s.td, color: '#b0a8c0', fontSize: 12 }}>{idx + 1}</td>
+                          <td style={s.td}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span style={{ width: 8, height: 8, borderRadius: '50%', background: info.dot, flexShrink: 0 }} />
+                              <div>
+                                <div style={{ fontWeight: 700, color: '#0f1d40', fontSize: 13 }}>
+                                  {est.apellido}, {est.nombre}
+                                </div>
+                                {permiso && (
+                                  <span style={{ fontSize: 11, fontWeight: 700, padding: '1px 7px', borderRadius: 20, background: TIPO_PERMISO[permiso.tipo]?.bg || '#f3f4f6', color: TIPO_PERMISO[permiso.tipo]?.color || '#374151' }}>
+                                    🗓 Permiso {TIPO_PERMISO[permiso.tipo]?.label}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          {ESTADOS.map(e => (
+                            <td key={e.value} style={{ ...s.td, textAlign: 'center' }}>
+                              <input type="radio"
+                                name={`est-${est.id}`}
+                                value={e.value}
+                                checked={estadoActual === e.value}
+                                onChange={() => setAsistencia(prev => ({ ...prev, [est.id]: e.value }))}
+                                style={{ accentColor: e.dot, width: 16, height: 16, cursor: 'pointer' }} />
+                            </td>
+                          ))}
+                          <td style={s.td}>
+                            <input type="text"
+                              placeholder={estadoActual !== 'presente' ? 'Motivo...' : ''}
+                              value={observaciones[est.id] || ''}
+                              onChange={e => setObservaciones(prev => ({ ...prev, [est.id]: e.target.value }))}
+                              style={{ width: '100%', padding: '5px 8px', borderRadius: 6, border: '1px solid #e5e7eb', fontSize: 12, fontFamily: 'inherit', background: estadoActual !== 'presente' ? '#fffbeb' : '#fff' }} />
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
             {/* Guardar */}
             <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>

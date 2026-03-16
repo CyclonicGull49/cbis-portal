@@ -4,6 +4,16 @@ import { useAuth } from '../context/AuthContext'
 import { useYearEscolar } from '../hooks/useYearEscolar'
 import toast from 'react-hot-toast'
 
+function useBreakpoint() {
+  const [bp, setBp] = useState(() => window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop')
+  useEffect(() => {
+    const fn = () => setBp(window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop')
+    window.addEventListener('resize', fn)
+    return () => window.removeEventListener('resize', fn)
+  }, [])
+  return bp
+}
+
 const LABELS = { ac: 'AC', ai: 'AI', em: 'EM', ep: 'EP', ef: 'EF' }
 const FULL_LABELS = {
   ac: 'Actividad Cotidiana', ai: 'Actividad Integradora',
@@ -93,6 +103,8 @@ function NotaInput({ value, onChange, onPreview, disabled }) {
 export default function Notas({ onVerEstudiante }) {
   const { perfil } = useAuth()
   const { yearEscolar } = useYearEscolar()
+  const bp = useBreakpoint()
+  const isMobile = bp === 'mobile'
 
   const esDocente   = perfil?.rol === 'docente'
   const puedeEditar = ['admin', 'registro_academico', 'docente'].includes(perfil?.rol)
@@ -107,6 +119,7 @@ export default function Notas({ onVerEstudiante }) {
   const [preview, setPreview]         = useState({})
   const [loading, setLoading]         = useState(false)
   const [busqueda, setBusqueda]       = useState('')
+  const [periodoMovil, setPeriodoMovil] = useState(1)
 
   const componentes  = gradoInfo?.componentes_nota?.split(',') || ['ac', 'ai', 'em', 'ef']
   const numPeriodos  = gradoInfo?.nivel === 'bachillerato' ? 4 : 3
@@ -405,13 +418,70 @@ export default function Notas({ onVerEstudiante }) {
     )
   }
 
+  // ── Vista móvil: tarjetas ─────────────────────────────────
+  function VistaMóvil() {
+    const mat = materias.find(m => m.id === materiaId)
+    if (!mat) return (
+      <div style={{ textAlign: 'center', padding: 32, color: '#b0a8c0', fontSize: 13 }}>
+        Selecciona una materia para ingresar notas
+      </div>
+    )
+    const periodos = Array.from({ length: numPeriodos }, (_, i) => i + 1)
+    return (
+      <div>
+        {/* Selector período */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16, overflowX: 'auto', paddingBottom: 4 }}>
+          {periodos.map(p => (
+            <button key={p} onClick={() => setPeriodoMovil(p)}
+              style={{ flexShrink: 0, padding: '8px 18px', borderRadius: 20, border: 'none', background: periodoMovil === p ? '#5B2D8E' : '#f3eeff', color: periodoMovil === p ? '#fff' : '#5B2D8E', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+              {periodoLabel} {p}
+            </button>
+          ))}
+        </div>
+        {/* Tarjetas */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {estudiantesFiltrados.map(est => {
+            const map = getNotasMap(est.id, materiaId, periodoMovil)
+            const nft = calcNFT(componentes, map)
+            return (
+              <div key={est.id} style={{ background: '#fff', borderRadius: 14, boxShadow: '0 2px 12px rgba(61,31,97,0.07)', padding: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                  <div style={{ fontWeight: 700, color: '#3d1f61', fontSize: 14 }}>{est.apellido}, {est.nombre}</div>
+                  <div style={{ textAlign: 'center', minWidth: 52 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: '#b0a8c0', textTransform: 'uppercase', marginBottom: 2 }}>NFT</div>
+                    <div style={{ fontSize: 18, fontWeight: 900, color: colorNota(nft) }}>{nft !== null ? nft.toFixed(2) : '—'}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${componentes.length}, 1fr)`, gap: 8 }}>
+                  {componentes.map(c => (
+                    <div key={c} style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>
+                        {LABELS[c]}
+                      </div>
+                      <NotaInput
+                        value={getVal(est.id, materiaId, periodoMovil, c)}
+                        disabled={!puedeEditar}
+                        onPreview={v => setPreviewVal(est.id, materiaId, periodoMovil, c, v)}
+                        onChange={v => guardarNota(est.id, materiaId, periodoMovil, c, v)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div style={{ fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
 
-      {/* Selectores + búsqueda */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+      {/* Selectores */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
         {!esDocente && (
-          <div style={{ flex: 1, minWidth: 180 }}>
+          <div style={{ flex: 1, minWidth: 160 }}>
             <label style={s.label}>Grado</label>
             <select style={s.select} value={gradoId || ''} onChange={e => {
               const id = parseInt(e.target.value)
@@ -422,18 +492,24 @@ export default function Notas({ onVerEstudiante }) {
             </select>
           </div>
         )}
-        <div style={{ flex: 1, minWidth: 180 }}>
+        <div style={{ flex: 1, minWidth: 160 }}>
           <label style={s.label}>Materia</label>
           <select style={s.select} value={materiaId} onChange={e => { setMateriaId(e.target.value); setBusqueda('') }} disabled={!gradoId}>
-            <option value="todas">Ver todas las materias</option>
+            {!isMobile && <option value="todas">Ver todas las materias</option>}
             {materias.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
           </select>
         </div>
-        <div style={{ flex: 1, minWidth: 180 }}>
-          <label style={s.label}>Buscar</label>
-          <BarraBusqueda />
-        </div>
+        {!isMobile && (
+          <div style={{ flex: 1, minWidth: 160 }}>
+            <label style={s.label}>Buscar</label>
+            <BarraBusqueda />
+          </div>
+        )}
       </div>
+
+      {isMobile && gradoId && !!materias.length && (
+        <div style={{ marginBottom: 12 }}><BarraBusqueda /></div>
+      )}
 
       {!gradoId && (
         <div style={{ textAlign: 'center', padding: '60px 0', background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)' }}>
@@ -444,11 +520,13 @@ export default function Notas({ onVerEstudiante }) {
       {gradoId && !loading && !materias.length && (
         <div style={{ textAlign: 'center', padding: '60px 0', background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)' }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>📚</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#3d1f61', marginBottom: 6 }}>Este grado no tiene materias asignadas</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#3d1f61' }}>Este grado no tiene materias asignadas</div>
         </div>
       )}
       {loading && <div style={{ textAlign: 'center', padding: 40, color: '#b0a8c0', fontSize: 13 }}>Cargando...</div>}
-      {gradoId && !loading && !!materias.length && (materiaId === 'todas' ? <TablaResumen /> : <TablaMateria />)}
+      {gradoId && !loading && !!materias.length && (
+        isMobile ? <VistaMóvil /> : (materiaId === 'todas' ? <TablaResumen /> : <TablaMateria />)
+      )}
     </div>
   )
 }
