@@ -319,7 +319,7 @@ function TabPermisos({ estudiante, perfil }) {
   async function cargarPermisos() {
     setLoading(true)
     const { data } = await supabase
-      .from('permisos_estudiante')
+      .from('permisos')
       .select('*, perfiles(nombre, apellido)')
       .eq('estudiante_id', estudiante.id)
       .order('fecha', { ascending: false })
@@ -331,34 +331,11 @@ function TabPermisos({ estudiante, perfil }) {
     if (!form.fecha || !form.motivo) { toast.error('Fecha y motivo son obligatorios'); return }
     setGuardando(true)
 
-    let storage_path = null
-    let comprobante_url = null
-
-    // Subir comprobante si hay archivo
-    if (archivo) {
-      setSubiendo(true)
-      const ext  = archivo.name.split('.').pop().toLowerCase()
-      const path = `${estudiante.id}/permisos/${Date.now()}.${ext}`
-      const { error: upErr } = await supabase.storage
-        .from('documentos-estudiantes')
-        .upload(path, archivo, { upsert: false })
-      if (!upErr) {
-        const { data: signed } = await supabase.storage
-          .from('documentos-estudiantes')
-          .createSignedUrl(path, 60 * 60 * 24 * 365 * 5)
-        storage_path    = path
-        comprobante_url = signed?.signedUrl || null
-      }
-      setSubiendo(false)
-    }
-
-    const { error } = await supabase.from('permisos_estudiante').insert({
+    const { error } = await supabase.from('permisos').insert({
       estudiante_id:   estudiante.id,
       fecha:           form.fecha,
       motivo:          form.motivo,
       tipo:            form.tipo,
-      storage_path,
-      comprobante_url,
       registrado_por:  perfil?.id,
     })
 

@@ -11,8 +11,19 @@ const ESTADOS = [
   { value: 'justificado', label: 'Justificado', color: '#1e40af', bg: '#dbeafe', dot: '#2563eb' },
 ]
 
+const TIPO_PERMISO = {
+  medico:    { label: 'Médico',    color: '#1e40af', bg: '#dbeafe' },
+  familiar:  { label: 'Familiar',  color: '#6d28d9', bg: '#ede9fe' },
+  academico: { label: 'Académico', color: '#065f46', bg: '#d1fae5' },
+  otro:      { label: 'Otro',      color: '#92400e', bg: '#fef3c7' },
+}
+
 function estadoInfo(val) {
   return ESTADOS.find(e => e.value === val) || ESTADOS[0]
+}
+
+function hoy() {
+  return new Date().toISOString().split('T')[0]
 }
 
 export default function Asistencia() {
@@ -21,84 +32,113 @@ export default function Asistencia() {
   const year = yearEscolar || new Date().getFullYear()
 
   const isAdmin = ['admin', 'registro_academico', 'direccion_academica'].includes(perfil?.rol)
+  const isDocente = perfil?.rol === 'docente'
 
-  // Selección
-  const [materias,      setMaterias]      = useState([]) // materias asignadas al docente
-  const [materiaId,     setMateriaId]     = useState('')
+  const [grados,        setGrados]        = useState([])
   const [gradoId,       setGradoId]       = useState('')
   const [fecha,         setFecha]         = useState(hoy())
   const [estudiantes,   setEstudiantes]   = useState([])
-  const [asistencia,    setAsistencia]    = useState({}) // estudianteId → estado
-  const [observaciones, setObservaciones] = useState({}) // estudianteId → texto
+  const [asistencia,    setAsistencia]    = useState({})
+  const [observaciones, setObservaciones] = useState({})
+  const [permisosMap,   setPermisosMap]   = useState({}) // estudianteId → permiso
   const [guardando,     setGuardando]     = useState(false)
   const [cargando,      setCargando]      = useState(false)
   const [yaGuardado,    setYaGuardado]    = useState(false)
 
-  function hoy() {
-    return new Date().toISOString().split('T')[0]
-  }
-
-  // Cargar materias asignadas al docente
+  // Cargar grados disponibles según rol
   useEffect(() => {
     if (!perfil) return
-    supabase
-      .from('asignaciones')
-      .select('materia_id, grado_id, materias(id, nombre), grados(id, nombre, nivel)')
-      .eq('docente_id', perfil.id)
-      .eq('año_escolar', year)
-      .then(({ data }) => {
-        const lista = (data || []).map(a => ({
-          materia_id: a.materia_id,
-          grado_id:   a.grado_id,
-          materia:    a.materias?.nombre || '',
-          grado:      a.grados?.nombre || '',
-          nivel:      a.grados?.nivel || '',
-        }))
-        setMaterias(lista)
-      })
+    if (isDocente) {
+      // Docente: solo sus grados asignados
+      supabase.from('asignaciones')
+        .select('grado_id, grados(id, nombre, nivel, orden)')
+        .eq('docente_id', perfil.id)
+        .eq('año_escolar', year)
+        .then(({ data }) => {
+          const vistos = new Set()
+          const lista = []
+          for (const a of (data || [])) {
+            if (!vistos.has(a.grado_id)) {
+              vistos.add(a.grado_id)
+              lista.push(a.grados)
+            }
+          }
+          lista.sort((a, b) => a.orden - b.orden)
+          setGrados(lista)
+        })
+    } else {
+      // Admin / dirección: todos los grados
+      supabase.from('grados').select('id, nombre, nivel, orden')
+        .order('orden')
+        .then(({ data }) => setGrados(data || []))
+    }
   }, [perfil, year])
 
-  // Cargar estudiantes y asistencia existente cuando cambia materia o fecha
+  // Si docente tiene solo un grado asignado, seleccionarlo automáticamente
   useEffect(() => {
-    if (!materiaId || !gradoId || !fecha) return
+    if (isDocente && grados.length === 1) setGradoId(String(grados[0].id))
+  }, [grados, isDocente])
+
+  // Cargar estudiantes, asistencia existente y permisos al cambiar grado o fecha
+  useEffect(() => {
+    if (!gradoId || !fecha) return
     setCargando(true)
     setYaGuardado(false)
 
     Promise.all([
+      // Estudiantes activos del grado
       supabase.from('estudiantes').select('id, nombre, apellido')
         .eq('grado_id', parseInt(gradoId)).eq('estado', 'activo').order('apellido'),
+
+      // Asistencia ya registrada para esa fecha y grado
       supabase.from('asistencia').select('estudiante_id, estado, observacion')
-        .eq('materia_id', materiaId).eq('grado_id', parseInt(gradoId))
-        .eq('fecha', fecha).eq('año_escolar', year),
-    ]).then(([{ data: ests }, { data: asis }]) => {
-      setEstudiantes(ests || [])
-      const asMap = {}
-      const obMap = {}
-      for (const a of (asis || [])) {
-        asMap[a.estudiante_id] = a.estado
-        obMap[a.estudiante_id] = a.observacion || ''
-      }
-      // Si ya hay registros, mostrar los existentes; si no, pre-marcar todos como presente
+        .eq('grado_id', parseInt(gradoId))
+        .eq('fecha', fecha)
+        .eq('año_escolar', year),
+
+      // Permisos activos para esa fecha en ese grado
+      supabase.from('permisos')
+        .select('estudiante_id, tipo, motivo, perfiles(nombre, apellido)')
+        .eq('fecha', fecha)
+        .in('estudiante_id',
+          supabase.from('estudiantes').select('id').eq('grado_id', parseInt(gradoId)).eq('estado', 'activo')
+        ),
+    ]).then(([{ data: ests }, { data: asis }, { data: perms }]) => {
+      const estList = ests || []
+      setEstudiantes(estList)
+
+      // Mapa de permisos por estudiante
+      const pMap = {}
+      for (const p of (perms || [])) pMap[p.estudiante_id] = p
+      setPermisosMap(pMap)
+
       if ((asis || []).length > 0) {
+        // Ya existe asistencia — cargarla
+        const asMap = {}, obMap = {}
+        for (const a of asis) {
+          asMap[a.estudiante_id] = a.estado
+          obMap[a.estudiante_id] = a.observacion || ''
+        }
         setAsistencia(asMap)
         setObservaciones(obMap)
         setYaGuardado(true)
       } else {
-        const preMap = {}
-        for (const e of (ests || [])) preMap[e.id] = 'presente'
-        setAsistencia(preMap)
-        setObservaciones({})
+        // Nueva asistencia: pre-marcar según permisos
+        const asMap = {}
+        for (const e of estList) {
+          asMap[e.id] = pMap[e.id] ? 'justificado' : 'presente'
+        }
+        const obMap = {}
+        for (const e of estList) {
+          if (pMap[e.id]) obMap[e.id] = `${TIPO_PERMISO[pMap[e.id].tipo]?.label || 'Permiso'}: ${pMap[e.id].motivo}`
+        }
+        setAsistencia(asMap)
+        setObservaciones(obMap)
         setYaGuardado(false)
       }
       setCargando(false)
     })
-  }, [materiaId, gradoId, fecha, year])
-
-  function seleccionarMateria(val) {
-    const [mId, gId] = val.split('|')
-    setMateriaId(mId)
-    setGradoId(gId)
-  }
+  }, [gradoId, fecha, year])
 
   function marcarTodos(estado) {
     const nuevo = {}
@@ -107,7 +147,7 @@ export default function Asistencia() {
   }
 
   async function guardar() {
-    if (!materiaId || !gradoId || estudiantes.length === 0) return
+    if (!gradoId || estudiantes.length === 0) return
     setGuardando(true)
     const toastId = toast.loading('Guardando asistencia...')
 
@@ -115,19 +155,20 @@ export default function Asistencia() {
       const registros = estudiantes.map(e => ({
         fecha,
         estudiante_id: e.id,
-        materia_id:    materiaId,
         grado_id:      parseInt(gradoId),
         docente_id:    perfil.id,
         año_escolar:   year,
         estado:        asistencia[e.id] || 'presente',
         observacion:   observaciones[e.id] || null,
+        // materia_id null cuando es por grado completo
+        materia_id:    null,
       }))
 
       const { error } = await supabase.from('asistencia')
         .upsert(registros, { onConflict: 'fecha,estudiante_id,materia_id' })
 
       if (error) throw error
-      toast.success('Asistencia guardada exitosamente', { id: toastId })
+      toast.success('Asistencia guardada', { id: toastId })
       setYaGuardado(true)
     } catch (err) {
       toast.error(err.message || 'Error al guardar', { id: toastId })
@@ -136,13 +177,13 @@ export default function Asistencia() {
     }
   }
 
-  // Resumen
   const resumen = ESTADOS.map(e => ({
     ...e,
     count: Object.values(asistencia).filter(v => v === e.value).length,
   }))
 
-  const materiaSeleccionada = materias.find(m => m.materia_id === materiaId && String(m.grado_id) === gradoId)
+  const gradoInfo = grados.find(g => g.id === parseInt(gradoId))
+  const permisosHoy = Object.keys(permisosMap).length
 
   return (
     <div style={{ fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
@@ -153,25 +194,22 @@ export default function Asistencia() {
           Registro de Asistencia
         </h1>
         <p style={{ color: '#b0a8c0', fontSize: 13, fontWeight: 500 }}>
-          Registra la asistencia de tus estudiantes por materia y fecha
+          Registra la asistencia diaria por grado
         </p>
       </div>
 
       {/* Controles */}
-      <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', padding: 24, marginBottom: 20 }}>
+      <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', padding: 24, marginBottom: 16 }}>
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
 
-          {/* Materia */}
-          <div style={{ flex: '1 1 260px' }}>
-            <label style={s.label}>Materia · Grado</label>
-            <select style={s.select}
-              value={materiaId && gradoId ? `${materiaId}|${gradoId}` : ''}
-              onChange={e => seleccionarMateria(e.target.value)}>
-              <option value="">Selecciona una materia</option>
-              {materias.map(m => (
-                <option key={`${m.materia_id}|${m.grado_id}`} value={`${m.materia_id}|${m.grado_id}`}>
-                  {m.materia} — {m.grado}
-                </option>
+          {/* Grado */}
+          <div style={{ flex: '1 1 220px' }}>
+            <label style={s.label}>Grado</label>
+            <select style={s.select} value={gradoId}
+              onChange={e => setGradoId(e.target.value)}>
+              <option value="">Selecciona un grado</option>
+              {grados.map(g => (
+                <option key={g.id} value={g.id}>{g.nombre}</option>
               ))}
             </select>
           </div>
@@ -180,14 +218,13 @@ export default function Asistencia() {
           <div style={{ flex: '0 0 180px' }}>
             <label style={s.label}>Fecha</label>
             <input type="date" style={s.select} value={fecha}
-              onChange={e => setFecha(e.target.value)}
-              max={hoy()} />
+              onChange={e => setFecha(e.target.value)} max={hoy()} />
           </div>
 
           {/* Marcar todos */}
           {estudiantes.length > 0 && (
-            <div style={{ flex: '0 0 auto', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: '0.5px', alignSelf: 'center', marginRight: 4 }}>Marcar todos:</span>
+            <div style={{ flex: '1 1 auto', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={s.label}>Marcar todos:</span>
               {ESTADOS.map(e => (
                 <button key={e.value} onClick={() => marcarTodos(e.value)}
                   style={{ padding: '6px 12px', borderRadius: 8, border: `1.5px solid ${e.dot}`, background: e.bg, color: e.color, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
@@ -199,112 +236,122 @@ export default function Asistencia() {
         </div>
       </div>
 
-      {/* Lista de estudiantes */}
-      {materiaId && gradoId && (
-        <>
-          {cargando ? (
-            <div style={{ textAlign: 'center', padding: 40, color: '#b0a8c0', fontSize: 14 }}>Cargando estudiantes...</div>
-          ) : estudiantes.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 40, color: '#b0a8c0', fontSize: 14 }}>No hay estudiantes activos en este grado</div>
-          ) : (
-            <>
-              {/* Indicador si ya fue guardado */}
-              {yaGuardado && (
-                <div style={{ marginBottom: 12, padding: '10px 16px', background: '#dbeafe', borderRadius: 10, fontSize: 13, color: '#1e40af', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  ✓ Asistencia ya registrada para esta fecha — puedes modificarla y guardar de nuevo
-                </div>
-              )}
-
-              {/* Resumen */}
-              <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-                {resumen.map(e => (
-                  <div key={e.value} style={{ padding: '8px 16px', borderRadius: 10, background: e.bg, border: `1.5px solid ${e.dot}`, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: e.dot, display: 'inline-block' }} />
-                    <span style={{ fontSize: 13, fontWeight: 700, color: e.color }}>{e.label}</span>
-                    <span style={{ fontSize: 15, fontWeight: 800, color: e.color }}>{e.count}</span>
-                  </div>
-                ))}
-                <div style={{ padding: '8px 16px', borderRadius: 10, background: '#f3eeff', border: '1.5px solid #5B2D8E', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#3d1f61' }}>Total</span>
-                  <span style={{ fontSize: 15, fontWeight: 800, color: '#3d1f61' }}>{estudiantes.length}</span>
-                </div>
+      {/* Contenido */}
+      {gradoId && (
+        cargando ? (
+          <div style={{ textAlign: 'center', padding: 40, color: '#b0a8c0', fontSize: 14 }}>Cargando...</div>
+        ) : estudiantes.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 40, color: '#b0a8c0', fontSize: 14 }}>No hay estudiantes activos en este grado</div>
+        ) : (
+          <>
+            {/* Avisos */}
+            {yaGuardado && (
+              <div style={s.aviso('#dbeafe', '#1e40af')}>
+                ✓ Asistencia ya registrada para esta fecha — puedes modificarla y actualizar
               </div>
+            )}
+            {permisosHoy > 0 && !yaGuardado && (
+              <div style={s.aviso('#ede9fe', '#6d28d9')}>
+                📋 {permisosHoy} estudiante{permisosHoy > 1 ? 's' : ''} con permiso para hoy — marcado{permisosHoy > 1 ? 's' : ''} automáticamente como Justificado
+              </div>
+            )}
 
-              {/* Tabla */}
-              <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', overflow: 'hidden' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ background: '#1a2d5a' }}>
-                      <th style={s.th}>#</th>
-                      <th style={{ ...s.th, textAlign: 'left' }}>Estudiante</th>
-                      {ESTADOS.map(e => (
-                        <th key={e.value} style={s.th}>{e.label}</th>
-                      ))}
-                      <th style={{ ...s.th, textAlign: 'left' }}>Observación</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {estudiantes.map((est, idx) => {
-                      const estadoActual = asistencia[est.id] || 'presente'
-                      const info = estadoInfo(estadoActual)
-                      return (
-                        <tr key={est.id}
-                          style={{ background: idx % 2 === 0 ? '#fff' : '#f4f7fc', borderBottom: '1px solid #eee' }}>
-                          <td style={{ ...s.td, color: '#b0a8c0', fontSize: 12, width: 36 }}>{idx + 1}</td>
-                          <td style={{ ...s.td, fontWeight: 700, color: '#0f1d40' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <span style={{ width: 8, height: 8, borderRadius: '50%', background: info.dot, display: 'inline-block', flexShrink: 0 }} />
-                              {est.apellido}, {est.nombre}
+            {/* Resumen */}
+            <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+              {resumen.map(e => (
+                <div key={e.value} style={{ padding: '8px 16px', borderRadius: 10, background: e.bg, border: `1.5px solid ${e.dot}`, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: e.dot, display: 'inline-block' }} />
+                  <span style={{ fontSize: 13, fontWeight: 700, color: e.color }}>{e.label}</span>
+                  <span style={{ fontSize: 15, fontWeight: 800, color: e.color }}>{e.count}</span>
+                </div>
+              ))}
+              <div style={{ padding: '8px 16px', borderRadius: 10, background: '#f3eeff', border: '1.5px solid #5B2D8E', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#3d1f61' }}>Total</span>
+                <span style={{ fontSize: 15, fontWeight: 800, color: '#3d1f61' }}>{estudiantes.length}</span>
+              </div>
+            </div>
+
+            {/* Tabla */}
+            <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', overflow: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: '#1a2d5a' }}>
+                    <th style={{ ...s.th, width: 36 }}>#</th>
+                    <th style={{ ...s.th, textAlign: 'left' }}>Estudiante</th>
+                    {ESTADOS.map(e => (
+                      <th key={e.value} style={{ ...s.th, width: 90 }}>{e.label}</th>
+                    ))}
+                    <th style={{ ...s.th, textAlign: 'left' }}>Observación</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {estudiantes.map((est, idx) => {
+                    const estadoActual = asistencia[est.id] || 'presente'
+                    const info         = estadoInfo(estadoActual)
+                    const permiso      = permisosMap[est.id]
+                    return (
+                      <tr key={est.id}
+                        style={{ background: idx % 2 === 0 ? '#fff' : '#f4f7fc', borderBottom: '1px solid #eee' }}>
+                        <td style={{ ...s.td, color: '#b0a8c0', fontSize: 12 }}>{idx + 1}</td>
+                        <td style={s.td}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ width: 8, height: 8, borderRadius: '50%', background: info.dot, flexShrink: 0 }} />
+                            <div>
+                              <div style={{ fontWeight: 700, color: '#0f1d40', fontSize: 13 }}>
+                                {est.apellido}, {est.nombre}
+                              </div>
+                              {permiso && (
+                                <span style={{ fontSize: 11, fontWeight: 700, padding: '1px 7px', borderRadius: 20, background: TIPO_PERMISO[permiso.tipo]?.bg || '#f3f4f6', color: TIPO_PERMISO[permiso.tipo]?.color || '#374151' }}>
+                                  🗓 Permiso {TIPO_PERMISO[permiso.tipo]?.label}
+                                </span>
+                              )}
                             </div>
+                          </div>
+                        </td>
+                        {ESTADOS.map(e => (
+                          <td key={e.value} style={{ ...s.td, textAlign: 'center' }}>
+                            <input type="radio"
+                              name={`est-${est.id}`}
+                              value={e.value}
+                              checked={estadoActual === e.value}
+                              onChange={() => setAsistencia(prev => ({ ...prev, [est.id]: e.value }))}
+                              style={{ accentColor: e.dot, width: 16, height: 16, cursor: 'pointer' }} />
                           </td>
-                          {ESTADOS.map(e => (
-                            <td key={e.value} style={{ ...s.td, textAlign: 'center' }}>
-                              <input type="radio"
-                                name={`est-${est.id}`}
-                                value={e.value}
-                                checked={estadoActual === e.value}
-                                onChange={() => setAsistencia(prev => ({ ...prev, [est.id]: e.value }))}
-                                style={{ accentColor: e.dot, width: 16, height: 16, cursor: 'pointer' }} />
-                            </td>
-                          ))}
-                          <td style={s.td}>
-                            <input
-                              type="text"
-                              placeholder={estadoActual !== 'presente' ? 'Motivo...' : ''}
-                              value={observaciones[est.id] || ''}
-                              onChange={e => setObservaciones(prev => ({ ...prev, [est.id]: e.target.value }))}
-                              style={{ width: '100%', padding: '5px 8px', borderRadius: 6, border: '1px solid #e5e7eb', fontSize: 12, fontFamily: 'inherit', background: estadoActual !== 'presente' ? '#fffbeb' : '#fff' }} />
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                        ))}
+                        <td style={s.td}>
+                          <input type="text"
+                            placeholder={estadoActual !== 'presente' ? 'Motivo...' : ''}
+                            value={observaciones[est.id] || ''}
+                            onChange={e => setObservaciones(prev => ({ ...prev, [est.id]: e.target.value }))}
+                            style={{ width: '100%', padding: '5px 8px', borderRadius: 6, border: '1px solid #e5e7eb', fontSize: 12, fontFamily: 'inherit', background: estadoActual !== 'presente' ? '#fffbeb' : '#fff' }} />
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
 
-              {/* Botón guardar */}
-              <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
-                <button onClick={guardar} disabled={guardando}
-                  style={{ padding: '12px 32px', background: guardando ? '#e5e7eb' : 'linear-gradient(135deg, #3d1f61, #5B2D8E)', color: guardando ? '#9ca3af' : '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 800, cursor: guardando ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {guardando ? (
-                    <>
-                      <span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid #fff', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                      Guardando...
-                    </>
-                  ) : (
-                    `${yaGuardado ? 'Actualizar' : 'Guardar'} asistencia`
-                  )}
-                </button>
-              </div>
-            </>
-          )}
-        </>
+            {/* Guardar */}
+            <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={guardar} disabled={guardando}
+                style={{ padding: '12px 32px', background: guardando ? '#e5e7eb' : 'linear-gradient(135deg, #3d1f61, #5B2D8E)', color: guardando ? '#9ca3af' : '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 800, cursor: guardando ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 8 }}>
+                {guardando ? (
+                  <>
+                    <span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid #fff', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                    Guardando...
+                  </>
+                ) : `${yaGuardado ? 'Actualizar' : 'Guardar'} asistencia`}
+              </button>
+            </div>
+          </>
+        )
       )}
 
-      {!materiaId && (
+      {!gradoId && (
         <div style={{ textAlign: 'center', padding: '60px 20px', color: '#b0a8c0' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
-          <div style={{ fontSize: 15, fontWeight: 600 }}>Selecciona una materia y fecha para comenzar</div>
+          <div style={{ fontSize: 15, fontWeight: 600 }}>Selecciona un grado y fecha para comenzar</div>
         </div>
       )}
 
@@ -318,4 +365,5 @@ const s = {
   select: { width: '100%', padding: '11px 14px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: 14, background: '#fff', color: '#222', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', cursor: 'pointer', outline: 'none' },
   th:     { padding: '10px 12px', fontSize: 11, fontWeight: 700, color: '#F5EDD0', textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: 'center' },
   td:     { padding: '10px 12px', fontSize: 13, color: '#374151', verticalAlign: 'middle' },
+  aviso:  (bg, color) => ({ marginBottom: 12, padding: '10px 16px', background: bg, borderRadius: 10, fontSize: 13, color, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }),
 }
