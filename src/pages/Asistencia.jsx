@@ -233,13 +233,13 @@ export default function Asistencia() {
               onChange={e => setFecha(e.target.value)} max={hoy()} />
           </div>
 
-          {/* Marcar todos */}
-          {estudiantes.length > 0 && (
+          {/* Marcar todos — solo en desktop, como botones pequeños */}
+          {!isMobile && estudiantes.length > 0 && (
             <div style={{ flex: '1 1 auto', display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
               <span style={{ ...s.label, marginBottom: 0 }}>Marcar todos:</span>
               {ESTADOS.map(e => (
                 <button key={e.value} onClick={() => marcarTodos(e.value)}
-                  style={{ padding: isMobile ? '6px 10px' : '6px 12px', borderRadius: 8, border: `1.5px solid ${e.dot}`, background: e.bg, color: e.color, fontSize: isMobile ? 11 : 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  style={{ padding: '6px 12px', borderRadius: 8, border: `1.5px solid ${e.dot}`, background: e.bg, color: e.color, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
                   {e.label}
                 </button>
               ))}
@@ -268,20 +268,27 @@ export default function Asistencia() {
               </div>
             )}
 
-            {/* Resumen */}
-            <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+            {/* Resumen — en móvil también sirven para marcar todos */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
               {resumen.map(e => (
-                <div key={e.value} style={{ padding: '8px 16px', borderRadius: 10, background: e.bg, border: `1.5px solid ${e.dot}`, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button key={e.value}
+                  onClick={() => isMobile && marcarTodos(e.value)}
+                  style={{ padding: isMobile ? '8px 12px' : '8px 16px', borderRadius: 10, background: e.bg, border: `1.5px solid ${e.dot}`, display: 'flex', alignItems: 'center', gap: 6, cursor: isMobile ? 'pointer' : 'default', fontFamily: 'inherit', flexShrink: 0 }}>
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: e.dot, display: 'inline-block' }} />
-                  <span style={{ fontSize: 13, fontWeight: 700, color: e.color }}>{e.label}</span>
-                  <span style={{ fontSize: 15, fontWeight: 800, color: e.color }}>{e.count}</span>
-                </div>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: e.color }}>{e.label}</span>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: e.color }}>{e.count}</span>
+                </button>
               ))}
-              <div style={{ padding: '8px 16px', borderRadius: 10, background: '#f3eeff', border: '1.5px solid #5B2D8E', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#3d1f61' }}>Total</span>
-                <span style={{ fontSize: 15, fontWeight: 800, color: '#3d1f61' }}>{estudiantes.length}</span>
+              <div style={{ padding: '8px 16px', borderRadius: 10, background: '#f3eeff', border: '1.5px solid #5B2D8E', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#3d1f61' }}>Total</span>
+                <span style={{ fontSize: 14, fontWeight: 800, color: '#3d1f61' }}>{estudiantes.length}</span>
               </div>
             </div>
+            {isMobile && (
+              <div style={{ fontSize: 11, color: '#b0a8c0', marginBottom: 12, fontWeight: 500 }}>
+                Toca un estado para marcar todos
+              </div>
+            )}
 
             {/* Tabla desktop / Tarjetas móvil */}
             {isMobile ? (

@@ -365,7 +365,7 @@ export default function Login() {
         /* Responsive */
         @media (max-width: 768px) {
           .login-left { display: none; }
-          .login-root { background: #fff; }
+          .login-root { background: linear-gradient(180deg, #1a0d30 0%, #2d1554 55%, #3d1f61 100%); }
 
           .login-right {
             width: 100%;
@@ -375,6 +375,7 @@ export default function Login() {
             align-items: stretch;
             justify-content: flex-start;
             min-height: 100vh;
+            background: transparent;
           }
 
           .login-form-wrap {
@@ -390,10 +391,10 @@ export default function Login() {
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 48px 32px 36px;
-            background: linear-gradient(160deg, #1a0d30 0%, #2d1554 55%, #3d1f61 100%);
+            padding: 56px 32px 48px;
             position: relative;
             overflow: hidden;
+            flex: 1;
           }
 
           .mobile-header::before {
@@ -406,14 +407,17 @@ export default function Login() {
             background-size: 32px 32px;
           }
 
+          /* Círculos decorativos */
           .mobile-header::after {
             content: '';
             position: absolute;
-            bottom: -1px;
-            left: 0; right: 0;
-            height: 28px;
-            background: #fff;
-            border-radius: 24px 24px 0 0;
+            bottom: -60px;
+            right: -60px;
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: rgba(212,160,23,0.08);
+            pointer-events: none;
           }
 
           .mobile-header-content {
@@ -422,21 +426,21 @@ export default function Login() {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 12px;
+            gap: 14px;
             text-align: center;
           }
 
           .mobile-logo {
-            width: 64px;
-            height: 64px;
-            border-radius: 16px;
+            width: 72px;
+            height: 72px;
+            border-radius: 18px;
             object-fit: cover;
             box-shadow: 0 8px 24px rgba(0,0,0,0.4);
           }
 
           .mobile-brand-name {
             color: #fff;
-            font-size: 28px;
+            font-size: 32px;
             font-weight: 800;
             letter-spacing: -1px;
             display: flex;
@@ -446,15 +450,36 @@ export default function Login() {
 
           .mobile-lema {
             color: rgba(255,255,255,0.5);
-            font-size: 12px;
+            font-size: 13px;
             font-style: italic;
             letter-spacing: 0.2px;
           }
 
-          /* Área del formulario */
+          /* Pills decorativas bajo el lema */
+          .mobile-pills {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 8px;
+          }
+
+          .mobile-pill {
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 100px;
+            padding: 5px 12px;
+            font-size: 11px;
+            color: rgba(255,255,255,0.5);
+            font-weight: 500;
+          }
+
+          /* Área del formulario — tarjeta blanca con radio */
           .mobile-form-area {
-            padding: 28px 28px 40px;
-            flex: 1;
+            background: #fff;
+            border-radius: 24px 24px 0 0;
+            padding: 32px 28px 48px;
+            box-shadow: 0 -4px 32px rgba(0,0,0,0.2);
           }
 
           .form-header {
@@ -469,6 +494,7 @@ export default function Login() {
         @media (min-width: 769px) {
           .mobile-header { display: none; }
           .mobile-form-area { display: contents; }
+          .mobile-pills { display: none; }
         }
       `}</style>
 
@@ -584,6 +610,11 @@ export default function Login() {
                   </svg>
                 </div>
                 <div className="mobile-lema">Fe, Cultura, Innovación y Disciplina</div>
+                <div className="mobile-pills">
+                  <span className="mobile-pill">Notas en línea</span>
+                  <span className="mobile-pill">Asistencia</span>
+                  <span className="mobile-pill">Cobros</span>
+                </div>
               </div>
             </div>
 
