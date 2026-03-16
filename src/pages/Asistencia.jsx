@@ -165,7 +165,7 @@ export default function Asistencia() {
       }))
 
       const { error } = await supabase.from('asistencia')
-        .upsert(registros, { onConflict: 'fecha,estudiante_id,materia_id' })
+        .upsert(registros, { onConflict: 'fecha,estudiante_id,grado_id' })
 
       if (error) throw error
       toast.success('Asistencia guardada', { id: toastId })
