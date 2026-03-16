@@ -71,6 +71,13 @@ const Icons = {
       <line x1="9" y1="17" x2="12" y2="17"/>
     </svg>
   ),
+  asistencia: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+      <circle cx="9" cy="7" r="4"/>
+      <polyline points="16 11 18 13 22 9"/>
+    </svg>
+  ),
   logout: (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -96,7 +103,8 @@ export default function Layout({ pagina, setPagina, children }) {
     { id: 'dashboard',     label: 'Dashboard',     icon: Icons.dashboard },
     { id: 'estudiantes',   label: 'Estudiantes',   icon: Icons.estudiantes },
     { id: 'notas',         label: 'Notas',         icon: Icons.reportes },
-    { id: 'boletas',       label: 'Boletas',        icon: Icons.boletas },
+    { id: 'asistencia',    label: 'Asistencia',    icon: Icons.asistencia },
+    { id: 'boletas',       label: 'Boletas',       icon: Icons.boletas },
     { id: 'cobros',        label: 'Cobros',        icon: Icons.cobros },
     { id: 'contabilidad',  label: 'Contabilidad',  icon: Icons.contabilidad },
     { id: 'matricula',     label: 'Matrícula',     icon: Icons.matricula },
@@ -117,6 +125,7 @@ export default function Layout({ pagina, setPagina, children }) {
     { id: 'dashboard',    label: 'Dashboard',    icon: Icons.dashboard },
     { id: 'estudiantes',  label: 'Estudiantes',  icon: Icons.estudiantes },
     { id: 'notas',        label: 'Notas',        icon: Icons.reportes },
+    { id: 'asistencia',   label: 'Asistencia',   icon: Icons.asistencia },
     { id: 'cobros',       label: 'Cobros',       icon: Icons.cobros },
     { id: 'contabilidad', label: 'Contabilidad', icon: Icons.contabilidad },
     { id: 'reportes',     label: 'Reportes',     icon: Icons.reportes },
@@ -126,7 +135,7 @@ export default function Layout({ pagina, setPagina, children }) {
     { id: 'dashboard',    label: 'Dashboard',    icon: Icons.dashboard },
     { id: 'estudiantes',  label: 'Estudiantes',  icon: Icons.estudiantes },
     { id: 'notas',        label: 'Notas',        icon: Icons.reportes },
-    { id: 'boletas',      label: 'Boletas',       icon: Icons.boletas },
+    { id: 'boletas',      label: 'Boletas',      icon: Icons.boletas },
     { id: 'cobros',       label: 'Cobros',       icon: Icons.cobros },
     { id: 'matricula',    label: 'Matrícula',    icon: Icons.matricula },
     { id: 'reportes',     label: 'Reportes',     icon: Icons.reportes },
@@ -135,6 +144,7 @@ export default function Layout({ pagina, setPagina, children }) {
   const menuDocente = [
     { id: 'dashboard',   label: 'Dashboard',   icon: Icons.dashboard },
     { id: 'notas',       label: 'Notas',       icon: Icons.reportes },
+    { id: 'asistencia',  label: 'Asistencia',  icon: Icons.asistencia },
     { id: 'estudiantes', label: 'Estudiantes', icon: Icons.estudiantes },
   ]
 

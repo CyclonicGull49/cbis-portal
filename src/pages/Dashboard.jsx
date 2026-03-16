@@ -11,6 +11,7 @@ import Matricula from './Matricula'
 import Reportes from './Reportes'
 import Notas from './Notas'
 import Boletas from './Boletas'
+import Asistencia from './Asistencia'
 import PerfilAlumno from './PerfilAlumno'
 
 // KPI icon SVGs
@@ -354,6 +355,7 @@ export default function Dashboard() {
     switch (pagina) {
       case 'reportes':      return <Reportes />
       case 'boletas':       return <Boletas />
+      case 'asistencia':    return <Asistencia />
       case 'dashboard':     return <DashboardHome />
       case 'estudiantes':   return <Estudiantes />
       case 'cobros':        return <Cobros />
