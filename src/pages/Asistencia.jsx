@@ -95,21 +95,21 @@ export default function Asistencia() {
         .eq('grado_id', parseInt(gradoId))
         .eq('fecha', fecha)
         .eq('año_escolar', year),
-
-      // Permisos activos para esa fecha en ese grado
-      supabase.from('permisos')
-        .select('estudiante_id, tipo, motivo, perfiles(nombre, apellido)')
-        .eq('fecha', fecha)
-        .in('estudiante_id',
-          supabase.from('estudiantes').select('id').eq('grado_id', parseInt(gradoId)).eq('estado', 'activo')
-        ),
-    ]).then(([{ data: ests }, { data: asis }, { data: perms }]) => {
+    ]).then(async ([{ data: ests }, { data: asis }]) => {
       const estList = ests || []
       setEstudiantes(estList)
 
-      // Mapa de permisos por estudiante
-      const pMap = {}
-      for (const p of (perms || [])) pMap[p.estudiante_id] = p
+      // Permisos: buscar por IDs de estudiantes del grado
+      const estIds = estList.map(e => e.id)
+      let pMap = {}
+      if (estIds.length > 0) {
+        const { data: perms } = await supabase
+          .from('permisos')
+          .select('estudiante_id, tipo, motivo')
+          .eq('fecha', fecha)
+          .in('estudiante_id', estIds)
+        for (const p of (perms || [])) pMap[p.estudiante_id] = p
+      }
       setPermisosMap(pMap)
 
       if ((asis || []).length > 0) {
