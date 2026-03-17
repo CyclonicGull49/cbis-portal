@@ -148,9 +148,19 @@ export default function Notas({ onVerEstudiante }) {
     async function cargar() {
       if (esDocente) {
         const { data } = await supabase
-          .from('perfiles').select('grado_id, grados(id, nombre, nivel, orden, componentes_nota)')
-          .eq('id', perfil.id).single()
-        if (data?.grado_id) { setGrados([data.grados]); setGradoId(data.grado_id); setGradoInfo(data.grados) }
+          .from('asignaciones')
+          .select('grado_id, grados(id, nombre, nivel, orden, componentes_nota)')
+          .eq('docente_id', perfil.id)
+          .eq('año_escolar', yearEscolar || new Date().getFullYear())
+        const vistos = new Set(); const lista = []
+        for (const a of (data || [])) {
+          if (a.grados && !vistos.has(a.grado_id)) {
+            vistos.add(a.grado_id); lista.push(a.grados)
+          }
+        }
+        lista.sort((a, b) => a.orden - b.orden)
+        setGrados(lista)
+        if (lista.length === 1) { setGradoId(lista[0].id); setGradoInfo(lista[0]) }
       } else {
         const { data } = await supabase.from('grados').select('id, nombre, nivel, orden, componentes_nota').order('orden')
         setGrados(data || [])
