@@ -109,10 +109,14 @@ export default function Notas({ onVerEstudiante }) {
   const esDocente   = perfil?.rol === 'docente'
   const puedeEditar = ['admin', 'registro_academico', 'docente'].includes(perfil?.rol)
 
+  // ── Estado principal ──────────────────────────────────────
+  const [modo, setModo]               = useState('grados') // 'grados' | 'ingles'
   const [grados, setGrados]           = useState([])
   const [gradoId, setGradoId]         = useState(null)
   const [gradoInfo, setGradoInfo]     = useState(null)
   const [materias, setMaterias]       = useState([])
+  const [misMateriasIds, setMisMateriasIds] = useState(new Set()) // materias que puede editar el docente
+  const [esEncargado, setEsEncargado] = useState(false)
   const [materiaId, setMateriaId]     = useState('todas')
   const [estudiantes, setEstudiantes] = useState([])
   const [notas, setNotas]             = useState({})
@@ -121,17 +125,38 @@ export default function Notas({ onVerEstudiante }) {
   const [busqueda, setBusqueda]       = useState('')
   const [periodoMovil, setPeriodoMovil] = useState(1)
 
+  // ── Estado grupos inglés ──────────────────────────────────
+  const [grupos, setGrupos]           = useState([]) // grupos_especiales del docente
+  const [grupoId, setGrupoId]         = useState(null)
+  const [grupoInfo, setGrupoInfo]     = useState(null)
+  const [materiaInglesId, setMateriaInglesId] = useState(null)
+  const [estGrupo, setEstGrupo]       = useState([]) // estudiantes del grupo con su grado_id
+  const [notasIngles, setNotasIngles] = useState({})
+  const [previewIngles, setPreviewIngles] = useState({})
+  const [loadingIngles, setLoadingIngles] = useState(false)
+
+  const year = yearEscolar || new Date().getFullYear()
+
   const componentes  = gradoInfo?.componentes_nota?.split(',') || ['ac', 'ai', 'em', 'ef']
   const numPeriodos  = gradoInfo?.nivel === 'bachillerato' ? 4 : 3
   const periodoLabel = gradoInfo?.nivel === 'bachillerato' ? 'Bimestre' : 'Trimestre'
   const nivel        = nivelColor[gradoInfo?.nivel] || nivelColor.primaria
 
-  // Filtrar estudiantes por búsqueda
+  // Componentes inglés (bachillerato usa ep en vez de em)
+  const compIngles  = grupoInfo ? (['ac','ai','ep','ef']) : ['ac','ai','em','ef']
+  const numPerIngles = 4 // inglés siempre 4 períodos (bimestral)
+
   const estudiantesFiltrados = estudiantes.filter(e =>
     busqueda === '' ||
     `${e.nombre} ${e.apellido}`.toLowerCase().includes(busqueda.toLowerCase()) ||
     `${e.apellido} ${e.nombre}`.toLowerCase().includes(busqueda.toLowerCase())
   )
+
+  function puedeEditarMateria(matId) {
+    if (!esDocente) return puedeEditar
+    if (misMateriasIds.has(matId)) return true
+    return false
+  }
 
   function getVal(estId, matId, periodo, tipo) {
     const key = `${estId}-${matId}-${periodo}-${tipo}`
@@ -142,18 +167,23 @@ export default function Notas({ onVerEstudiante }) {
     for (const c of componentes) map[c] = getVal(estId, matId, periodo, c)
     return map
   }
+  function getValIngles(estId, gradoEstId, periodo, tipo) {
+    const key = `${estId}-${materiaInglesId}-${gradoEstId}-${periodo}-${tipo}`
+    return previewIngles[key] !== undefined ? previewIngles[key] : (notasIngles[key]?.nota ?? null)
+  }
 
-  // ── Cargar grados ──────────────────────────────────────────
+  // ── Cargar grados + grupos al iniciar ─────────────────────
   useEffect(() => {
+    if (!perfil) return
     async function cargar() {
       if (esDocente) {
-        const { data } = await supabase
+        // Grados desde asignaciones
+        const { data: asig } = await supabase
           .from('asignaciones')
-          .select('grado_id, grados(id, nombre, nivel, orden, componentes_nota)')
-          .eq('docente_id', perfil.id)
-          .eq('año_escolar', yearEscolar || new Date().getFullYear())
+          .select('grado_id, grados(id, nombre, nivel, orden, componentes_nota, encargado_id)')
+          .eq('docente_id', perfil.id).eq('año_escolar', year)
         const vistos = new Set(); const lista = []
-        for (const a of (data || [])) {
+        for (const a of (asig || [])) {
           if (a.grados && !vistos.has(a.grado_id)) {
             vistos.add(a.grado_id); lista.push(a.grados)
           }
@@ -161,46 +191,74 @@ export default function Notas({ onVerEstudiante }) {
         lista.sort((a, b) => a.orden - b.orden)
         setGrados(lista)
         if (lista.length === 1) { setGradoId(lista[0].id); setGradoInfo(lista[0]) }
+
+        // Grupos especiales de inglés
+        const { data: grps } = await supabase
+          .from('grupos_especiales')
+          .select('id, nombre, materia')
+          .eq('docente_id', perfil.id).eq('año_escolar', year)
+        setGrupos(grps || [])
+
+        // ID de la materia Inglés
+        const { data: matIng } = await supabase
+          .from('materias').select('id').ilike('nombre', 'inglés').single()
+        setMateriaInglesId(matIng?.id || null)
       } else {
-        const { data } = await supabase.from('grados').select('id, nombre, nivel, orden, componentes_nota').order('orden')
+        const { data } = await supabase
+          .from('grados').select('id, nombre, nivel, orden, componentes_nota, encargado_id').order('orden')
         setGrados(data || [])
       }
     }
     cargar()
   }, [perfil])
 
-  // ── Cargar materias ────────────────────────────────────────
+  // ── Cargar materias al cambiar grado ──────────────────────
   useEffect(() => {
     if (!gradoId) return
     async function cargar() {
-      let mat = []
+      const gInfo = grados.find(g => g.id === gradoId)
+      const esEnc = esDocente && gInfo?.encargado_id === perfil?.id
+      setEsEncargado(esEnc)
+
+      // Materias que puede EDITAR el docente
+      let misIds = new Set()
       if (esDocente) {
-        const { data } = await supabase.from('asignaciones').select('materia_id')
-          .eq('docente_id', perfil.id).eq('grado_id', gradoId).eq('año_escolar', yearEscolar || new Date().getFullYear())
-        if (data?.length) {
-          const { data: ms } = await supabase.from('materias').select('id, nombre').in('id', data.map(a => a.materia_id))
+        const { data: asig } = await supabase.from('asignaciones').select('materia_id')
+          .eq('docente_id', perfil.id).eq('grado_id', gradoId).eq('año_escolar', year)
+        misIds = new Set((asig || []).map(a => a.materia_id))
+        setMisMateriasIds(misIds)
+      }
+
+      // Materias visibles: si es encargado o admin, todas; si no, solo las suyas
+      let mat = []
+      if (!esDocente || esEnc) {
+        const { data: mgs } = await supabase.from('materia_grado').select('materia_id')
+          .eq('grado_id', gradoId)
+        if (mgs?.length) {
+          const { data: ms } = await supabase.from('materias').select('id, nombre')
+            .in('id', mgs.map(m => m.materia_id)).order('nombre')
           mat = ms || []
         }
       } else {
-        const { data: mgs } = await supabase.from('materia_grado').select('materia_id').eq('grado_id', gradoId)
-        if (mgs?.length) {
-          const { data: ms } = await supabase.from('materias').select('id, nombre').in('id', mgs.map(m => m.materia_id)).order('nombre')
+        // Docente no encargado: solo sus materias
+        if (misIds.size > 0) {
+          const { data: ms } = await supabase.from('materias').select('id, nombre')
+            .in('id', Array.from(misIds)).order('nombre')
           mat = ms || []
         }
       }
       setMaterias(mat); setMateriaId('todas'); setBusqueda('')
     }
     cargar()
-  }, [gradoId, yearEscolar])
+  }, [gradoId, year])
 
-  // ── Cargar estudiantes y notas ─────────────────────────────
-  useEffect(() => { if (gradoId) cargarDatos() }, [gradoId, yearEscolar])
+  // ── Cargar estudiantes y notas del grado ──────────────────
+  useEffect(() => { if (gradoId) cargarDatos() }, [gradoId, year])
 
   async function cargarDatos() {
     setLoading(true); setPreview({})
-    const year = yearEscolar || new Date().getFullYear()
     const [{ data: ests }, { data: ns }] = await Promise.all([
-      supabase.from('estudiantes').select('id, nombre, apellido').eq('grado_id', gradoId).order('apellido'),
+      supabase.from('estudiantes').select('id, nombre, apellido').eq('grado_id', gradoId).eq('estado', 'activo').order('apellido'),
       supabase.from('notas').select('*').eq('grado_id', gradoId).eq('año_escolar', year),
     ])
     setEstudiantes(ests || [])
@@ -209,9 +267,39 @@ export default function Notas({ onVerEstudiante }) {
     setNotas(mapa); setLoading(false)
   }
 
+  // ── Cargar estudiantes del grupo inglés ───────────────────
+  useEffect(() => {
+    if (!grupoId || !materiaInglesId) return
+    setLoadingIngles(true); setPreviewIngles({})
+    async function cargar() {
+      // Estudiantes del grupo con su grado
+      const { data: eg } = await supabase
+        .from('estudiante_grupo')
+        .select('estudiante_id, estudiantes(id, nombre, apellido, grado_id)')
+        .eq('grupo_id', grupoId).eq('año_escolar', year)
+      const ests = (eg || []).map(e => e.estudiantes).filter(Boolean)
+        .sort((a, b) => `${a.apellido} ${a.nombre}`.localeCompare(`${b.apellido} ${b.nombre}`))
+      setEstGrupo(ests)
+
+      // Notas de inglés para estos estudiantes
+      const estIds = ests.map(e => e.id)
+      if (estIds.length > 0) {
+        const { data: ns } = await supabase.from('notas').select('*')
+          .in('estudiante_id', estIds).eq('materia_id', materiaInglesId).eq('año_escolar', year)
+        const mapa = {}
+        for (const n of (ns || [])) {
+          mapa[`${n.estudiante_id}-${n.materia_id}-${n.grado_id}-${n.periodo}-${n.tipo}`] = n
+        }
+        setNotasIngles(mapa)
+      }
+      setLoadingIngles(false)
+    }
+    cargar()
+  }, [grupoId, materiaInglesId, year])
+
   async function guardarNota(estudianteId, matId, periodo, tipo, valor) {
+    if (esDocente && !misMateriasIds.has(matId)) return // no puede editar
     const key  = `${estudianteId}-${matId}-${periodo}-${tipo}`
-    const year = yearEscolar || new Date().getFullYear()
     const existe = notas[key]
 
     if (valor === null) {
@@ -226,13 +314,34 @@ export default function Notas({ onVerEstudiante }) {
       ? await supabase.from('notas').update({ nota: valor, docente_id: perfil.id }).eq('id', existe.id).select().single()
       : await supabase.from('notas').insert(payload).select().single()
 
-    if (error) {
-      toast.error('Error al guardar nota')
-      return
-    }
+    if (error) { toast.error('Error al guardar nota'); return }
     if (data) {
       setNotas(n => ({ ...n, [key]: data }))
       setPreview(p => { const c = { ...p }; delete c[key]; return c })
+      toast.success('Nota guardada', { duration: 1200, icon: '✓', style: { fontSize: 13, fontWeight: 600, color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0' } })
+    }
+  }
+
+  async function guardarNotaIngles(estudianteId, gradoEstId, periodo, tipo, valor) {
+    const key = `${estudianteId}-${materiaInglesId}-${gradoEstId}-${periodo}-${tipo}`
+    const existe = notasIngles[key]
+
+    if (valor === null) {
+      if (existe) await supabase.from('notas').delete().eq('id', existe.id)
+      setNotasIngles(n => { const c = { ...n }; delete c[key]; return c })
+      setPreviewIngles(p => { const c = { ...p }; delete c[key]; return c })
+      return
+    }
+
+    const payload = { estudiante_id: estudianteId, materia_id: materiaInglesId, grado_id: gradoEstId, año_escolar: year, periodo, tipo, nota: valor, docente_id: perfil.id }
+    const { data, error } = existe
+      ? await supabase.from('notas').update({ nota: valor, docente_id: perfil.id }).eq('id', existe.id).select().single()
+      : await supabase.from('notas').insert(payload).select().single()
+
+    if (error) { toast.error('Error al guardar nota'); return }
+    if (data) {
+      setNotasIngles(n => ({ ...n, [key]: data }))
+      setPreviewIngles(p => { const c = { ...p }; delete c[key]; return c })
       toast.success('Nota guardada', { duration: 1200, icon: '✓', style: { fontSize: 13, fontWeight: 600, color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0' } })
     }
   }
@@ -399,7 +508,7 @@ export default function Notas({ onVerEstudiante }) {
                           <td key={`${est.id}-${periodo}-${c}`} style={{ padding: '6px 4px', borderLeft: c === componentes[0] ? '2px solid #e9e3f5' : undefined, textAlign: 'center' }}>
                             <NotaInput
                               value={getVal(est.id, materiaId, periodo, c)}
-                              disabled={!puedeEditar}
+                              disabled={!puedeEditarMateria(materiaId)}
                               onPreview={v => setPreviewVal(est.id, materiaId, periodo, c, v)}
                               onChange={v => guardarNota(est.id, materiaId, periodo, c, v)}
                             />
@@ -485,54 +594,204 @@ export default function Notas({ onVerEstudiante }) {
     )
   }
 
+  // ── Tabla grupos inglés ───────────────────────────────────
+  function TablaGrupoIngles() {
+    const periodos = Array.from({ length: numPerIngles }, (_, i) => i + 1)
+    return (
+      <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', overflow: 'auto' }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3eeff', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ background: '#f3eeff', color: '#5B2D8E', padding: '3px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>
+            Inglés — {grupoInfo?.nombre}
+          </span>
+          <span style={{ fontSize: 12, color: '#b0a8c0', marginLeft: 'auto' }}>{estGrupo.length} estudiante{estGrupo.length !== 1 ? 's' : ''}</span>
+        </div>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
+          <thead>
+            <tr style={{ background: '#1a2d5a' }}>
+              <th style={{ ...s.th, textAlign: 'left', color: '#F5EDD0' }}>Estudiante</th>
+              <th style={{ ...s.th, color: '#F5EDD0' }}>Grado</th>
+              {periodos.map(p => (
+                <th key={p} colSpan={compIngles.length + 1} style={{ ...s.th, borderLeft: '2px solid rgba(255,255,255,0.1)', color: '#F5EDD0' }}>
+                  Bimestre {p}
+                </th>
+              ))}
+              <th style={{ ...s.th, borderLeft: '2px solid rgba(255,255,255,0.2)', color: '#F5EDD0' }}>ACU</th>
+            </tr>
+            <tr style={{ background: '#f5f3ff' }}>
+              <th style={s.th2} /><th style={s.th2} />
+              {periodos.map(p => (
+                <React.Fragment key={p}>
+                  {compIngles.map(c => (
+                    <th key={c} style={{ ...s.th2, borderLeft: c === compIngles[0] ? '2px solid #e9e3f5' : undefined }}>{LABELS[c]}</th>
+                  ))}
+                  <th style={{ ...s.th2, color: '#5B2D8E', fontWeight: 800 }}>NFT</th>
+                </React.Fragment>
+              ))}
+              <th style={{ ...s.th2, borderLeft: '2px solid #c9b8e8', color: '#5B2D8E', fontWeight: 800 }}>Final</th>
+            </tr>
+          </thead>
+          <tbody>
+            {estGrupo.map((est, idx) => {
+              const compEst = est.grado_id ? (['ac','ai','ep','ef']) : compIngles // bachillerato usa ep
+              const nfts = periodos.map(p => {
+                const map = {}
+                for (const c of compIngles) {
+                  const k = `${est.id}-${materiaInglesId}-${est.grado_id}-${p}-${c}`
+                  map[c] = previewIngles[k] !== undefined ? previewIngles[k] : (notasIngles[k]?.nota ?? null)
+                }
+                return calcNFT(compIngles, map)
+              })
+              const validos = nfts.filter(v => v !== null)
+              const notaFinal = validos.length ? validos.reduce((a, b) => a + b, 0) / validos.length : null
+
+              return (
+                <tr key={est.id} style={{ borderTop: '1px solid #f3eeff', background: idx % 2 === 0 ? '#fff' : '#fdfcff' }}>
+                  <td style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, color: '#3d1f61', whiteSpace: 'nowrap' }}>
+                    {est.apellido}, {est.nombre}
+                  </td>
+                  <td style={{ padding: '8px 10px', fontSize: 11, color: '#b0a8c0', whiteSpace: 'nowrap' }}>
+                    {est.grado_id}
+                  </td>
+                  {periodos.map(p => {
+                    const nft = nfts[p - 1]
+                    return (
+                      <React.Fragment key={p}>
+                        {compIngles.map(c => {
+                          const k = `${est.id}-${materiaInglesId}-${est.grado_id}-${p}-${c}`
+                          const val = previewIngles[k] !== undefined ? previewIngles[k] : (notasIngles[k]?.nota ?? null)
+                          return (
+                            <td key={c} style={{ padding: '6px 4px', borderLeft: c === compIngles[0] ? '2px solid #e9e3f5' : undefined, textAlign: 'center' }}>
+                              <NotaInput
+                                value={val}
+                                disabled={false}
+                                onPreview={v => setPreviewIngles(prev => ({ ...prev, [k]: v }))}
+                                onChange={v => guardarNotaIngles(est.id, est.grado_id, p, c, v)}
+                              />
+                            </td>
+                          )
+                        })}
+                        <td style={{ padding: '6px 8px', textAlign: 'center', background: nft !== null ? 'rgba(91,45,142,0.04)' : 'transparent' }}>
+                          <span style={{ fontSize: 13, fontWeight: 800, color: colorNota(nft) }}>{nft !== null ? nft.toFixed(2) : '—'}</span>
+                        </td>
+                      </React.Fragment>
+                    )
+                  })}
+                  <td style={{ padding: '6px 12px', borderLeft: '2px solid #c9b8e8', textAlign: 'center', background: notaFinal !== null ? 'rgba(91,45,142,0.06)' : 'transparent' }}>
+                    <span style={{ fontSize: 14, fontWeight: 900, color: colorNota(notaFinal) }}>{notaFinal !== null ? notaFinal.toFixed(2) : '—'}</span>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+
   return (
     <div style={{ fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
 
-      {/* Selectores */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        {(!esDocente || grados.length > 1) && (
-          <div style={{ flex: 1, minWidth: 160 }}>
-            <label style={s.label}>Grado</label>
-            <select style={s.select} value={gradoId || ''} onChange={e => {
-              const id = parseInt(e.target.value)
-              setGradoId(id); setGradoInfo(grados.find(g => g.id === id)); setBusqueda('')
-            }}>
-              <option value="">Selecciona un grado</option>
-              {grados.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
-            </select>
-          </div>
-        )}
-        <div style={{ flex: 1, minWidth: 160 }}>
-          <label style={s.label}>Materia</label>
-          <select style={s.select} value={materiaId} onChange={e => { setMateriaId(e.target.value); setBusqueda('') }} disabled={!gradoId}>
-            {!isMobile && <option value="todas">Ver todas las materias</option>}
-            {materias.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
-          </select>
+      {/* Tabs modo — solo si docente tiene grupos inglés */}
+      {esDocente && grupos.length > 0 && (
+        <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '2px solid #f0f0f0' }}>
+          <button onClick={() => setModo('grados')}
+            style={{ padding: '9px 20px', border: 'none', borderBottom: modo === 'grados' ? '3px solid #5B2D8E' : '3px solid transparent', background: 'none', color: modo === 'grados' ? '#3d1f61' : '#b0a8c0', fontWeight: modo === 'grados' ? 800 : 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', marginBottom: -2 }}>
+            📚 Mis materias
+          </button>
+          <button onClick={() => setModo('ingles')}
+            style={{ padding: '9px 20px', border: 'none', borderBottom: modo === 'ingles' ? '3px solid #5B2D8E' : '3px solid transparent', background: 'none', color: modo === 'ingles' ? '#3d1f61' : '#b0a8c0', fontWeight: modo === 'ingles' ? 800 : 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', marginBottom: -2 }}>
+            🌐 Grupos de Inglés
+          </button>
         </div>
-      {!isMobile && (
-          <div style={{ flex: 1, minWidth: 160 }}>
-            <label style={s.label}>Buscar</label>
-            <BarraBusqueda />
-          </div>
-        )}
-      </div>
+      )}
 
-      
-      {!gradoId && (
-        <div style={{ textAlign: 'center', padding: '60px 0', background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)' }}>
-          <div style={{ fontSize: 36, marginBottom: 12 }}>📋</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#3d1f61' }}>Selecciona un grado para comenzar</div>
+      {/* ── MODO GRUPOS INGLÉS ── */}
+      {modo === 'ingles' && (
+        <div>
+          <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <label style={s.label}>Grupo</label>
+              <select style={s.select} value={grupoId || ''} onChange={e => {
+                const id = parseInt(e.target.value)
+                setGrupoId(id)
+                setGrupoInfo(grupos.find(g => g.id === id) || null)
+              }}>
+                <option value="">Selecciona un grupo</option>
+                {grupos.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
+              </select>
+            </div>
+          </div>
+          {!grupoId && (
+            <div style={{ textAlign: 'center', padding: '60px 0', background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)' }}>
+              <div style={{ fontSize: 36, marginBottom: 12 }}>🌐</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#3d1f61' }}>Selecciona un grupo para comenzar</div>
+            </div>
+          )}
+          {grupoId && loadingIngles && <div style={{ textAlign: 'center', padding: 40, color: '#b0a8c0' }}>Cargando...</div>}
+          {grupoId && !loadingIngles && <TablaGrupoIngles />}
         </div>
       )}
-      {gradoId && !loading && !materias.length && (
-        <div style={{ textAlign: 'center', padding: '60px 0', background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)' }}>
-          <div style={{ fontSize: 36, marginBottom: 12 }}>📚</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#3d1f61' }}>Este grado no tiene materias asignadas</div>
-        </div>
-      )}
-      {loading && <div style={{ textAlign: 'center', padding: 40, color: '#b0a8c0', fontSize: 13 }}>Cargando...</div>}
-      {gradoId && !loading && !!materias.length && (
-        isMobile ? <VistaMóvil /> : (materiaId === 'todas' ? <TablaResumen /> : <TablaMateria />)
+
+      {/* ── MODO GRADOS ── */}
+      {modo === 'grados' && (
+        <>
+          {/* Selectores */}
+          <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            {(!esDocente || grados.length > 1) && (
+              <div style={{ flex: 1, minWidth: 160 }}>
+                <label style={s.label}>Grado</label>
+                <select style={s.select} value={gradoId || ''} onChange={e => {
+                  const id = parseInt(e.target.value)
+                  setGradoId(id); setGradoInfo(grados.find(g => g.id === id)); setBusqueda('')
+                }}>
+                  <option value="">Selecciona un grado</option>
+                  {grados.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
+                </select>
+              </div>
+            )}
+            <div style={{ flex: 1, minWidth: 160 }}>
+              <label style={s.label}>Materia</label>
+              <select style={s.select} value={materiaId} onChange={e => { setMateriaId(e.target.value); setBusqueda('') }} disabled={!gradoId}>
+                {!isMobile && <option value="todas">Ver todas las materias</option>}
+                {materias.map(m => (
+                  <option key={m.id} value={m.id}>
+                    {m.nombre}{esDocente && esEncargado && !misMateriasIds.has(m.id) ? ' 👁' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {!isMobile && (
+              <div style={{ flex: 1, minWidth: 160 }}>
+                <label style={s.label}>Buscar</label>
+                <BarraBusqueda />
+              </div>
+            )}
+          </div>
+
+          {/* Aviso encargado */}
+          {esEncargado && (
+            <div style={{ marginBottom: 12, padding: '10px 16px', background: '#fffbeb', borderRadius: 10, fontSize: 12, color: '#92400e', fontWeight: 600, border: '1px solid #fde68a' }}>
+              👁 Eres encargado de este grado — ves todas las materias. Las marcadas con 👁 son de solo lectura.
+            </div>
+          )}
+
+          {!gradoId && (
+            <div style={{ textAlign: 'center', padding: '60px 0', background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)' }}>
+              <div style={{ fontSize: 36, marginBottom: 12 }}>📋</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#3d1f61' }}>Selecciona un grado para comenzar</div>
+            </div>
+          )}
+          {gradoId && !loading && !materias.length && (
+            <div style={{ textAlign: 'center', padding: '60px 0', background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)' }}>
+              <div style={{ fontSize: 36, marginBottom: 12 }}>📚</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#3d1f61' }}>Este grado no tiene materias asignadas</div>
+            </div>
+          )}
+          {loading && <div style={{ textAlign: 'center', padding: 40, color: '#b0a8c0', fontSize: 13 }}>Cargando...</div>}
+          {gradoId && !loading && !!materias.length && (
+            isMobile ? <VistaMóvil /> : (materiaId === 'todas' ? <TablaResumen /> : <TablaMateria />)
+          )}
+        </>
       )}
     </div>
   )
