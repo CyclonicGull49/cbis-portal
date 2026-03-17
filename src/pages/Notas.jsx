@@ -490,7 +490,7 @@ export default function Notas({ onVerEstudiante }) {
 
       {/* Selectores */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        {!esDocente && (
+        {(!esDocente || grados.length > 1) && (
           <div style={{ flex: 1, minWidth: 160 }}>
             <label style={s.label}>Grado</label>
             <select style={s.select} value={gradoId || ''} onChange={e => {
@@ -509,7 +509,7 @@ export default function Notas({ onVerEstudiante }) {
             {materias.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
           </select>
         </div>
-        {!isMobile && (
+      {!isMobile && (
           <div style={{ flex: 1, minWidth: 160 }}>
             <label style={s.label}>Buscar</label>
             <BarraBusqueda />
@@ -517,10 +517,7 @@ export default function Notas({ onVerEstudiante }) {
         )}
       </div>
 
-      {isMobile && gradoId && !!materias.length && (
-        <div style={{ marginBottom: 12 }}><BarraBusqueda /></div>
-      )}
-
+      
       {!gradoId && (
         <div style={{ textAlign: 'center', padding: '60px 0', background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)' }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>📋</div>
