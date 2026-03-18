@@ -307,6 +307,7 @@ export default function Notas({ onVerEstudiante }) {
   }, [grupoId, materiaInglesId, year])
 
   async function guardarActividad(estId, matId, periodo, numero, valor) {
+
     if (esDocente && !misMateriasIds.has(matId)) return
     const key = `${estId}-${matId}-${periodo}-${numero}`
 
@@ -336,6 +337,8 @@ export default function Notas({ onVerEstudiante }) {
     const key = `${estId}-${periodo}`
     setExpandAC(prev => ({ ...prev, [key]: !prev[key] }))
   }
+
+  async function guardarNota(estudianteId, matId, periodo, tipo, valor) {
     if (esDocente && !misMateriasIds.has(matId)) return // no puede editar
     const key  = `${estudianteId}-${matId}-${periodo}-${tipo}`
     const existe = notas[key]
