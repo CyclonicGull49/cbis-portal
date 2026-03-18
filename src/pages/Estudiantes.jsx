@@ -840,6 +840,7 @@ export default function Estudiantes({ estudianteIdInicial, onVolver }) {
   const [grados, setGrados] = useState([])
   const [loading, setLoading] = useState(true)
   const [busqueda, setBusqueda] = useState('')
+  const [gradoFiltro, setGradoFiltro] = useState('')
   const [modalAbierto, setModalAbierto] = useState(false)
   const [form, setForm] = useState({ nombre: '', apellido: '', fecha_nacimiento: '', genero: '', nie: '', correo_institucional: '', direccion: '', grado_id: '', tipo_ingreso: 'antiguo' })
   const [guardando, setGuardando] = useState(false)
@@ -866,10 +867,17 @@ export default function Estudiantes({ estudianteIdInicial, onVolver }) {
   async function cargarDatos() {
     setLoading(true)
     const [{ data: est }, { data: gra }] = await Promise.all([
-      supabase.from('estudiantes').select(`*, grados(nombre)`).order('apellido'),
-      supabase.from('grados').select('*').order('id')
+      supabase.from('estudiantes').select(`*, grados(id, nombre, orden)`).order('apellido'),
+      supabase.from('grados').select('*').order('orden')
     ])
-    setEstudiantes(est || [])
+    // Ordenar por orden de grado, luego por apellido
+    const sorted = (est || []).sort((a, b) => {
+      const oA = a.grados?.orden ?? 999
+      const oB = b.grados?.orden ?? 999
+      if (oA !== oB) return oA - oB
+      return `${a.apellido} ${a.nombre}`.localeCompare(`${b.apellido} ${b.nombre}`)
+    })
+    setEstudiantes(sorted)
     setGrados(gra || [])
     setLoading(false)
   }
@@ -900,11 +908,14 @@ export default function Estudiantes({ estudianteIdInicial, onVolver }) {
     setError('')
   }
 
-  const filtrados = estudiantes.filter(e =>
-    `${e.nombre} ${e.apellido}`.toLowerCase().includes(busqueda.toLowerCase()) ||
-    e.grados?.nombre?.toLowerCase().includes(busqueda.toLowerCase()) ||
-    (e.nie && e.nie.includes(busqueda))
-  )
+  const filtrados = estudiantes.filter(e => {
+    const matchBusqueda =
+      `${e.nombre} ${e.apellido}`.toLowerCase().includes(busqueda.toLowerCase()) ||
+      e.grados?.nombre?.toLowerCase().includes(busqueda.toLowerCase()) ||
+      (e.nie && e.nie.includes(busqueda))
+    const matchGrado = !gradoFiltro || e.grado_id === parseInt(gradoFiltro)
+    return matchBusqueda && matchGrado
+  })
 
   function descargarPlantilla() {
     // Grados disponibles como comentario de referencia
@@ -1126,8 +1137,19 @@ export default function Estudiantes({ estudianteIdInicial, onVolver }) {
         ))}
       </div>
 
-      {/* Buscador */}
-      <input style={s.search} placeholder="Buscar por nombre, grado o NIE..." value={busqueda} onChange={e => setBusqueda(e.target.value)} />
+      {/* Buscador + filtro grado */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+        <input style={{ ...s.search, flex: '1 1 220px', marginBottom: 0 }}
+          placeholder="Buscar por nombre, grado o NIE..."
+          value={busqueda} onChange={e => setBusqueda(e.target.value)} />
+        <select
+          value={gradoFiltro}
+          onChange={e => setGradoFiltro(e.target.value)}
+          style={{ flex: '0 0 180px', padding: '10px 14px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: 13, background: '#fff', color: gradoFiltro ? '#3d1f61' : '#9ca3af', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', cursor: 'pointer' }}>
+          <option value="">Todos los grados</option>
+          {grados.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
+        </select>
+      </div>
 
       {/* Tabla */}
       <div style={s.card}>
