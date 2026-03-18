@@ -135,7 +135,7 @@ export default function Usuarios() {
           <table style={s.table}>
             <thead>
               <tr style={{ background: '#faf8ff' }}>
-                {['Usuario', 'Email', 'Rol', 'Detalle', 'Estado', 'Acciones'].map(h => (
+                {['Usuario', 'Email', 'Rol', 'Detalle', 'Estado', ''].map(h => (
                   <th key={h} style={s.th}>{h}</th>
                 ))}
               </tr>
@@ -171,24 +171,48 @@ export default function Usuarios() {
                       {u.activo ? 'Activo' : 'Inactivo'}
                     </span>
                   </td>
-                  <td style={s.td}>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <button onClick={() => setModalConfirm({ tipo: 'toggle', usuario: u })} style={u.activo ? s.btnDesactivar : s.btnActivar}>
-                        {u.activo ? 'Desactivar' : 'Activar'}
-                      </button>
-                      <button onClick={() => resetearPassword(u)}
-                        disabled={resetando === u.id}
-                        style={{ ...s.btnEliminar, background: '#eff6ff', color: '#2563eb' }}>
-                        {resetando === u.id ? '...' : '🔑 Reset'}
-                      </button>
-                      <button onClick={() => setModalConfirm({ tipo: 'eliminar', usuario: u })} style={s.btnEliminar}>Eliminar</button>
-                    </div>
+                  <td style={{ ...s.td, textAlign: 'right' }}>
+                    <MenuAcciones u={u} />
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+      </div>
+    )
+  }
+
+function MenuAcciones({ u }) {
+    const [open, setOpen] = useState(false)
+    return (
+      <div style={{ position: 'relative' }}>
+        <button onClick={() => setOpen(v => !v)}
+          style={{ background: '#f4f0fa', border: 'none', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#5B2D8E', fontWeight: 900, fontSize: 16, fontFamily: 'inherit' }}>
+          ···
+        </button>
+        {open && (
+          <>
+            <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 99 }} />
+            <div style={{ position: 'absolute', right: 0, top: 36, background: '#fff', borderRadius: 12, boxShadow: '0 8px 32px rgba(61,31,97,0.15)', zIndex: 100, minWidth: 160, overflow: 'hidden', border: '1px solid #f0ecf8' }}>
+              <button onClick={() => { setOpen(false); setModalConfirm({ tipo: 'toggle', usuario: u }) }}
+                style={{ width: '100%', padding: '11px 16px', border: 'none', background: 'none', textAlign: 'left', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: u.activo ? '#dc2626' : '#16a34a', fontFamily: 'inherit' }}>
+                {u.activo ? 'Desactivar' : 'Activar'}
+              </button>
+              <div style={{ height: 1, background: '#f3eeff', margin: '0 12px' }} />
+              <button onClick={() => { setOpen(false); resetearPassword(u) }}
+                disabled={resetando === u.id}
+                style={{ width: '100%', padding: '11px 16px', border: 'none', background: 'none', textAlign: 'left', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#2563eb', fontFamily: 'inherit' }}>
+                {resetando === u.id ? 'Enviando...' : 'Restablecer contraseña'}
+              </button>
+              <div style={{ height: 1, background: '#f3eeff', margin: '0 12px' }} />
+              <button onClick={() => { setOpen(false); setModalConfirm({ tipo: 'eliminar', usuario: u }) }}
+                style={{ width: '100%', padding: '11px 16px', border: 'none', background: 'none', textAlign: 'left', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#dc2626', fontFamily: 'inherit' }}>
+                Eliminar
+              </button>
+            </div>
+          </>
+        )}
       </div>
     )
   }
