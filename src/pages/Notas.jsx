@@ -130,10 +130,14 @@ export default function Notas({ onVerEstudiante }) {
   const [grupoId, setGrupoId]         = useState(null)
   const [grupoInfo, setGrupoInfo]     = useState(null)
   const [materiaInglesId, setMateriaInglesId] = useState(null)
-  const [estGrupo, setEstGrupo]       = useState([]) // estudiantes del grupo con su grado_id
+  const [estGrupo, setEstGrupo]       = useState([])
   const [notasIngles, setNotasIngles] = useState({})
   const [previewIngles, setPreviewIngles] = useState({})
   const [loadingIngles, setLoadingIngles] = useState(false)
+
+  // ── Estado actividades cotidianas ─────────────────────────
+  const [actividades, setActividades]   = useState({})
+  const [expandAC, setExpandAC]         = useState({})
 
   const year = yearEscolar || new Date().getFullYear()
 
@@ -257,14 +261,19 @@ export default function Notas({ onVerEstudiante }) {
 
   async function cargarDatos() {
     setLoading(true); setPreview({})
-    const [{ data: ests }, { data: ns }] = await Promise.all([
+    const [{ data: ests }, { data: ns }, { data: acs }] = await Promise.all([
       supabase.from('estudiantes').select('id, nombre, apellido').eq('grado_id', gradoId).eq('estado', 'activo').order('apellido'),
       supabase.from('notas').select('*').eq('grado_id', gradoId).eq('año_escolar', year),
+      supabase.from('actividades_cotidianas').select('*').eq('grado_id', gradoId).eq('año_escolar', year),
     ])
     setEstudiantes(ests || [])
     const mapa = {}
     for (const n of (ns || [])) mapa[`${n.estudiante_id}-${n.materia_id}-${n.periodo}-${n.tipo}`] = n
-    setNotas(mapa); setLoading(false)
+    setNotas(mapa)
+    const acMapa = {}
+    for (const a of (acs || [])) acMapa[`${a.estudiante_id}-${a.materia_id}-${a.periodo}-${a.numero}`] = a.nota
+    setActividades(acMapa)
+    setLoading(false)
   }
 
   // ── Cargar estudiantes del grupo inglés ───────────────────
@@ -297,7 +306,36 @@ export default function Notas({ onVerEstudiante }) {
     cargar()
   }, [grupoId, materiaInglesId, year])
 
-  async function guardarNota(estudianteId, matId, periodo, tipo, valor) {
+  async function guardarActividad(estId, matId, periodo, numero, valor) {
+    if (esDocente && !misMateriasIds.has(matId)) return
+    const key = `${estId}-${matId}-${periodo}-${numero}`
+
+    if (valor === null) {
+      await supabase.from('actividades_cotidianas')
+        .delete().eq('estudiante_id', estId).eq('materia_id', matId)
+        .eq('grado_id', gradoId).eq('año_escolar', year).eq('periodo', periodo).eq('numero', numero)
+      setActividades(a => { const c = { ...a }; delete c[key]; return c })
+    } else {
+      await supabase.from('actividades_cotidianas').upsert({
+        estudiante_id: estId, materia_id: matId, grado_id: gradoId,
+        año_escolar: year, periodo, numero, nota: valor, docente_id: perfil.id
+      }, { onConflict: 'estudiante_id,materia_id,grado_id,año_escolar,periodo,numero' })
+      setActividades(a => ({ ...a, [key]: valor }))
+    }
+
+    // Recalcular promedio AC y guardarlo en notas
+    const newActs = { ...actividades, [key]: valor }
+    const acts = Array.from({ length: numActividades }, (_, i) =>
+      newActs[`${estId}-${matId}-${periodo}-${i + 1}`]
+    ).filter(v => v !== null && v !== undefined)
+    const acPromedio = acts.length > 0 ? Math.round((acts.reduce((a, b) => a + b, 0) / acts.length) * 10) / 10 : null
+    await guardarNota(estId, matId, periodo, 'ac', acPromedio)
+  }
+
+  function toggleExpandAC(estId, periodo) {
+    const key = `${estId}-${periodo}`
+    setExpandAC(prev => ({ ...prev, [key]: !prev[key] }))
+  }
     if (esDocente && !misMateriasIds.has(matId)) return // no puede editar
     const key  = `${estudianteId}-${matId}-${periodo}-${tipo}`
     const existe = notas[key]
@@ -318,7 +356,7 @@ export default function Notas({ onVerEstudiante }) {
     if (data) {
       setNotas(n => ({ ...n, [key]: data }))
       setPreview(p => { const c = { ...p }; delete c[key]; return c })
-      toast.success('Nota guardada', { duration: 1200, icon: '✓', style: { fontSize: 13, fontWeight: 600, color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0' } })
+      toast.success('Nota guardada', { duration: 1200, style: { fontSize: 13, fontWeight: 600, color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0' } })
     }
   }
 
@@ -342,12 +380,23 @@ export default function Notas({ onVerEstudiante }) {
     if (data) {
       setNotasIngles(n => ({ ...n, [key]: data }))
       setPreviewIngles(p => { const c = { ...p }; delete c[key]; return c })
-      toast.success('Nota guardada', { duration: 1200, icon: '✓', style: { fontSize: 13, fontWeight: 600, color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0' } })
+      toast.success('Nota guardada', { duration: 1200, style: { fontSize: 13, fontWeight: 600, color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0' } })
     }
   }
 
+  // ── Estado actividades cotidianas ─────────────────────────
+  const numActividades = gradoInfo?.nivel === 'bachillerato' ? 5 : 7
+
   function setPreviewVal(estId, matId, periodo, tipo, val) {
     setPreview(p => ({ ...p, [`${estId}-${matId}-${periodo}-${tipo}`]: val }))
+  }
+
+  function getAC(estId, matId, periodo) {
+    const acts = Array.from({ length: numActividades }, (_, i) =>
+      actividades[`${estId}-${matId}-${periodo}-${i + 1}`]
+    ).filter(v => v !== null && v !== undefined)
+    if (acts.length === 0) return null
+    return acts.reduce((a, b) => a + b, 0) / acts.length
   }
 
   // ── Nombre clickeable ──────────────────────────────────────
@@ -377,7 +426,11 @@ export default function Notas({ onVerEstudiante }) {
     if (!gradoId || !estudiantes.length) return null
     return (
       <div style={{ position: 'relative', minWidth: 220 }}>
-        <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#b0a8c0', fontSize: 14 }}>🔍</span>
+        <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#b0a8c0', display: 'flex' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+        </span>
         <input
           type="text"
           placeholder="Buscar estudiante..."
@@ -482,7 +535,9 @@ export default function Notas({ onVerEstudiante }) {
               {Array.from({ length: numPeriodos }, (_, i) => (
                 <>
                   {componentes.map(c => (
-                    <th key={`${i}-${c}`} style={{ ...s.th2, borderLeft: c === componentes[0] ? '2px solid #e9e3f5' : undefined }} title={FULL_LABELS[c]}>{LABELS[c]}</th>
+                    <th key={`${i}-${c}`} style={{ ...s.th2, borderLeft: c === componentes[0] ? '2px solid #e9e3f5' : undefined }} title={FULL_LABELS[c]}>
+                      {c === 'ac' ? `AC (${numActividades})` : LABELS[c]}
+                    </th>
                   ))}
                   <th key={`${i}-nft`} style={{ ...s.th2, color: '#5B2D8E', fontWeight: 800 }}>NFT</th>
                 </>
@@ -504,16 +559,61 @@ export default function Notas({ onVerEstudiante }) {
                     const nft = calcNFT(componentes, map)
                     return (
                       <>
-                        {componentes.map(c => (
-                          <td key={`${est.id}-${periodo}-${c}`} style={{ padding: '6px 4px', borderLeft: c === componentes[0] ? '2px solid #e9e3f5' : undefined, textAlign: 'center' }}>
-                            <NotaInput
-                              value={getVal(est.id, materiaId, periodo, c)}
-                              disabled={!puedeEditarMateria(materiaId)}
-                              onPreview={v => setPreviewVal(est.id, materiaId, periodo, c, v)}
-                              onChange={v => guardarNota(est.id, materiaId, periodo, c, v)}
-                            />
-                          </td>
-                        ))}
+                        {componentes.map(c => {
+                          if (c === 'ac') {
+                            const acVal = getAC(est.id, materiaId, periodo)
+                            const expanded = expandAC[`${est.id}-${periodo}`]
+                            return (
+                              <td key={`${est.id}-${periodo}-ac`} style={{ padding: '4px', borderLeft: '2px solid #e9e3f5', textAlign: 'center', background: expanded ? '#faf8ff' : 'transparent' }}>
+                                {/* Promedio + botón expandir */}
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                                  <span style={{ fontSize: 13, fontWeight: 700, color: colorNota(acVal), minWidth: 36 }}>
+                                    {acVal !== null ? acVal.toFixed(1) : '—'}
+                                  </span>
+                                  {puedeEditarMateria(materiaId) && (
+                                    <button onClick={() => toggleExpandAC(est.id, periodo)}
+                                      title={`${numActividades} actividades`}
+                                      style={{ width: 20, height: 20, borderRadius: 4, border: '1px solid #d8c8f0', background: expanded ? '#5B2D8E' : '#f3eeff', color: expanded ? '#fff' : '#5B2D8E', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                        {expanded ? <polyline points="18 15 12 9 6 15"/> : <polyline points="6 9 12 15 18 9"/>}
+                                      </svg>
+                                    </button>
+                                  )}
+                                </div>
+                                {/* Inputs de actividades expandibles */}
+                                {expanded && (
+                                  <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                                    {Array.from({ length: numActividades }, (_, i) => {
+                                      const num = i + 1
+                                      const actVal = actividades[`${est.id}-${materiaId}-${periodo}-${num}`] ?? null
+                                      return (
+                                        <div key={num} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                          <span style={{ fontSize: 9, color: '#b0a8c0', fontWeight: 700, minWidth: 14 }}>A{num}</span>
+                                          <NotaInput
+                                            value={actVal}
+                                            disabled={false}
+                                            onPreview={() => {}}
+                                            onChange={v => guardarActividad(est.id, materiaId, periodo, num, v)}
+                                          />
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                )}
+                              </td>
+                            )
+                          }
+                          return (
+                            <td key={`${est.id}-${periodo}-${c}`} style={{ padding: '6px 4px', borderLeft: c === componentes[0] ? '2px solid #e9e3f5' : undefined, textAlign: 'center' }}>
+                              <NotaInput
+                                value={getVal(est.id, materiaId, periodo, c)}
+                                disabled={!puedeEditarMateria(materiaId)}
+                                onPreview={v => setPreviewVal(est.id, materiaId, periodo, c, v)}
+                                onChange={v => guardarNota(est.id, materiaId, periodo, c, v)}
+                              />
+                            </td>
+                          )
+                        })}
                         <td key={`${est.id}-${periodo}-nft`} style={{ padding: '6px 10px', textAlign: 'center', minWidth: 52, background: nft !== null ? 'rgba(91,45,142,0.04)' : 'transparent' }}>
                           <span style={{ fontSize: 13, fontWeight: 800, color: colorNota(nft) }}>{nft !== null ? nft.toFixed(2) : '—'}</span>
                         </td>
@@ -695,12 +795,14 @@ export default function Notas({ onVerEstudiante }) {
       {esDocente && grupos.length > 0 && (
         <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '2px solid #f0f0f0' }}>
           <button onClick={() => setModo('grados')}
-            style={{ padding: '9px 20px', border: 'none', borderBottom: modo === 'grados' ? '3px solid #5B2D8E' : '3px solid transparent', background: 'none', color: modo === 'grados' ? '#3d1f61' : '#b0a8c0', fontWeight: modo === 'grados' ? 800 : 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', marginBottom: -2 }}>
-            📚 Mis materias
+            style={{ padding: '9px 20px', border: 'none', borderBottom: modo === 'grados' ? '3px solid #5B2D8E' : '3px solid transparent', background: 'none', color: modo === 'grados' ? '#3d1f61' : '#b0a8c0', fontWeight: modo === 'grados' ? 800 : 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', marginBottom: -2, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            Mis materias
           </button>
           <button onClick={() => setModo('ingles')}
-            style={{ padding: '9px 20px', border: 'none', borderBottom: modo === 'ingles' ? '3px solid #5B2D8E' : '3px solid transparent', background: 'none', color: modo === 'ingles' ? '#3d1f61' : '#b0a8c0', fontWeight: modo === 'ingles' ? 800 : 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', marginBottom: -2 }}>
-            🌐 Grupos de Inglés
+            style={{ padding: '9px 20px', border: 'none', borderBottom: modo === 'ingles' ? '3px solid #5B2D8E' : '3px solid transparent', background: 'none', color: modo === 'ingles' ? '#3d1f61' : '#b0a8c0', fontWeight: modo === 'ingles' ? 800 : 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', marginBottom: -2, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            Grupos de Inglés
           </button>
         </div>
       )}
@@ -723,7 +825,9 @@ export default function Notas({ onVerEstudiante }) {
           </div>
           {!grupoId && (
             <div style={{ textAlign: 'center', padding: '60px 0', background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)' }}>
-              <div style={{ fontSize: 36, marginBottom: 12 }}>🌐</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12, color: '#d8c8f0' }}>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              </div>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#3d1f61' }}>Selecciona un grupo para comenzar</div>
             </div>
           )}
@@ -777,13 +881,17 @@ export default function Notas({ onVerEstudiante }) {
 
           {!gradoId && (
             <div style={{ textAlign: 'center', padding: '60px 0', background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)' }}>
-              <div style={{ fontSize: 36, marginBottom: 12 }}>📋</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12, color: '#d8c8f0' }}>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+              </div>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#3d1f61' }}>Selecciona un grado para comenzar</div>
             </div>
           )}
           {gradoId && !loading && !materias.length && (
             <div style={{ textAlign: 'center', padding: '60px 0', background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)' }}>
-              <div style={{ fontSize: 36, marginBottom: 12 }}>📚</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12, color: '#d8c8f0' }}>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              </div>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#3d1f61' }}>Este grado no tiene materias asignadas</div>
             </div>
           )}
