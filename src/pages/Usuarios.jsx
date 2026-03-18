@@ -37,7 +37,8 @@ export default function Usuarios() {
 
   async function cargarUsuarios() {
     setLoading(true)
-    const { data } = await supabase.from('perfiles').select('*, grados(nombre)').order('apellido', { ascending: true })
+    const { data, error } = await supabase.from('perfiles').select('*, grados(nombre)').order('nombre', { ascending: true })
+    if (error) console.error('Error cargando usuarios:', error)
     setUsuarios(data || []); setLoading(false)
   }
 
