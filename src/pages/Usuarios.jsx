@@ -37,7 +37,7 @@ export default function Usuarios() {
 
   async function cargarUsuarios() {
     setLoading(true)
-    const { data } = await supabase.from('perfiles').select('*, grados(nombre)').order('creado_en', { ascending: false })
+    const { data } = await supabase.from('perfiles').select('*, grados(nombre)').order('created_at', { ascending: false })
     setUsuarios(data || []); setLoading(false)
   }
 
