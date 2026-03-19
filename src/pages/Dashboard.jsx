@@ -162,11 +162,11 @@ function DashboardHome() {
   function KpiCard({ icon, label, val, sub, color, acento = false }) {
     return (
       <div style={{
-        background: acento ? '#080412' : '#fff',
+        background: acento ? 'linear-gradient(135deg, #1a0d30 0%, #3d1f61 100%)' : '#fff',
         borderRadius: 16,
         padding: '22px 24px',
         boxShadow: acento
-          ? '0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.2)'
+          ? '0 8px 32px rgba(61,31,97,0.45)'
           : '0 2px 20px rgba(61,31,97,0.09)',
         display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
         position: 'relative', overflow: 'hidden',
@@ -208,10 +208,10 @@ function DashboardHome() {
 
       {/* ── Header ──────────────────────────────────────── */}
       <div style={{
-        background: '#080412',
+        background: 'linear-gradient(135deg, #1a0d30 0%, #2d1554 50%, #5B2D8E 100%)',
         borderRadius: 20, padding: '28px 32px', marginBottom: 24,
         position: 'relative', overflow: 'hidden',
-        boxShadow: '0 8px 40px rgba(0,0,0,0.35)',
+        boxShadow: '0 8px 32px rgba(61,31,97,0.35)',
       }}>
         {/* Blobs de color CBIS */}
         <div style={{ position: 'absolute', width: 320, height: 320, borderRadius: '50%', background: 'radial-gradient(circle, rgba(112,60,220,0.45) 0%, transparent 70%)', filter: 'blur(55px)', top: -100, right: 180, pointerEvents: 'none' }} />

@@ -321,9 +321,9 @@ export default function Layout({ pagina, setPagina, children }) {
 
   const sidebarStyle = {
     width: 228, flexShrink: 0,
-    background: '#0d0818',
+    background: 'linear-gradient(180deg, #1a0d30 0%, #2d1554 45%, #5B2D8E 100%)',
     display: 'flex', flexDirection: 'column',
-    boxShadow: '4px 0 32px rgba(0,0,0,0.4)',
+    boxShadow: '4px 0 24px rgba(61,31,97,0.35)',
     position: 'relative', overflow: 'hidden',
   }
 
@@ -344,34 +344,34 @@ export default function Layout({ pagina, setPagina, children }) {
         .sb-blob-v {
           position: absolute; border-radius: 50%; pointer-events: none;
           width: 280px; height: 280px;
-          background: radial-gradient(circle, rgba(112,60,220,0.55) 0%, rgba(80,30,160,0.25) 50%, transparent 100%);
+          background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 50%, transparent 100%);
           filter: blur(50px);
           top: -60px; left: -60px;
         }
         .sb-blob-o {
           position: absolute; border-radius: 50%; pointer-events: none;
           width: 180px; height: 180px;
-          background: radial-gradient(circle, rgba(234,88,12,0.35) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(212,160,23,0.12) 0%, transparent 70%);
           filter: blur(40px);
           top: 120px; right: -40px;
         }
         .sb-blob-g {
           position: absolute; border-radius: 50%; pointer-events: none;
           width: 200px; height: 200px;
-          background: radial-gradient(circle, rgba(22,163,74,0.25) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
           filter: blur(45px);
           bottom: 120px; left: -30px;
         }
         .sb-blob-d {
           position: absolute; border-radius: 50%; pointer-events: none;
           width: 220px; height: 220px;
-          background: radial-gradient(circle, rgba(212,160,23,0.3) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(212,160,23,0.10) 0%, transparent 70%);
           filter: blur(50px);
           bottom: -40px; right: -40px;
         }
       `}</style>
 
-      <div className="layout-root" style={{ display: 'flex', minHeight: '100vh', width: '100vw', background: '#ede8f7' }}>
+      <div className="layout-root" style={{ display: 'flex', minHeight: '100vh', width: '100vw', background: '#F4F7FC' }}>
 
         {/* ── DESKTOP: sidebar fijo ── */}
         {isDesktop && (
