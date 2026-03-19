@@ -276,17 +276,17 @@ export default function Layout({ pagina, setPagina, children }) {
         {menu.map(item => {
           const activo = pagina === item.id
           return (
-            <button key={item.id} onClick={() => navegar(item.id)}
+            <button key={item.id} onClick={() => navegar(item.id)} className="nav-btn"
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                padding: '9px 12px', borderRadius: 10, border: 'none',
-                background: activo ? 'rgba(255,255,255,0.13)' : 'transparent',
-                color: activo ? '#fff' : 'rgba(255,255,255,0.55)',
+                padding: '10px 12px', borderRadius: 10, border: 'none',
+                background: activo ? 'rgba(255,255,255,0.12)' : 'transparent',
+                color: activo ? '#fff' : 'rgba(255,255,255,0.52)',
+                fontSize: 13, fontWeight: activo ? 700 : 500,
+                cursor: 'pointer', textAlign: 'left',
                 fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif',
-                fontWeight: activo ? 700 : 500, fontSize: 13,
-                cursor: 'pointer', marginBottom: 2,
-                borderLeft: activo ? `3px solid ${CBIS_COLORS.gold}` : '3px solid transparent',
-                textAlign: 'left',
+                transition: 'all 0.15s', marginBottom: 2,
+                borderLeft: activo ? '2px solid rgba(212,160,23,0.8)' : '2px solid transparent',
               }}>
               <span style={{ opacity: activo ? 1 : 0.7, flexShrink: 0 }}>{item.icon}</span>
               {item.label}

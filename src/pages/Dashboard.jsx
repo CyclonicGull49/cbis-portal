@@ -207,17 +207,15 @@ function DashboardHome() {
 
       {/* ── Header ──────────────────────────────────────── */}
       <div style={{
-        background: 'linear-gradient(135deg, #1a0d30 0%, #3d1f61 60%, #5B2D8E 100%)',
+        background: 'linear-gradient(135deg, #0d0818 0%, #2d1554 50%, #5B2D8E 100%)',
         borderRadius: 20, padding: '28px 32px', marginBottom: 24,
         position: 'relative', overflow: 'hidden',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
       }}>
-        {/* Patrón geométrico decorativo */}
-        <svg style={{ position: 'absolute', right: 0, top: 0, opacity: 0.06 }} width="320" height="160" viewBox="0 0 320 160">
-          <polygon points="160,0 320,0 320,160" fill="white"/>
-          <polygon points="80,0 240,0 160,160" fill="none" stroke="white" strokeWidth="1"/>
-          <circle cx="260" cy="40" r="60" fill="none" stroke="white" strokeWidth="1"/>
-          <circle cx="260" cy="40" r="30" fill="none" stroke="white" strokeWidth="1"/>
-        </svg>
+        {/* Blobs de color CBIS */}
+        <div style={{ position: 'absolute', width: 320, height: 320, borderRadius: '50%', background: 'radial-gradient(circle, rgba(112,60,220,0.45) 0%, transparent 70%)', filter: 'blur(55px)', top: -100, right: 180, pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(234,88,12,0.3) 0%, transparent 70%)', filter: 'blur(40px)', top: -30, right: 30, pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', width: 180, height: 180, borderRadius: '50%', background: 'radial-gradient(circle, rgba(212,160,23,0.22) 0%, transparent 70%)', filter: 'blur(40px)', bottom: -50, right: 350, pointerEvents: 'none' }} />
         <div style={{ position: 'relative' }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginBottom: 6, letterSpacing: '0.5px' }}>
             {new Date().toLocaleDateString('es-SV', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}

@@ -203,7 +203,7 @@ export default function Login() {
         }
 
         /* Form header */
-        .fh { margin-bottom: 36px; }
+        .fh { margin-bottom: 32px; }
         .fh-tag {
           display: inline-flex; align-items: center; gap: 6px;
           background: rgba(212,160,23,0.12); color: #D4A017;
@@ -409,10 +409,7 @@ export default function Login() {
 
           <div className="rr-card">
             <div className="fh">
-              <div className="fh-tag">
-
-              </div>
-              <h2>Bienvenido</h2>
+<h2>Bienvenido</h2>
               <p>Ingresa tus credenciales para continuar</p>
             </div>
 
