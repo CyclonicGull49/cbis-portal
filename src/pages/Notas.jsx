@@ -111,77 +111,80 @@ export default function Notas({ onVerEstudiante }) {
   const puedeEditar = ['admin', 'registro_academico', 'docente'].includes(perfil?.rol)
 
   // ── Estado principal ──────────────────────────────────────
-  const [modo, setModo]               = useState('grados') // 'grados' | 'ingles'
+  const [modo, setModo]               = useState('grados')
   const [grados, setGrados]           = useState([])
   const [gradoId, setGradoId]         = useState(null)
   const [gradoInfo, setGradoInfo]     = useState(null)
   const [materias, setMaterias]       = useState([])
-  const [misMateriasIds, setMisMateriasIds] = useState(new Set()) // materias que puede editar el docente
+  const [misMateriasIds, setMisMateriasIds] = useState(new Set())
   const [esEncargado, setEsEncargado] = useState(false)
   const [materiaId, setMateriaId]     = useState('todas')
   const [estudiantes, setEstudiantes] = useState([])
   const [notas, setNotas]             = useState({})
-  const [preview, setPreview]         = useState({})
   const [loading, setLoading]         = useState(false)
+  const [guardando, setGuardando]     = useState(false)
   const [busqueda, setBusqueda]       = useState('')
   const [periodoMovil, setPeriodoMovil] = useState(1)
 
+  // ── Cambios pendientes (reemplaza preview/debounce) ───────
+  const [pendingNotas, setPendingNotas]   = useState({}) // key: estId-matId-periodo-tipo → valor
+  const [pendingActs, setPendingActs]     = useState({}) // key: estId-matId-periodo-num → valor
+  const hayPendientes = Object.keys(pendingNotas).length > 0 || Object.keys(pendingActs).length > 0
+
   // ── Estado grupos inglés ──────────────────────────────────
-  const [grupos, setGrupos]           = useState([]) // grupos_especiales del docente
-  const [grupoId, setGrupoId]         = useState(null)
-  const [grupoInfo, setGrupoInfo]     = useState(null)
+  const [grupos, setGrupos]               = useState([])
+  const [grupoId, setGrupoId]             = useState(null)
+  const [grupoInfo, setGrupoInfo]         = useState(null)
   const [materiaInglesId, setMateriaInglesId] = useState(null)
-  const [estGrupo, setEstGrupo]       = useState([])
-  const [notasIngles, setNotasIngles] = useState({})
-  const [previewIngles, setPreviewIngles] = useState({})
+  const [estGrupo, setEstGrupo]           = useState([])
+  const [notasIngles, setNotasIngles]     = useState({})
+  const [pendingIngles, setPendingIngles] = useState({})
   const [loadingIngles, setLoadingIngles] = useState(false)
 
   // ── Estado actividades cotidianas ─────────────────────────
-  const [actividades, setActividades]   = useState({})
-  const [expandAC, setExpandAC]         = useState({})
+  const [actividades, setActividades] = useState({})
+  const [expandAC, setExpandAC]       = useState({})
 
   const year = yearEscolar || new Date().getFullYear()
-  const { isPeriodoAbierto, getFechaLimite } = usePeriodosNotas(year)
+  const { isPeriodoAbierto } = usePeriodosNotas(year)
 
-  // ── Solicitudes de desbloqueo ─────────────────────────────
-  const [solicitudes, setSolicitudes]     = useState([]) // solicitudes del docente
-  const [modalSolicitud, setModalSolicitud] = useState(null) // { matId, periodo }
+  // ── Solicitudes por estudiante ────────────────────────────
+  const [solicitudes, setSolicitudes]       = useState([])
+  const [modalSolicitud, setModalSolicitud] = useState(null) // { matId, periodo, estId, estNombre }
   const [motivoSolicitud, setMotivoSolicitud] = useState('')
   const [enviandoSolicitud, setEnviandoSolicitud] = useState(false)
 
   async function recargarSolicitudes() {
     if (!esDocente || !perfil) return
     const { data } = await supabase.from('solicitudes_desbloqueo')
-      .select('materia_id, grado_id, periodo, estado, abierto_en, cierre_en')
+      .select('materia_id, grado_id, estudiante_id, periodo, estado, abierto_en, cierre_en')
       .eq('docente_id', perfil.id).eq('año_escolar', year)
     setSolicitudes(data || [])
   }
 
-  useEffect(() => {
-    if (esDocente && perfil) recargarSolicitudes()
-  }, [perfil, year])
+  useEffect(() => { if (esDocente && perfil) recargarSolicitudes() }, [perfil, year])
+  useEffect(() => { if (esDocente && gradoId) recargarSolicitudes() }, [gradoId, materiaId])
 
-  // Recargar también al cambiar grado o materia
-  useEffect(() => {
-    if (esDocente && gradoId) recargarSolicitudes()
-  }, [gradoId, materiaId])
-
-  function isMateriaDesbloqueada(matId, gradoId, periodo) {
-    const s = solicitudes.find(s =>
-      s.materia_id === matId && s.grado_id === gradoId &&
-      s.periodo === periodo && s.estado === 'aprobado' &&
+  function isMateriaDesbloqueada(matId, gId, periodo, estId) {
+    return solicitudes.some(s =>
+      s.materia_id === matId && s.grado_id === gId &&
+      s.periodo === periodo && s.estudiante_id === estId &&
+      s.estado === 'aprobado' &&
       s.abierto_en && s.cierre_en && new Date() < new Date(s.cierre_en)
     )
-    return !!s
   }
 
-  function puedeEditarPeriodo(matId, periodo) {
+  function getSolicitudEstudiante(matId, periodo, estId) {
+    return solicitudes.find(s =>
+      s.materia_id === matId && s.periodo === periodo && s.estudiante_id === estId
+    ) || null
+  }
+
+  function puedeEditarPeriodo(matId, periodo, estId = null) {
     const nivelGrado = gradoInfo?.nivel
     const abierto = isPeriodoAbierto(nivelGrado, periodo)
     if (abierto) return puedeEditarMateria(matId)
-    // Período cerrado — verificar si tiene desbloqueo activo
-    if (isMateriaDesbloqueada(matId, gradoId, periodo)) return true
-    // Solo registro_academico puede editar períodos cerrados sin solicitud
+    if (estId && isMateriaDesbloqueada(matId, gradoId, periodo, estId)) return true
     if (perfil?.rol === 'registro_academico') return true
     return false
   }
@@ -190,20 +193,16 @@ export default function Notas({ onVerEstudiante }) {
     if (!motivoSolicitud.trim()) { toast.error('Escribe el motivo'); return }
     setEnviandoSolicitud(true)
     const { error } = await supabase.from('solicitudes_desbloqueo').insert({
-      docente_id: perfil.id,
-      materia_id: modalSolicitud.matId,
-      grado_id:   gradoId,
-      periodo:    modalSolicitud.periodo,
-      año_escolar: year,
-      motivo:     motivoSolicitud,
+      docente_id: perfil.id, materia_id: modalSolicitud.matId,
+      grado_id: gradoId, estudiante_id: modalSolicitud.estId,
+      periodo: modalSolicitud.periodo, año_escolar: year, motivo: motivoSolicitud,
     })
     if (error) {
-      if (error.code === '23505') toast.error('Ya tienes una solicitud pendiente para esta materia')
+      if (error.code === '23505') toast.error('Ya tienes una solicitud pendiente para este estudiante')
       else toast.error('Error al enviar')
     } else {
       toast.success('Solicitud enviada a Dirección Académica')
-      setModalSolicitud(null)
-      setMotivoSolicitud('')
+      setModalSolicitud(null); setMotivoSolicitud('')
       await recargarSolicitudes()
     }
     setEnviandoSolicitud(false)
@@ -232,7 +231,7 @@ export default function Notas({ onVerEstudiante }) {
 
   function getVal(estId, matId, periodo, tipo) {
     const key = `${estId}-${matId}-${periodo}-${tipo}`
-    return preview[key] !== undefined ? preview[key] : (notas[key]?.nota ?? null)
+    return pendingNotas[key] !== undefined ? pendingNotas[key] : (notas[key]?.nota ?? null)
   }
   function getNotasMap(estId, matId, periodo) {
     const map = {}
@@ -241,7 +240,18 @@ export default function Notas({ onVerEstudiante }) {
   }
   function getValIngles(estId, gradoEstId, periodo, tipo) {
     const key = `${estId}-${materiaInglesId}-${gradoEstId}-${periodo}-${tipo}`
-    return previewIngles[key] !== undefined ? previewIngles[key] : (notasIngles[key]?.nota ?? null)
+    return pendingIngles[key] !== undefined ? pendingIngles[key] : (notasIngles[key]?.nota ?? null)
+  }
+  function getAC(estId, matId, periodo) {
+    const acts = Array.from({ length: numActividades }, (_, i) => {
+      const key = `${estId}-${matId}-${periodo}-${i + 1}`
+      return pendingActs[key] !== undefined ? pendingActs[key] : actividades[key]
+    }).filter(v => v !== null && v !== undefined)
+    if (acts.length === 0) return null
+    return acts.reduce((a, b) => a + b, 0) / acts.length
+  }
+  function toggleExpandAC(estId, periodo) {
+    setExpandAC(prev => ({ ...prev, [`${estId}-${periodo}`]: !prev[`${estId}-${periodo}`] }))
   }
 
   // ── Cargar grados + grupos al iniciar ─────────────────────
@@ -328,7 +338,7 @@ export default function Notas({ onVerEstudiante }) {
   useEffect(() => { if (gradoId) cargarDatos() }, [gradoId, year])
 
   async function cargarDatos() {
-    setLoading(true); setPreview({})
+    setLoading(true); setPendingNotas({}); setPendingActs({})
     const [{ data: ests }, { data: ns }, { data: acs }] = await Promise.all([
       supabase.from('estudiantes').select('id, nombre, apellido').eq('grado_id', gradoId).eq('estado', 'activo').order('apellido'),
       supabase.from('notas').select('*').eq('grado_id', gradoId).eq('año_escolar', year),
@@ -342,6 +352,90 @@ export default function Notas({ onVerEstudiante }) {
     for (const a of (acs || [])) acMapa[`${a.estudiante_id}-${a.materia_id}-${a.periodo}-${a.numero}`] = a.nota
     setActividades(acMapa)
     setLoading(false)
+  }
+
+  async function guardarTodo() {
+    if (!hayPendientes) return
+    setGuardando(true)
+    const ops = []
+    const keysNotas = Object.keys(pendingNotas)
+    const keysActs  = Object.keys(pendingActs)
+
+    for (const key of keysNotas) {
+      const [estId, matId, periodo, tipo] = key.split('-')
+      const valor = pendingNotas[key]
+      const existe = notas[key]
+      const payload = { estudiante_id: parseInt(estId), materia_id: matId, grado_id: gradoId, año_escolar: year, periodo: parseInt(periodo), tipo, nota: valor, docente_id: perfil.id }
+      ops.push(existe
+        ? supabase.from('notas').update({ nota: valor, docente_id: perfil.id }).eq('id', existe.id).select().single()
+        : supabase.from('notas').insert(payload).select().single()
+      )
+    }
+    for (const key of keysActs) {
+      const [estId, matId, periodo, num] = key.split('-')
+      ops.push(supabase.from('actividades_cotidianas').upsert({
+        estudiante_id: parseInt(estId), materia_id: matId, grado_id: gradoId,
+        año_escolar: year, periodo: parseInt(periodo), numero: parseInt(num),
+        nota: pendingActs[key], docente_id: perfil.id
+      }, { onConflict: 'estudiante_id,materia_id,grado_id,año_escolar,periodo,numero' }))
+    }
+
+    const results = await Promise.all(ops)
+    const errores = results.filter(r => r.error)
+    if (errores.length > 0) {
+      toast.error('Hubo errores al guardar algunas notas')
+    } else {
+      const nuevasNotas = { ...notas }
+      keysNotas.forEach((key, i) => { if (results[i]?.data) nuevasNotas[key] = results[i].data })
+      const nuevasActs = { ...actividades }
+      keysActs.forEach((key, i) => { nuevasActs[key] = pendingActs[key] })
+      setActividades(nuevasActs)
+
+      // Recalcular promedios AC
+      const combos = new Set(keysActs.map(k => k.split('-').slice(0, 3).join('-')))
+      for (const combo of combos) {
+        const [estId, matId, periodo] = combo.split('-')
+        const acts = Array.from({ length: numActividades }, (_, j) =>
+          nuevasActs[`${estId}-${matId}-${periodo}-${j + 1}`]
+        ).filter(v => v !== null && v !== undefined)
+        const acPromedio = acts.length > 0 ? Math.round((acts.reduce((a, b) => a + b, 0) / acts.length) * 10) / 10 : null
+        const acKey = `${estId}-${matId}-${periodo}-ac`
+        const existeAC = nuevasNotas[acKey]
+        const payloadAC = { estudiante_id: parseInt(estId), materia_id: matId, grado_id: gradoId, año_escolar: year, periodo: parseInt(periodo), tipo: 'ac', nota: acPromedio, docente_id: perfil.id }
+        const { data: acData } = existeAC
+          ? await supabase.from('notas').update({ nota: acPromedio, docente_id: perfil.id }).eq('id', existeAC.id).select().single()
+          : await supabase.from('notas').insert(payloadAC).select().single()
+        if (acData) nuevasNotas[acKey] = acData
+      }
+      setNotas(nuevasNotas)
+      setPendingNotas({}); setPendingActs({})
+      toast.success(`Cambios guardados correctamente`, { duration: 2500, style: { fontSize: 13, fontWeight: 600, color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0' } })
+    }
+    setGuardando(false)
+  }
+
+  async function guardarTodoIngles() {
+    if (Object.keys(pendingIngles).length === 0) return
+    setGuardando(true)
+    const keys = Object.keys(pendingIngles)
+    const ops = keys.map(key => {
+      const [estId, matId, gradoEstId, periodo, tipo] = key.split('-')
+      const existe = notasIngles[key]
+      const payload = { estudiante_id: parseInt(estId), materia_id: matId, grado_id: parseInt(gradoEstId), año_escolar: year, periodo: parseInt(periodo), tipo, nota: pendingIngles[key], docente_id: perfil.id }
+      return existe
+        ? supabase.from('notas').update({ nota: pendingIngles[key], docente_id: perfil.id }).eq('id', existe.id).select().single()
+        : supabase.from('notas').insert(payload).select().single()
+    })
+    const results = await Promise.all(ops)
+    if (results.some(r => r.error)) {
+      toast.error('Hubo errores al guardar')
+    } else {
+      const nuevas = { ...notasIngles }
+      keys.forEach((key, i) => { if (results[i].data) nuevas[key] = results[i].data })
+      setNotasIngles(nuevas); setPendingIngles({})
+      toast.success('Cambios guardados', { duration: 2500, style: { fontSize: 13, fontWeight: 600, color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0' } })
+    }
+    setGuardando(false)
   }
 
   // ── Cargar estudiantes del grupo inglés ───────────────────
@@ -581,12 +675,22 @@ export default function Notas({ onVerEstudiante }) {
         <div style={{ padding: '14px 20px', borderBottom: '1px solid #f3eeff', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <span style={{ ...nivel, padding: '3px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>{gradoInfo?.nombre}</span>
           <span style={{ fontSize: 14, fontWeight: 700, color: '#3d1f61' }}>{materia?.nombre}</span>
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
             {componentes.map(c => (
               <span key={c} style={{ fontSize: 10, fontWeight: 700, color: '#b0a8c0', background: '#f3eeff', padding: '2px 8px', borderRadius: 10 }}>
-                {LABELS[c]} {PESOS[c] * 100}%
+                {c === 'ac' ? `AC (${numActividades})` : LABELS[c]} {PESOS[c] * 100}%
               </span>
             ))}
+            {hayPendientes && (
+              <button onClick={guardarTodo} disabled={guardando}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', borderRadius: 10, border: 'none', background: guardando ? '#c4bad4' : 'linear-gradient(135deg, #3d1f61, #5B2D8E)', color: '#fff', fontWeight: 700, fontSize: 12, cursor: guardando ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                  <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+                </svg>
+                {guardando ? 'Guardando...' : 'Guardar todo'}
+              </button>
+            )}
           </div>
         </div>
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
@@ -639,9 +743,116 @@ export default function Notas({ onVerEstudiante }) {
               const nfts = Array.from({ length: numPeriodos }, (_, i) => calcNFT(componentes, getNotasMap(est.id, materiaId, i + 1)))
               const validos = nfts.filter(v => v !== null)
               const notaFinal = validos.length ? validos.reduce((a, b) => a + b, 0) / validos.length : null
+              const tienePendientes = Object.keys(pendingNotas).some(k => k.startsWith(`${est.id}-`)) ||
+                                     Object.keys(pendingActs).some(k => k.startsWith(`${est.id}-`))
               return (
-                <tr key={est.id} style={{ borderTop: '1px solid #f3eeff', background: idx % 2 === 0 ? '#fff' : '#fdfcff' }}>
-                  <NombreEstudiante est={est} />
+                <tr key={est.id} style={{ borderTop: '1px solid #f3eeff', background: tienePendientes ? '#fffbeb' : idx % 2 === 0 ? '#fff' : '#fdfcff' }}>
+                  <td style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, color: '#3d1f61', whiteSpace: 'nowrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {tienePendientes && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b', flexShrink: 0 }} title="Cambios sin guardar" />}
+                      <span onClick={() => onVerEstudiante && onVerEstudiante(est.id)} style={{ cursor: onVerEstudiante ? 'pointer' : 'default', borderBottom: onVerEstudiante ? '1px dashed #c9b8e8' : 'none' }}>
+                        {est.apellido}, {est.nombre}
+                      </span>
+                    </div>
+                  </td>
+                  {Array.from({ length: numPeriodos }, (_, i) => {
+                    const periodo = i + 1
+                    const map = getNotasMap(est.id, materiaId, periodo)
+                    const nft = calcNFT(componentes, map)
+                    const puedeEdit = puedeEditarPeriodo(materiaId, periodo, est.id)
+                    const periodoCerrado = esDocente && !isPeriodoAbierto(gradoInfo?.nivel, periodo)
+                    const solicitudEst = esDocente ? getSolicitudEstudiante(materiaId, periodo, est.id) : null
+                    const desbloqueado = isMateriaDesbloqueada(materiaId, gradoId, periodo, est.id)
+                    const enRevision = solicitudEst && !desbloqueado && !['rechazado','cerrado'].includes(solicitudEst.estado)
+                    const sinSolicitud = !solicitudEst || ['rechazado','cerrado'].includes(solicitudEst.estado)
+                    return (
+                      <React.Fragment key={periodo}>
+                        {componentes.map(c => {
+                          if (c === 'ac') {
+                            const acVal = getAC(est.id, materiaId, periodo)
+                            const expanded = expandAC[`${est.id}-${periodo}`]
+                            return (
+                              <td key={`${est.id}-${periodo}-ac`} style={{ padding: '4px', borderLeft: '2px solid #e9e3f5', textAlign: 'center', background: expanded ? '#faf8ff' : 'transparent' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                                  <span style={{ fontSize: 13, fontWeight: 700, color: colorNota(acVal), minWidth: 36 }}>
+                                    {acVal !== null ? acVal.toFixed(1) : '—'}
+                                  </span>
+                                  {puedeEdit && (
+                                    <button onClick={() => toggleExpandAC(est.id, periodo)}
+                                      style={{ width: 20, height: 20, borderRadius: 4, border: '1px solid #d8c8f0', background: expanded ? '#5B2D8E' : '#f3eeff', color: expanded ? '#fff' : '#5B2D8E', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                        {expanded ? <polyline points="18 15 12 9 6 15"/> : <polyline points="6 9 12 15 18 9"/>}
+                                      </svg>
+                                    </button>
+                                  )}
+                                </div>
+                                {expanded && puedeEdit && (
+                                  <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                                    {Array.from({ length: numActividades }, (_, j) => {
+                                      const num = j + 1
+                                      const actKey = `${est.id}-${materiaId}-${periodo}-${num}`
+                                      const actVal = pendingActs[actKey] !== undefined ? pendingActs[actKey] : (actividades[actKey] ?? null)
+                                      return (
+                                        <div key={num} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                          <span style={{ fontSize: 9, color: '#b0a8c0', fontWeight: 700, minWidth: 14 }}>A{num}</span>
+                                          <NotaInput value={actVal} disabled={false} onPreview={() => {}}
+                                            onChange={v => setPendingActs(p => ({ ...p, [actKey]: v }))} />
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                )}
+                              </td>
+                            )
+                          }
+                          return (
+                            <td key={`${est.id}-${periodo}-${c}`} style={{ padding: '6px 4px', borderLeft: c === componentes[0] ? '2px solid #e9e3f5' : undefined, textAlign: 'center' }}>
+                              <NotaInput
+                                value={getVal(est.id, materiaId, periodo, c)}
+                                disabled={!puedeEdit}
+                                onPreview={() => {}}
+                                onChange={v => setPreviewVal(est.id, materiaId, periodo, c, v)}
+                              />
+                            </td>
+                          )
+                        })}
+                        <td style={{ padding: '6px 10px', textAlign: 'center', minWidth: 52, background: nft !== null ? 'rgba(91,45,142,0.04)' : 'transparent' }}>
+                          <span style={{ fontSize: 13, fontWeight: 800, color: colorNota(nft) }}>{nft !== null ? nft.toFixed(2) : '—'}</span>
+                        </td>
+                        {/* Solicitud por estudiante */}
+                        {periodoCerrado && sinSolicitud && !desbloqueado && puedeEditarMateria(materiaId) && (
+                          <td style={{ padding: '4px 6px', textAlign: 'center', borderLeft: '1px solid #f3eeff' }}>
+                            <button onClick={() => { setModalSolicitud({ matId: materiaId, periodo, estId: est.id, estNombre: `${est.apellido}, ${est.nombre}` }); setMotivoSolicitud('') }}
+                              style={{ padding: '3px 8px', borderRadius: 6, border: '1px solid #c9b8e8', background: '#f3eeff', color: '#5B2D8E', fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 3 }}>
+                              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+                              </svg>
+                              Solicitar
+                            </button>
+                          </td>
+                        )}
+                        {periodoCerrado && enRevision && (
+                          <td style={{ padding: '4px 6px', textAlign: 'center', borderLeft: '1px solid #f3eeff' }}>
+                            <span style={{ fontSize: 10, fontWeight: 700, color: solicitudEst?.estado === 'aprobado' ? '#16a34a' : '#92400e', background: solicitudEst?.estado === 'aprobado' ? '#dcfce7' : '#fef9c3', padding: '3px 8px', borderRadius: 6, whiteSpace: 'nowrap' }}>
+                              {solicitudEst?.estado === 'aprobado' ? 'Aprobada' : 'En revisión'}
+                            </span>
+                          </td>
+                        )}
+                        {periodoCerrado && desbloqueado && (
+                          <td style={{ padding: '4px 6px', textAlign: 'center', borderLeft: '1px solid #f3eeff' }}>
+                            <span style={{ fontSize: 10, fontWeight: 700, color: '#16a34a', background: '#dcfce7', padding: '3px 8px', borderRadius: 6, whiteSpace: 'nowrap' }}>Abierto</span>
+                          </td>
+                        )}
+                        {!periodoCerrado && <td style={{ borderLeft: '1px solid #f3eeff' }} />}
+                      </React.Fragment>
+                    )
+                  })}
+                  <td style={{ padding: '6px 12px', borderLeft: '2px solid #c9b8e8', textAlign: 'center', background: notaFinal !== null ? 'rgba(91,45,142,0.06)' : 'transparent' }}>
+                    <span style={{ fontSize: 14, fontWeight: 900, color: colorNota(notaFinal) }}>{notaFinal !== null ? notaFinal.toFixed(2) : '—'}</span>
+                  </td>
+                </tr>
+              )
+            })}
                   {Array.from({ length: numPeriodos }, (_, i) => {
                     const periodo = i + 1
                     const map = getNotasMap(est.id, materiaId, periodo)
@@ -824,7 +1035,16 @@ export default function Notas({ onVerEstudiante }) {
           <span style={{ background: '#f3eeff', color: '#5B2D8E', padding: '3px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>
             Inglés — {grupoInfo?.nombre}
           </span>
-          <span style={{ fontSize: 12, color: '#b0a8c0', marginLeft: 'auto' }}>{estGrupo.length} estudiante{estGrupo.length !== 1 ? 's' : ''}</span>
+          <span style={{ fontSize: 12, color: '#b0a8c0' }}>{estGrupo.length} estudiante{estGrupo.length !== 1 ? 's' : ''}</span>
+          {Object.keys(pendingIngles).length > 0 && (
+            <button onClick={guardarTodoIngles} disabled={guardando} style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', borderRadius: 10, border: 'none', background: guardando ? '#c4bad4' : 'linear-gradient(135deg, #3d1f61, #5B2D8E)', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+              </svg>
+              {guardando ? 'Guardando...' : 'Guardar todo'}
+            </button>
+          )}
         </div>
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
           <thead>
@@ -883,10 +1103,16 @@ export default function Notas({ onVerEstudiante }) {
                           return (
                             <td key={c} style={{ padding: '6px 4px', borderLeft: c === compIngles[0] ? '2px solid #e9e3f5' : undefined, textAlign: 'center' }}>
                               <NotaInput
-                                value={val}
-                                disabled={!isPeriodoAbierto('bachillerato', p) && !esDocente}
-                                onPreview={v => setPreviewIngles(prev => ({ ...prev, [k]: v }))}
-                                onChange={v => guardarNotaIngles(est.id, est.grado_id, p, c, v)}
+                                value={getValIngles(est.id, est.grado_id, p, c)}
+                                disabled={!isPeriodoAbierto('bachillerato', p) && perfil?.rol !== 'registro_academico'}
+                                onPreview={() => {}}
+                                onChange={v => {
+                                  const k = `${est.id}-${materiaInglesId}-${est.grado_id}-${p}-${c}`
+                                  setPendingIngles(prev => v === null
+                                    ? Object.fromEntries(Object.entries(prev).filter(([key]) => key !== k))
+                                    : { ...prev, [k]: v }
+                                  )
+                                }}
                               />
                             </td>
                           )
@@ -1029,9 +1255,14 @@ export default function Notas({ onVerEstudiante }) {
           <div style={{ background: '#fff', borderRadius: 16, padding: '28px 24px', width: '100%', maxWidth: 440, fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}
             onClick={e => e.stopPropagation()}>
             <h2 style={{ color: '#3d1f61', fontSize: 17, fontWeight: 800, marginBottom: 6 }}>Solicitar desbloqueo</h2>
-            <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 16 }}>
+            <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 4 }}>
               {materias.find(m => m.id === modalSolicitud.matId)?.nombre} · {gradoInfo?.nombre} · {periodoLabel} {modalSolicitud.periodo}
             </p>
+            {modalSolicitud.estNombre && (
+              <p style={{ color: '#5B2D8E', fontSize: 12, fontWeight: 700, marginBottom: 16, background: '#f3eeff', padding: '4px 10px', borderRadius: 8, display: 'inline-block' }}>
+                {modalSolicitud.estNombre}
+              </p>
+            )}
             <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#5B2D8E', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               Motivo *
             </label>
