@@ -144,8 +144,8 @@ export default function Login() {
         }
 
         .ll-brand { display: flex; align-items: center; gap: 14px; }
-        .ll-logo { width: 48px; height: 48px; border-radius: 12px; object-fit: cover; box-shadow: 0 6px 20px rgba(0,0,0,0.5); }
-        .ll-brand-name { font-size: 20px; font-weight: 800; color: #fff; letter-spacing: -0.5px; display: flex; align-items: center; gap: 6px; }
+        .ll-logo { width: 64px; height: 64px; border-radius: 16px; object-fit: cover; box-shadow: 0 6px 20px rgba(0,0,0,0.5); }
+        .ll-brand-name { font-size: 28px; font-weight: 800; color: #fff; letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px; }
 
         .ll-center { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 48px 0 32px; }
 
@@ -229,7 +229,7 @@ export default function Login() {
           border-bottom: 1px solid rgba(255,255,255,0.12);
           padding-bottom: 10px; transition: border-color 0.2s;
         }
-        .fg:focus-within .fg-row { border-color: rgba(212,160,23,0.7); }
+        .fg:focus-within .fg-row { border-color: rgba(212,160,23,0.5); }
 
         .fg-icon { color: rgba(255,255,255,0.22); flex-shrink: 0; display: flex; transition: color 0.2s; }
         .fg:focus-within .fg-icon { color: #D4A017; }
@@ -245,10 +245,13 @@ export default function Login() {
         .fg-input:-webkit-autofill,
         .fg-input:-webkit-autofill:hover,
         .fg-input:-webkit-autofill:focus {
-          -webkit-box-shadow: 0 0 0 1000px rgba(14,6,28,0.98) inset !important;
+          -webkit-box-shadow: 0 0 0 1000px rgba(14,6,28,0.0) inset !important;
           -webkit-text-fill-color: #fff !important;
           transition: background-color 5000s ease-in-out 0s;
         }
+        .fg-input::selection { background: rgba(112,60,220,0.35); color: #fff; }
+        .fg-input::-moz-selection { background: rgba(112,60,220,0.35); color: #fff; }
+        .fg-row input:focus { caret-color: #D4A017; }
 
         .fg-btn {
           background: none; border: none; cursor: pointer;
@@ -372,7 +375,7 @@ export default function Login() {
             <img src="/logo.png" alt="CBIS" className="ll-logo" />
             <div className="ll-brand-name">
               CBIS
-              <svg width="20" height="20" viewBox="0 0 28 28" fill="none">
+              <svg width="26" height="26" viewBox="0 0 28 28" fill="none">
                 <rect x="11" y="2" width="6" height="24" rx="3" fill="#D4A017"/>
                 <rect x="2" y="11" width="24" height="6" rx="3" fill="#D4A017"/>
               </svg>
@@ -392,7 +395,7 @@ export default function Login() {
               <div className="ll-pill"><strong>+</strong> más</div>
             </div>
           </div>
-          <div className="ll-footer">© 2026 CBIS</div>
+          <div className="ll-footer">© 2026 CBIS · Sonsonate, El Salvador</div>
         </div>
 
         {/* Panel derecho — frosted glass */}
@@ -471,7 +474,7 @@ export default function Login() {
               )}
             </form>
 
-            <div className="ff">CBIS · Sonsonate, El Salvador</div>
+            <div className="ff">CBIS · Colegio Bautista Internacional de Sonsonate</div>
           </div>
         </div>
       </div>
