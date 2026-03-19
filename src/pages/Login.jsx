@@ -8,16 +8,14 @@ export default function Login() {
   const [password, setPassword]         = useState('')
   const [loading, setLoading]           = useState(false)
   const [error, setError]               = useState('')
-  const [focusedField, setFocusedField] = useState(null)
+  const [showPass, setShowPass]         = useState(false)
   const [resetSent, setResetSent]       = useState(false)
   const [resetLoading, setResetLoading] = useState(false)
   const { login } = useAuth()
-  const navigate = useNavigate()
 
   async function handleLogin(e) {
     e.preventDefault()
-    setLoading(true)
-    setError('')
+    setLoading(true); setError('')
     const { error } = await login(email, password)
     if (error) setError('Correo o contraseña incorrectos')
     setLoading(false)
@@ -30,687 +28,204 @@ export default function Login() {
       redirectTo: `${window.location.origin}/dashboard`,
     })
     setResetLoading(false)
-    if (error) { setError('Error al enviar el correo. Verifica tu dirección.') }
-    else { setResetSent(true) }
+    if (error) setError('Error al enviar el correo. Verifica tu dirección.')
+    else setResetSent(true)
   }
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        .lr { min-height: 100vh; width: 100vw; display: flex; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background: #0d0818; overflow: hidden; }
 
-        .login-root {
-          min-height: 100vh;
-          width: 100vw;
-          display: flex;
-          font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-          background: #0f0a1a;
-        }
+        .ll { flex: 1; position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: 52px 60px 48px; overflow: hidden; background: #0d0818; }
+        .ll::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 80% 60% at 10% 90%, rgba(212,160,23,0.10) 0%, transparent 55%), radial-gradient(ellipse 60% 70% at 90% 10%, rgba(91,45,142,0.25) 0%, transparent 55%); }
 
-        /* Panel izquierdo — branding */
-        .login-left {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          padding: 48px 56px;
-          position: relative;
-          overflow: hidden;
-          background: linear-gradient(160deg, #1a0d30 0%, #2d1554 50%, #3d1f61 100%);
-        }
+        .ll-inner { position: relative; z-index: 1; display: flex; flex-direction: column; height: 100%; }
+        .ll-brand { display: flex; align-items: center; gap: 14px; }
+        .ll-logo { width: 52px; height: 52px; border-radius: 14px; object-fit: cover; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+        .ll-brand-name { font-size: 22px; font-weight: 800; color: #fff; letter-spacing: -0.5px; display: flex; align-items: center; gap: 6px; }
 
-        .login-left::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background:
-            radial-gradient(ellipse 60% 50% at 20% 80%, rgba(212,160,23,0.12) 0%, transparent 60%),
-            radial-gradient(ellipse 40% 40% at 80% 20%, rgba(91,45,142,0.3) 0%, transparent 50%);
-        }
+        .ll-headline { margin-top: auto; padding-bottom: 24px; }
+        .ll-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: #D4A017; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        .ll-eyebrow::before { content: ''; display: block; width: 28px; height: 1.5px; background: #D4A017; }
+        .ll-title { font-size: clamp(42px, 4vw, 62px); font-weight: 800; color: #fff; line-height: 1.08; letter-spacing: -2.5px; margin-bottom: 28px; }
+        .ll-title em { font-style: italic; font-weight: 400; color: rgba(255,255,255,0.4); }
+        .ll-title span { color: #D4A017; }
 
-        .grid-overlay {
-          position: absolute;
-          inset: 0;
-          background-image:
-            linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-          background-size: 40px 40px;
-        }
+        .ll-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+        .ll-pill { padding: 6px 14px; border-radius: 100px; font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); }
+        .ll-pill strong { color: rgba(255,255,255,0.8); font-weight: 700; }
+        .ll-footer { font-size: 11px; color: rgba(255,255,255,0.2); font-weight: 500; margin-top: 40px; }
+        .ll-wave { position: absolute; right: -2px; bottom: 0; z-index: 0; pointer-events: none; }
 
-        .login-left-content {
-          position: relative;
-          z-index: 1;
-        }
+        .rr { width: 500px; min-width: 400px; background: #fff; display: flex; align-items: center; justify-content: center; padding: 64px 60px; position: relative; }
+        .rr-wave { position: absolute; left: -1px; top: 0; height: 100%; pointer-events: none; }
+        .rr-inner { width: 100%; max-width: 340px; animation: fadeUp 0.5s ease both; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-        .brand-mark {
-          display: flex;
-          align-items: center;
-          gap: 18px;
-          margin-bottom: auto;
-        }
+        .fh { margin-bottom: 44px; }
+        .fh-tag { display: inline-flex; align-items: center; gap: 6px; background: #f3eeff; color: #5B2D8E; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding: 4px 10px; border-radius: 100px; margin-bottom: 16px; }
+        .fh h2 { font-size: 28px; font-weight: 800; color: #0d0818; letter-spacing: -1px; margin-bottom: 6px; }
+        .fh p { font-size: 14px; color: #9ca3af; font-weight: 400; }
 
-        .brand-logo {
-          width: 76px;
-          height: 76px;
-          border-radius: 20px;
-          object-fit: cover;
-          box-shadow: 0 10px 32px rgba(0,0,0,0.45);
-        }
+        .fg { margin-bottom: 32px; position: relative; }
+        .fg-label { display: block; font-size: 11px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; transition: color 0.2s; }
+        .fg:focus-within .fg-label { color: #5B2D8E; }
+        .fg-row { display: flex; align-items: center; gap: 12px; border-bottom: 1.5px solid #e5e7eb; padding-bottom: 10px; transition: border-color 0.2s; }
+        .fg:focus-within .fg-row { border-color: #5B2D8E; }
+        .fg-icon { color: #d1d5db; flex-shrink: 0; transition: color 0.2s; display: flex; }
+        .fg:focus-within .fg-icon { color: #5B2D8E; }
+        .fg-input { flex: 1; border: none; outline: none; font-size: 15px; font-weight: 500; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #111827; background: transparent; }
+        .fg-input::placeholder { color: #d1d5db; font-weight: 400; }
+        .fg-btn { background: none; border: none; cursor: pointer; color: #d1d5db; padding: 0; display: flex; align-items: center; transition: color 0.2s; }
+        .fg-btn:hover { color: #5B2D8E; }
 
-        .brand-name {
-          display: flex;
-          align-items: center;
-          gap: 7px;
-          font-size: 40px;
-          font-weight: 800;
-          color: #fff;
-          letter-spacing: -1.5px;
-          line-height: 1;
-        }
+        .err { display: flex; align-items: center; gap: 8px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 10px 14px; margin-bottom: 24px; font-size: 13px; color: #dc2626; font-weight: 500; }
 
-        .left-headline {
-          margin-top: 64px;
-        }
+        .sbtn { width: 100%; padding: 15px; background: linear-gradient(135deg, #1a0d30 0%, #5B2D8E 100%); color: #fff; border: none; border-radius: 14px; font-size: 15px; font-weight: 700; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; cursor: pointer; letter-spacing: -0.2px; transition: all 0.25s; position: relative; overflow: hidden; box-shadow: 0 4px 24px rgba(91,45,142,0.4); margin-bottom: 4px; }
+        .sbtn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(91,45,142,0.5); }
+        .sbtn:active:not(:disabled) { transform: translateY(0); }
+        .sbtn:disabled { opacity: 0.65; cursor: not-allowed; }
+        .sbtn-shine { position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.12) 50%, transparent 65%); transform: translateX(-100%); animation: shine 2.5s infinite; }
+        @keyframes shine { 100% { transform: translateX(200%); } }
 
-        .slogan-block {
-          margin-bottom: 32px;
-        }
+        .fbtn { width: 100%; background: none; border: none; color: #c4b5d4; font-size: 13px; font-weight: 500; cursor: pointer; padding: 10px 0; margin-top: 4px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; transition: color 0.2s; }
+        .fbtn:hover { color: #5B2D8E; }
+        .rst-ok { margin-top: 16px; padding: 12px 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; font-size: 13px; color: #16a34a; font-weight: 600; text-align: center; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .ff { margin-top: 36px; text-align: center; font-size: 11px; color: #d1d5db; font-weight: 500; }
 
-        .slogan-block p {
-          font-size: 54px;
-          font-weight: 800;
-          color: #fff;
-          line-height: 1.12;
-          letter-spacing: -2px;
-        }
-
-        .slogan-block p span {
-          color: #D4A017;
-        }
-
-        .stat-pills {
-          display: flex;
-          gap: 10px;
-          flex-wrap: wrap;
-        }
-
-        .stat-pill {
-          background: rgba(255,255,255,0.07);
-          border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 100px;
-          padding: 8px 16px;
-          font-size: 12px;
-          color: rgba(255,255,255,0.6);
-          font-weight: 500;
-          backdrop-filter: blur(8px);
-        }
-
-        .stat-pill strong {
-          color: #D4A017;
-          font-weight: 700;
-        }
-
-        /* Área inferior izquierda: ilustración + redes */
-        .left-bottom {
-          position: relative;
-          z-index: 1;
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-        }
-
-        .left-illustration {
-          opacity: 0.18;
-          pointer-events: none;
-          margin-bottom: -8px;
-        }
-
-        .social-row {
-          display: flex;
-          align-items: center;
-          gap: 14px;
-        }
-
-        .social-label {
-          font-size: 11px;
-          color: rgba(255,255,255,0.3);
-          font-weight: 500;
-          letter-spacing: 0.3px;
-          text-transform: uppercase;
-          margin-right: 4px;
-        }
-
-        .social-link {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 34px;
-          height: 34px;
-          border-radius: 50%;
-          background: rgba(255,255,255,0.07);
-          border: 1px solid rgba(255,255,255,0.12);
-          color: rgba(255,255,255,0.55);
-          text-decoration: none;
-          transition: all 0.2s;
-        }
-
-        .social-link:hover {
-          background: rgba(255,255,255,0.14);
-          color: #fff;
-          transform: translateY(-2px);
-        }
-
-        .left-footer {
-          font-size: 12px;
-          color: rgba(255,255,255,0.2);
-          font-weight: 500;
-          margin-top: 16px;
-        }
-
-        /* Panel derecho — formulario */
-        .login-right {
-          width: 480px;
-          background: #fff;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 48px 56px;
-        }
-
-        .login-form-wrap {
-          width: 100%;
-          max-width: 360px;
-        }
-
-        .form-header {
-          margin-bottom: 36px;
-        }
-
-        .form-header h2 {
-          font-size: 26px;
-          font-weight: 800;
-          color: #0f0a1a;
-          letter-spacing: -0.5px;
-          margin-bottom: 8px;
-        }
-
-        .form-header p {
-          font-size: 14px;
-          color: #9ca3af;
-          font-weight: 400;
-        }
-
-        .field-group {
-          margin-bottom: 20px;
-        }
-
-        .field-label {
-          display: block;
-          font-size: 12px;
-          font-weight: 700;
-          color: #374151;
-          margin-bottom: 8px;
-          letter-spacing: 0.3px;
-          text-transform: uppercase;
-        }
-
-        .field-input-wrap {
-          position: relative;
-        }
-
-        .field-icon {
-          position: absolute;
-          left: 16px;
-          top: 50%;
-          transform: translateY(-50%);
-          color: #9ca3af;
-          pointer-events: none;
-          display: flex;
-          align-items: center;
-        }
-
-        .field-input {
-          width: 100%;
-          padding: 13px 16px 13px 44px;
-          border-radius: 12px;
-          border: 1.5px solid #e5e7eb;
-          font-size: 14px;
-          font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-          background: #f9fafb;
-          color: #111827;
-          outline: none;
-          transition: all 0.2s;
-          font-weight: 500;
-        }
-
-        .field-input:focus {
-          border-color: #5B2D8E;
-          background: #faf8ff;
-          box-shadow: 0 0 0 4px rgba(91,45,142,0.08);
-        }
-
-        .field-input::placeholder {
-          color: #d1d5db;
-          font-weight: 400;
-        }
-
-        .error-box {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          background: #fef2f2;
-          border: 1px solid #fecaca;
-          border-radius: 10px;
-          padding: 12px 14px;
-          margin-bottom: 20px;
-        }
-
-        .error-dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: #dc2626;
-          flex-shrink: 0;
-        }
-
-        .error-text {
-          font-size: 13px;
-          color: #dc2626;
-          font-weight: 500;
-        }
-
-        .submit-btn {
-          width: 100%;
-          padding: 14px;
-          background: linear-gradient(135deg, #3d1f61, #5B2D8E);
-          color: #fff;
-          border: none;
-          border-radius: 12px;
-          font-size: 15px;
-          font-weight: 700;
-          font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-          cursor: pointer;
-          letter-spacing: -0.2px;
-          transition: all 0.2s;
-          position: relative;
-          overflow: hidden;
-          box-shadow: 0 4px 20px rgba(61,31,97,0.35);
-          margin-top: 8px;
-        }
-
-        .submit-btn:hover:not(:disabled) {
-          transform: translateY(-1px);
-          box-shadow: 0 8px 28px rgba(61,31,97,0.45);
-        }
-
-        .submit-btn:active:not(:disabled) {
-          transform: translateY(0);
-        }
-
-        .submit-btn:disabled {
-          opacity: 0.7;
-          cursor: not-allowed;
-        }
-
-        .submit-btn .btn-shimmer {
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%);
-          transform: translateX(-100%);
-          animation: shimmer 2s infinite;
-        }
-
-        @keyframes shimmer {
-          100% { transform: translateX(200%); }
-        }
-
-        .form-footer {
-          text-align: center;
-          font-size: 12px;
-          color: #d1d5db;
-          font-weight: 500;
-          margin-top: 32px;
-        }
-
-        /* Responsive */
         @media (max-width: 768px) {
-          .login-left { display: none; }
-          .login-root { background: linear-gradient(180deg, #1a0d30 0%, #2d1554 55%, #3d1f61 100%); }
-
-          .login-right {
-            width: 100%;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            justify-content: flex-start;
-            min-height: 100vh;
-            background: transparent;
-          }
-
-          .login-form-wrap {
-            max-width: 100%;
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-          }
-
-          /* Header móvil con branding */
-          .mobile-header {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 56px 32px 48px;
-            position: relative;
-            overflow: hidden;
-            flex: 1;
-          }
-
-          .mobile-header::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background-image:
-              linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-            background-size: 32px 32px;
-          }
-
-          /* Círculos decorativos */
-          .mobile-header::after {
-            content: '';
-            position: absolute;
-            bottom: -60px;
-            right: -60px;
-            width: 200px;
-            height: 200px;
-            border-radius: 50%;
-            background: rgba(212,160,23,0.08);
-            pointer-events: none;
-          }
-
-          .mobile-header-content {
-            position: relative;
-            z-index: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 14px;
-            text-align: center;
-          }
-
-          .mobile-logo {
-            width: 72px;
-            height: 72px;
-            border-radius: 18px;
-            object-fit: cover;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-          }
-
-          .mobile-brand-name {
-            color: #fff;
-            font-size: 32px;
-            font-weight: 800;
-            letter-spacing: -1px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-          }
-
-          .mobile-lema {
-            color: rgba(255,255,255,0.5);
-            font-size: 13px;
-            font-style: italic;
-            letter-spacing: 0.2px;
-          }
-
-          /* Pills decorativas bajo el lema */
-          .mobile-pills {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            justify-content: center;
-            margin-top: 8px;
-          }
-
-          .mobile-pill {
-            background: rgba(255,255,255,0.07);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 100px;
-            padding: 5px 12px;
-            font-size: 11px;
-            color: rgba(255,255,255,0.5);
-            font-weight: 500;
-          }
-
-          /* Área del formulario — tarjeta blanca con radio */
-          .mobile-form-area {
-            background: #fff;
-            border-radius: 24px 24px 0 0;
-            padding: 32px 28px 48px;
-            box-shadow: 0 -4px 32px rgba(0,0,0,0.2);
-          }
-
-          .form-header {
-            margin-bottom: 28px;
-          }
-
-          .form-header h2 {
-            font-size: 22px;
-          }
+          .ll { display: none; }
+          .lr { background: linear-gradient(170deg, #0d0818 0%, #2d1554 50%, #3d1f61 100%); }
+          .rr { width: 100%; min-width: 0; padding: 0; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; min-height: 100vh; background: transparent; }
+          .rr-wave { display: none; }
+          .rr-inner { max-width: 100%; display: flex; flex-direction: column; flex: 1; }
+          .mob-top { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 64px 32px 52px; flex: 1; position: relative; overflow: hidden; }
+          .mob-top::before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px); background-size: 36px 36px; }
+          .mob-top-inner { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+          .mob-logo { width: 68px; height: 68px; border-radius: 18px; object-fit: cover; box-shadow: 0 8px 28px rgba(0,0,0,0.45); }
+          .mob-name { font-size: 30px; font-weight: 800; color: #fff; letter-spacing: -1px; display: flex; align-items: center; gap: 7px; }
+          .mob-lema { font-size: 13px; color: rgba(255,255,255,0.45); font-style: italic; max-width: 240px; }
+          .mob-pills { display: flex; gap: 7px; flex-wrap: wrap; justify-content: center; margin-top: 6px; }
+          .mob-pill { padding: 4px 12px; border-radius: 100px; font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.45); border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); }
+          .mob-card { background: #fff; border-radius: 28px 28px 0 0; padding: 36px 28px 52px; box-shadow: 0 -8px 40px rgba(0,0,0,0.25); }
+          .mob-card::before { content: ''; display: block; width: 40px; height: 4px; border-radius: 100px; background: #e5e7eb; margin: 0 auto 28px; }
+          .fh { margin-bottom: 28px; }
+          .fh h2 { font-size: 22px; }
+          .fh-tag { display: none; }
+          .ff { margin-top: 24px; }
         }
 
         @media (min-width: 769px) {
-          .mobile-header { display: none; }
-          .mobile-form-area { display: contents; }
-          .mobile-pills { display: none; }
+          .mob-top { display: none; }
+          .mob-card { display: contents; }
         }
       `}</style>
 
-      <div className="login-root">
-        {/* Panel izquierdo */}
-        <div className="login-left">
-          <div className="grid-overlay" />
-          <div className="login-left-content">
-            <div className="brand-mark">
-              <img src="/logo.png" alt="CBIS" className="brand-logo" />
-              <div className="brand-name">
+      <div className="lr">
+        <div className="ll">
+          <svg className="ll-wave" viewBox="0 0 120 900" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ height: '100%', width: 'auto' }}>
+            <path d="M120 0 C60 150, 0 200, 20 350 C40 500, 120 550, 80 700 C50 820, 0 860, 0 900 L120 900 Z" fill="white" fillOpacity="0.02"/>
+            <path d="M120 0 C80 100, 30 180, 50 320 C70 460, 120 500, 100 650 C80 780, 20 840, 0 900 L120 900 Z" fill="white" fillOpacity="0.015"/>
+          </svg>
+          <div className="ll-inner">
+            <div className="ll-brand">
+              <img src="/logo.png" alt="CBIS" className="ll-logo" />
+              <div className="ll-brand-name">
                 CBIS
-                {/* Plus SVG — cruz con esquinas redondeadas en dorado */}
-                <svg className="brand-plus" width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
                   <rect x="11" y="2" width="6" height="24" rx="3" fill="#D4A017"/>
                   <rect x="2" y="11" width="24" height="6" rx="3" fill="#D4A017"/>
                 </svg>
               </div>
             </div>
-
-            <div className="left-headline">
-              <div className="slogan-block">
-                <p>Fe, Cultura,<br/>Innovación <span>&</span><br/>Disciplina.</p>
-              </div>
-
-              <div className="stat-pills">
-                <div className="stat-pill">Matrículas <strong>automatizadas</strong></div>
-                <div className="stat-pill">Estados de <strong>cuenta</strong></div>
-                <div className="stat-pill">Pagos en <strong>línea</strong></div>
-                <div className="stat-pill"><strong>Y más</strong></div>
+            <div className="ll-headline">
+              <div className="ll-eyebrow">Portal Académico 2026</div>
+              <h1 className="ll-title">Fe, <em>Cultura,</em><br/>Innovación<br/><span>&amp;</span> Disciplina.</h1>
+              <div className="ll-pills">
+                <div className="ll-pill">Matrículas <strong>automatizadas</strong></div>
+                <div className="ll-pill">Notas en <strong>tiempo real</strong></div>
+                <div className="ll-pill">Cobros y <strong>pagos</strong></div>
+                <div className="ll-pill"><strong>+</strong> más</div>
               </div>
             </div>
-          </div>
-
-          {/* Área inferior: ilustración sutil + redes sociales */}
-          <div className="left-bottom">
-            {/* Ilustración geométrica abstracta */}
-            <svg
-              className="left-illustration"
-              width="320"
-              height="80"
-              viewBox="0 0 320 80"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              {/* Líneas de conexión */}
-              <line x1="20" y1="60" x2="80" y2="20" stroke="white" strokeWidth="1"/>
-              <line x1="80" y1="20" x2="160" y2="50" stroke="white" strokeWidth="1"/>
-              <line x1="160" y1="50" x2="240" y2="15" stroke="white" strokeWidth="1"/>
-              <line x1="240" y1="15" x2="300" y2="45" stroke="white" strokeWidth="1"/>
-              <line x1="80" y1="20" x2="120" y2="65" stroke="white" strokeWidth="0.6" strokeDasharray="4 4"/>
-              <line x1="160" y1="50" x2="200" y2="70" stroke="white" strokeWidth="0.6" strokeDasharray="4 4"/>
-              <line x1="240" y1="15" x2="270" y2="70" stroke="white" strokeWidth="0.6" strokeDasharray="4 4"/>
-              {/* Nodos */}
-              <circle cx="20" cy="60" r="4" fill="#D4A017"/>
-              <circle cx="80" cy="20" r="5" fill="white"/>
-              <circle cx="160" cy="50" r="4" fill="white"/>
-              <circle cx="240" cy="15" r="6" fill="#D4A017"/>
-              <circle cx="300" cy="45" r="4" fill="white"/>
-              <circle cx="120" cy="65" r="3" fill="white" opacity="0.5"/>
-              <circle cx="200" cy="70" r="3" fill="white" opacity="0.5"/>
-              <circle cx="270" cy="70" r="3" fill="white" opacity="0.5"/>
-              {/* Anillos en nodos principales */}
-              <circle cx="80" cy="20" r="10" stroke="white" strokeWidth="0.5" opacity="0.4"/>
-              <circle cx="240" cy="15" r="12" stroke="#D4A017" strokeWidth="0.5" opacity="0.5"/>
-            </svg>
-
-            {/* Redes sociales */}
-            <div className="social-row">
-              {/* Facebook */}
-              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="social-link" title="Facebook">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
-                </svg>
-              </a>
-
-              {/* Instagram */}
-              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="social-link" title="Instagram">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
-                  <circle cx="12" cy="12" r="4"/>
-                  <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/>
-                </svg>
-              </a>
-
-              {/* WhatsApp */}
-              <a href="https://wa.me/50300000000" target="_blank" rel="noopener noreferrer" className="social-link" title="WhatsApp">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/>
-                </svg>
-              </a>
-            </div>
-
-            <div className="left-footer">
-              © 2026 CBIS · Sistema de Gestión Escolar
-            </div>
+            <div className="ll-footer">© 2026 CBIS · Sonsonate, El Salvador</div>
           </div>
         </div>
 
-        {/* Panel derecho */}
-        <div className="login-right">
-          <div className="login-form-wrap">
-
-            {/* Header móvil — solo visible en <768px */}
-            <div className="mobile-header">
-              <div className="mobile-header-content">
-                <img src="/logo.png" alt="CBIS" className="mobile-logo" />
-                <div className="mobile-brand-name">
-                  CBIS
-                  <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
-                    <rect x="11" y="2" width="6" height="24" rx="3" fill="#D4A017"/>
-                    <rect x="2" y="11" width="24" height="6" rx="3" fill="#D4A017"/>
-                  </svg>
-                </div>
-                <div className="mobile-lema">Fe, Cultura, Innovación y Disciplina</div>
-                <div className="mobile-pills">
-                  <span className="mobile-pill">Notas en línea</span>
-                  <span className="mobile-pill">Asistencia</span>
-                  <span className="mobile-pill">Cobros</span>
-                </div>
+        <div className="rr">
+          <svg className="rr-wave" viewBox="0 0 80 900" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: 80 }}>
+            <path d="M80 0 C40 150, 0 200, 20 350 C40 500, 80 550, 60 700 C40 820, 0 860, 0 900 L80 900 L80 0 Z" fill="#0d0818"/>
+          </svg>
+          <div className="rr-inner">
+            <div className="mob-top">
+              <div className="mob-top-inner">
+                <img src="/logo.png" alt="CBIS" className="mob-logo" />
+                <div className="mob-name">CBIS <svg width="20" height="20" viewBox="0 0 28 28" fill="none"><rect x="11" y="2" width="6" height="24" rx="3" fill="#D4A017"/><rect x="2" y="11" width="24" height="6" rx="3" fill="#D4A017"/></svg></div>
+                <div className="mob-lema">Fe, Cultura, Innovación y Disciplina</div>
+                <div className="mob-pills"><span className="mob-pill">Notas</span><span className="mob-pill">Asistencia</span><span className="mob-pill">Cobros</span></div>
               </div>
             </div>
-
-            {/* Formulario */}
-            <div className="mobile-form-area">
-              <div className="form-header">
+            <div className="mob-card">
+              <div className="fh">
+                <div className="fh-tag">
+                  <svg width="8" height="8" viewBox="0 0 8 8" fill="#5B2D8E"><circle cx="4" cy="4" r="4"/></svg>
+                  Sistema de gestión escolar
+                </div>
                 <h2>Bienvenido</h2>
                 <p>Ingresa tus credenciales para continuar</p>
               </div>
-
-            <form onSubmit={handleLogin}>
-              <div className="field-group">
-                <label className="field-label">Correo electrónico</label>
-                <div className="field-input-wrap">
-                  <span className="field-icon">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                      <polyline points="22,6 12,13 2,6"/>
-                    </svg>
-                  </span>
-                  <input
-                    type="email"
-                    className="field-input"
-                    placeholder="usuario@cbis.edu.sv"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    onFocus={() => setFocusedField('email')}
-                    onBlur={() => setFocusedField(null)}
-                    required
-                  />
+              <form onSubmit={handleLogin}>
+                <div className="fg">
+                  <label className="fg-label">Correo electrónico</label>
+                  <div className="fg-row">
+                    <span className="fg-icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                    </span>
+                    <input type="email" className="fg-input" placeholder="usuario@cbis.edu.sv" value={email} onChange={e => setEmail(e.target.value)} required />
+                  </div>
                 </div>
-              </div>
-
-              <div className="field-group">
-                <label className="field-label">Contraseña</label>
-                <div className="field-input-wrap">
-                  <span className="field-icon">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                    </svg>
-                  </span>
-                  <input
-                    type="password"
-                    className="field-input"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    onFocus={() => setFocusedField('password')}
-                    onBlur={() => setFocusedField(null)}
-                    required
-                  />
+                <div className="fg">
+                  <label className="fg-label">Contraseña</label>
+                  <div className="fg-row">
+                    <span className="fg-icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    </span>
+                    <input type={showPass ? 'text' : 'password'} className="fg-input" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required />
+                    <button type="button" className="fg-btn" onClick={() => setShowPass(v => !v)} tabIndex={-1}>
+                      {showPass
+                        ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                        : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      }
+                    </button>
+                  </div>
                 </div>
-              </div>
-
-              {error && (
-                <div className="error-box">
-                  <div className="error-dot" />
-                  <span className="error-text">{error}</span>
-                </div>
-              )}
-
-              <button type="submit" className="submit-btn" disabled={loading}>
-                <span className="btn-shimmer" />
-                {loading ? 'Verificando...' : 'Acceder'}
-              </button>
-
-              {/* Olvidé mi contraseña */}
-              {resetSent ? (
-                <div style={{ marginTop: 16, padding: '12px 16px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, fontSize: 13, color: '#16a34a', fontWeight: 600, textAlign: 'center' }}>
-                  ✓ Revisa tu correo — te enviamos el enlace para restablecer tu contraseña
-                </div>
-              ) : (
-                <button type="button" onClick={handleForgotPassword} disabled={resetLoading}
-                  style={{ width: '100%', marginTop: 12, background: 'none', border: 'none', color: '#9ca3af', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', padding: '6px 0' }}>
-                  {resetLoading ? 'Enviando...' : '¿Olvidaste tu contraseña?'}
+                {error && (
+                  <div className="err">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    {error}
+                  </div>
+                )}
+                <button type="submit" className="sbtn" disabled={loading}>
+                  <span className="sbtn-shine" />
+                  {loading ? 'Verificando...' : 'Acceder al portal'}
                 </button>
-              )}
-            </form>
-
-            <div className="form-footer">
-                CBIS · Sonsonate, El Salvador
-              </div>
-            </div>{/* fin mobile-form-area */}
+                {resetSent ? (
+                  <div className="rst-ok">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    Revisa tu correo — enlace enviado
+                  </div>
+                ) : (
+                  <button type="button" className="fbtn" onClick={handleForgotPassword} disabled={resetLoading}>
+                    {resetLoading ? 'Enviando...' : '¿Olvidaste tu contraseña?'}
+                  </button>
+                )}
+              </form>
+              <div className="ff">CBIS · Colegio Bautista Internacional de Sonsonate</div>
+            </div>
           </div>
         </div>
       </div>
