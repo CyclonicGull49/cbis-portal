@@ -107,8 +107,19 @@ export default function Notas({ onVerEstudiante }) {
   const bp = useBreakpoint()
   const isMobile = bp === 'mobile'
 
-  const esDocente   = perfil?.rol === 'docente'
-  const puedeEditar = ['admin', 'registro_academico', 'docente'].includes(perfil?.rol)
+  const esDocente      = perfil?.rol === 'docente'
+  const puedeEditar    = ['admin', 'registro_academico', 'docente'].includes(perfil?.rol)
+
+  // Admin que también tiene asignaciones → se trata como docente en Notas
+  const [tieneAsignaciones, setTieneAsignaciones] = useState(false)
+  const esDocenteTambien = esDocente || (perfil?.rol === 'admin' && tieneAsignaciones)
+
+  useEffect(() => {
+    if (perfil?.rol !== 'admin' || !perfil?.id) return
+    supabase.from('asignaciones').select('id', { count: 'exact', head: true })
+      .eq('docente_id', perfil.id).eq('año_escolar', yearEscolar || new Date().getFullYear())
+      .then(({ count }) => setTieneAsignaciones((count || 0) > 0))
+  }, [perfil])
 
   // ── Estado principal ──────────────────────────────────────
   const [modo, setModo]               = useState('grados')
@@ -155,15 +166,15 @@ export default function Notas({ onVerEstudiante }) {
   const [enviandoSolicitud, setEnviandoSolicitud] = useState(false)
 
   async function recargarSolicitudes() {
-    if (!esDocente || !perfil) return
+    if (!esDocenteTambien || !perfil) return
     const { data } = await supabase.from('solicitudes_desbloqueo')
       .select('materia_id, grado_id, estudiante_id, periodo, estado, abierto_en, cierre_en')
       .eq('docente_id', perfil.id).eq('año_escolar', year)
     setSolicitudes(data || [])
   }
 
-  useEffect(() => { if (esDocente && perfil) recargarSolicitudes() }, [perfil, year])
-  useEffect(() => { if (esDocente && gradoId) recargarSolicitudes() }, [gradoId, materiaId])
+  useEffect(() => { if (esDocenteTambien && perfil) recargarSolicitudes() }, [perfil, year])
+  useEffect(() => { if (esDocenteTambien && gradoId) recargarSolicitudes() }, [gradoId, materiaId])
 
   function isMateriaDesbloqueada(matId, gId, periodo, estId) {
     return solicitudes.some(s =>
@@ -225,7 +236,7 @@ export default function Notas({ onVerEstudiante }) {
   )
 
   function puedeEditarMateria(matId) {
-    if (!esDocente) return ['admin','registro_academico','direccion_academica','recepcion'].includes(perfil?.rol)
+    if (!esDocenteTambien) return ['admin','registro_academico','direccion_academica','recepcion'].includes(perfil?.rol)
     if (misMateriasIds.has(matId)) return true
     return false
   }
@@ -262,7 +273,7 @@ export default function Notas({ onVerEstudiante }) {
   useEffect(() => {
     if (!perfil) return
     async function cargar() {
-      if (esDocente) {
+      if (esDocenteTambien) {
         // Grados desde asignaciones
         const { data: asig } = await supabase
           .from('asignaciones')
@@ -303,12 +314,12 @@ export default function Notas({ onVerEstudiante }) {
     if (!gradoId) return
     async function cargar() {
       const gInfo = grados.find(g => g.id === gradoId)
-      const esEnc = esDocente && gInfo?.encargado_id === perfil?.id
+      const esEnc = esDocenteTambien && gInfo?.encargado_id === perfil?.id
       setEsEncargado(esEnc)
 
       // Materias que puede EDITAR el docente
       let misIds = new Set()
-      if (esDocente) {
+      if (esDocenteTambien) {
         const { data: asig } = await supabase.from('asignaciones').select('materia_id')
           .eq('docente_id', perfil.id).eq('grado_id', gradoId).eq('año_escolar', year)
         misIds = new Set((asig || []).map(a => a.materia_id))
@@ -317,7 +328,7 @@ export default function Notas({ onVerEstudiante }) {
 
       // Materias visibles: si es encargado o admin, todas; si no, solo las suyas
       let mat = []
-      if (!esDocente || esEnc) {
+      if (!esDocenteTambien || esEnc) {
         const { data: mgs } = await supabase.from('materia_grado').select('materia_id')
           .eq('grado_id', gradoId)
         if (mgs?.length) {
@@ -649,7 +660,7 @@ export default function Notas({ onVerEstudiante }) {
               {Array.from({ length: numPeriodos }, (_, i) => {
                 const p = i + 1
                 const abierto = isPeriodoAbierto(gradoInfo?.nivel, p)
-                const desbloqueado = esDocente && isMateriaDesbloqueada(materiaId, gradoId, p)
+                const desbloqueado = esDocenteTambien && isMateriaDesbloqueada(materiaId, gradoId, p)
                 return (
                   <th key={i} colSpan={componentes.length + 1} style={{ ...s.th, borderLeft: '2px solid #e9e3f5' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
@@ -706,8 +717,8 @@ export default function Notas({ onVerEstudiante }) {
                     const map = getNotasMap(est.id, materiaId, periodo)
                     const nft = calcNFT(componentes, map)
                     const puedeEdit = puedeEditarPeriodo(materiaId, periodo, est.id)
-                    const periodoCerrado = esDocente && !isPeriodoAbierto(gradoInfo?.nivel, periodo)
-                    const solicitudEst = esDocente ? getSolicitudEstudiante(materiaId, periodo, est.id) : null
+                    const periodoCerrado = esDocenteTambien && !isPeriodoAbierto(gradoInfo?.nivel, periodo)
+                    const solicitudEst = esDocenteTambien ? getSolicitudEstudiante(materiaId, periodo, est.id) : null
                     const desbloqueado = isMateriaDesbloqueada(materiaId, gradoId, periodo, est.id)
                     const enRevision = solicitudEst && !desbloqueado && !['rechazado','cerrado'].includes(solicitudEst.estado)
                     const sinSolicitud = !solicitudEst || ['rechazado','cerrado'].includes(solicitudEst.estado)
@@ -981,7 +992,7 @@ export default function Notas({ onVerEstudiante }) {
     <div style={{ fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
 
       {/* Tabs modo — solo si docente tiene grupos inglés */}
-      {esDocente && grupos.length > 0 && (
+      {esDocenteTambien && grupos.length > 0 && (
         <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '2px solid #f0f0f0' }}>
           <button onClick={() => setModo('grados')}
             style={{ padding: '9px 20px', border: 'none', borderBottom: modo === 'grados' ? '3px solid #5B2D8E' : '3px solid transparent', background: 'none', color: modo === 'grados' ? '#3d1f61' : '#b0a8c0', fontWeight: modo === 'grados' ? 800 : 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', marginBottom: -2, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1030,7 +1041,7 @@ export default function Notas({ onVerEstudiante }) {
         <>
           {/* Selectores */}
           <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-            {(!esDocente || grados.length > 1) && (
+            {(!esDocenteTambien || grados.length > 1) && (
               <div style={{ flex: 1, minWidth: 160 }}>
                 <label style={s.label}>Grado</label>
                 <select style={s.select} value={gradoId || ''} onChange={e => {
@@ -1048,7 +1059,7 @@ export default function Notas({ onVerEstudiante }) {
                 {!isMobile && <option value="todas">Ver todas las materias</option>}
                 {materias.map(m => (
                   <option key={m.id} value={m.id}>
-                    {m.nombre}{esDocente && esEncargado && !misMateriasIds.has(m.id) ? ' 👁' : ''}
+                    {m.nombre}{esDocenteTambien && esEncargado && !misMateriasIds.has(m.id) ? ' 👁' : ''}
                   </option>
                 ))}
               </select>
