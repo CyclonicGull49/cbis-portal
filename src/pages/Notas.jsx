@@ -168,10 +168,14 @@ export default function Notas({ onVerEstudiante }) {
   }
 
   function puedeEditarPeriodo(matId, periodo) {
-    if (!esDocente) return puedeEditar // admin/registro siempre puede
     const nivelGrado = gradoInfo?.nivel
-    if (isPeriodoAbierto(nivelGrado, periodo)) return puedeEditarMateria(matId)
-    return isMateriaDesbloqueada(matId, gradoId, periodo)
+    const abierto = isPeriodoAbierto(nivelGrado, periodo)
+    if (abierto) return puedeEditarMateria(matId)
+    // Período cerrado — verificar si tiene desbloqueo activo
+    if (isMateriaDesbloqueada(matId, gradoId, periodo)) return true
+    // Solo registro_academico puede editar períodos cerrados sin solicitud
+    if (perfil?.rol === 'registro_academico') return true
+    return false
   }
 
   async function enviarSolicitud() {
@@ -673,7 +677,7 @@ export default function Notas({ onVerEstudiante }) {
                                       return (
                                         <div key={num} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                                           <span style={{ fontSize: 9, color: '#b0a8c0', fontWeight: 700, minWidth: 14 }}>A{num}</span>
-                                          <NotaInput value={actVal} disabled={false} onPreview={() => {}}
+                                          <NotaInput value={actVal} disabled={!puedeEdit} onPreview={() => {}}
                                             onChange={v => guardarActividad(est.id, materiaId, periodo, num, v)} />
                                         </div>
                                       )
@@ -779,7 +783,7 @@ export default function Notas({ onVerEstudiante }) {
                       </div>
                       <NotaInput
                         value={getVal(est.id, materiaId, periodoMovil, c)}
-                        disabled={!puedeEditar}
+                        disabled={!puedeEditarPeriodo(materiaId, periodoMovil)}
                         onPreview={v => setPreviewVal(est.id, materiaId, periodoMovil, c, v)}
                         onChange={v => guardarNota(est.id, materiaId, periodoMovil, c, v)}
                       />
@@ -863,7 +867,7 @@ export default function Notas({ onVerEstudiante }) {
                             <td key={c} style={{ padding: '6px 4px', borderLeft: c === compIngles[0] ? '2px solid #e9e3f5' : undefined, textAlign: 'center' }}>
                               <NotaInput
                                 value={val}
-                                disabled={false}
+                                disabled={!isPeriodoAbierto('bachillerato', p) && !esDocente}
                                 onPreview={v => setPreviewIngles(prev => ({ ...prev, [k]: v }))}
                                 onChange={v => guardarNotaIngles(est.id, est.grado_id, p, c, v)}
                               />
