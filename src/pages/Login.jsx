@@ -113,7 +113,7 @@ export default function Login() {
 
         .rr-card {
           width: 100%; max-width: 380px;
-          background: #fff;
+          
           border-radius: 24px;
           padding: 44px 40px;
           box-shadow:
@@ -131,63 +131,64 @@ export default function Login() {
         .fh { margin-bottom: 36px; }
         .fh-tag {
           display: inline-flex; align-items: center; gap: 6px;
-          background: #f3eeff; color: #5B2D8E;
+          background: rgba(212,160,23,0.12); color: #D4A017;
           font-size: 9px; font-weight: 700; letter-spacing: 1.8px;
           text-transform: uppercase; padding: 4px 10px;
           border-radius: 100px; margin-bottom: 16px;
+          border: 1px solid rgba(212,160,23,0.2);
         }
-        .fh h2 { font-size: 24px; font-weight: 800; color: #0d0818; letter-spacing: -0.8px; margin-bottom: 5px; }
-        .fh p { font-size: 13px; color: #9ca3af; font-weight: 400; }
+        .fh h2 { font-size: 24px; font-weight: 800; color: #fff; letter-spacing: -0.8px; margin-bottom: 5px; }
+        .fh p { font-size: 13px; color: rgba(255,255,255,0.38); font-weight: 400; }
 
         /* Inputs con borde inferior */
         .fg { margin-bottom: 24px; }
         .fg-label {
           display: block; font-size: 10px; font-weight: 700;
-          color: #9ca3af; text-transform: uppercase;
+          color: rgba(255,255,255,0.3); text-transform: uppercase;
           letter-spacing: 1.2px; margin-bottom: 10px;
           transition: color 0.2s;
         }
-        .fg:focus-within .fg-label { color: #5B2D8E; }
+        .fg:focus-within .fg-label { color: #D4A017; }
 
         .fg-row {
           display: flex; align-items: center; gap: 10px;
-          border-bottom: 1.5px solid #e5e7eb;
+          border-bottom: 1px solid rgba(255,255,255,0.12);
           padding-bottom: 10px;
           transition: border-color 0.2s;
         }
-        .fg:focus-within .fg-row { border-color: #5B2D8E; }
+        .fg:focus-within .fg-row { border-color: #D4A017; }
 
-        .fg-icon { color: #d1d5db; flex-shrink: 0; display: flex; transition: color 0.2s; }
-        .fg:focus-within .fg-icon { color: #5B2D8E; }
+        .fg-icon { color: rgba(255,255,255,0.22); flex-shrink: 0; display: flex; transition: color 0.2s; }
+        .fg:focus-within .fg-icon { color: #D4A017; }
 
         .fg-input {
           flex: 1; border: none; outline: none;
           font-size: 14px; font-weight: 500;
           font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-          color: #111827; background: transparent;
+          color: #fff; background: transparent; -webkit-text-fill-color: #fff;
         }
-        .fg-input::placeholder { color: #d1d5db; font-weight: 400; }
+        .fg-input::placeholder { color: rgba(255,255,255,0.2); -webkit-text-fill-color: rgba(255,255,255,0.2); font-weight: 400; }
         .fg-input:-webkit-autofill,
         .fg-input:-webkit-autofill:hover,
         .fg-input:-webkit-autofill:focus {
-          -webkit-box-shadow: 0 0 0 1000px #fff inset !important;
-          -webkit-text-fill-color: #111827 !important;
+          -webkit-box-shadow: 0 0 0 1000px rgba(18,8,36,0.95) inset !important;
+          -webkit-text-fill-color: #fff !important;
         }
 
         .fg-btn {
           background: none; border: none; cursor: pointer;
-          color: #d1d5db; padding: 0; display: flex;
+          color: rgba(255,255,255,0.22); padding: 0; display: flex;
           align-items: center; transition: color 0.2s;
         }
-        .fg-btn:hover { color: #5B2D8E; }
+        .fg-btn:hover { color: #D4A017; }
 
         /* Error */
         .err {
           display: flex; align-items: center; gap: 8px;
-          background: #fef2f2; border: 1px solid #fecaca;
+          background: rgba(220,38,38,0.12); border: 1px solid rgba(220,38,38,0.25);
           border-radius: 10px; padding: 10px 14px;
           margin-bottom: 20px;
-          font-size: 13px; color: #dc2626; font-weight: 500;
+          font-size: 13px; color: #f87171; font-weight: 500;
         }
 
         /* Botón submit — púrpura oscuro */
@@ -215,12 +216,12 @@ export default function Login() {
 
         .fbtn {
           width: 100%; background: none; border: none;
-          color: #c4bad4; font-size: 12px; font-weight: 500;
+          color: rgba(255,255,255,0.22); font-size: 12px; font-weight: 500;
           cursor: pointer; padding: 10px 0; margin-top: 2px;
           font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
           transition: color 0.2s;
         }
-        .fbtn:hover { color: #5B2D8E; }
+        .fbtn:hover { color: rgba(255,255,255,0.6); }
 
         .rst-ok {
           margin-top: 14px; padding: 11px 14px;
@@ -230,7 +231,7 @@ export default function Login() {
           display: flex; align-items: center; gap: 8px;
         }
 
-        .ff { margin-top: 28px; text-align: center; font-size: 11px; color: #d1d5db; font-weight: 500; }
+        .ff { margin-top: 28px; text-align: center; font-size: 11px; color: rgba(255,255,255,0.18); font-weight: 500; }
 
         /* ── DECORACIÓN: línea vertical sutil entre paneles ── */
         .sep {
@@ -250,7 +251,11 @@ export default function Login() {
             width: 100%; max-width: 100%;
             border-radius: 28px 28px 0 0;
             padding: 12px 28px 52px;
-            box-shadow: 0 -8px 40px rgba(0,0,0,0.3);
+            background: rgba(18, 8, 36, 0.85);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border-top: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 -8px 40px rgba(0,0,0,0.5);
           }
 
           /* Branding en móvil — sobre la tarjeta */
@@ -259,7 +264,7 @@ export default function Login() {
             display: block;
             width: 40px; height: 3px;
             border-radius: 100px;
-            background: #e5e7eb;
+            background: rgba(255,255,255,0.15);
             margin: 8px auto 28px;
           }
 
