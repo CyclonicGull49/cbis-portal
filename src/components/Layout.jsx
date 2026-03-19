@@ -371,7 +371,7 @@ export default function Layout({ pagina, setPagina, children }) {
         }
       `}</style>
 
-      <div className="layout-root" style={{ display: 'flex', minHeight: '100vh', width: '100vw', background: '#F4F7FC' }}>
+      <div className="layout-root" style={{ display: 'flex', minHeight: '100vh', width: '100vw', background: '#ede8f7' }}>
 
         {/* ── DESKTOP: sidebar fijo ── */}
         {isDesktop && (

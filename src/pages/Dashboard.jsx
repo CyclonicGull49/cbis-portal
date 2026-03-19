@@ -162,37 +162,38 @@ function DashboardHome() {
   function KpiCard({ icon, label, val, sub, color, acento = false }) {
     return (
       <div style={{
-        background: acento ? `linear-gradient(135deg, #3d1f61 0%, #5B2D8E 100%)` : '#fff',
+        background: acento ? '#080412' : '#fff',
         borderRadius: 16,
         padding: '22px 24px',
-        boxShadow: acento ? '0 8px 32px rgba(91,45,142,0.35)' : '0 2px 16px rgba(61,31,97,0.07)',
+        boxShadow: acento
+          ? '0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.2)'
+          : '0 2px 20px rgba(61,31,97,0.09)',
         display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
         position: 'relative', overflow: 'hidden',
         minHeight: 130,
       }}>
-        {/* Patrón decorativo en card acento */}
-        {acento && (
-          <svg style={{ position: 'absolute', right: -20, top: -20, opacity: 0.08 }} width="120" height="120" viewBox="0 0 120 120">
-            <circle cx="60" cy="60" r="50" stroke="white" strokeWidth="20" fill="none"/>
-            <circle cx="60" cy="60" r="25" stroke="white" strokeWidth="12" fill="none"/>
-          </svg>
-        )}
+        {/* Blobs en card acento */}
+        {acento && (<>
+          <div style={{ position: 'absolute', width: 180, height: 180, borderRadius: '50%', background: 'radial-gradient(circle, rgba(112,60,220,0.7) 0%, transparent 70%)', filter: 'blur(35px)', top: -60, left: -30, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', width: 120, height: 120, borderRadius: '50%', background: 'radial-gradient(circle, rgba(234,88,12,0.45) 0%, transparent 70%)', filter: 'blur(28px)', bottom: -20, right: 20, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', width: 100, height: 100, borderRadius: '50%', background: 'radial-gradient(circle, rgba(212,160,23,0.35) 0%, transparent 70%)', filter: 'blur(24px)', top: 20, right: -10, pointerEvents: 'none' }} />
+        </>)}
         {!acento && (
           <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, borderRadius: '16px 0 0 16px', background: color }} />
         )}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: acento ? 'rgba(255,255,255,0.65)' : '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+        <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: acento ? 'rgba(255,255,255,0.55)' : '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
             {label}
           </div>
-          <div style={{ color: acento ? 'rgba(255,255,255,0.7)' : color }}>
+          <div style={{ color: acento ? 'rgba(255,255,255,0.6)' : color }}>
             {icon}
           </div>
         </div>
-        <div>
+        <div style={{ position: 'relative' }}>
           <div style={{ fontSize: 30, fontWeight: 900, color: acento ? '#fff' : color, letterSpacing: '-1px', lineHeight: 1, marginBottom: 4 }}>
             {loading ? <Skeleton /> : val}
           </div>
-          <div style={{ fontSize: 11, fontWeight: 500, color: acento ? 'rgba(255,255,255,0.55)' : '#c4bad4' }}>{sub}</div>
+          <div style={{ fontSize: 11, fontWeight: 500, color: acento ? 'rgba(255,255,255,0.4)' : '#c4bad4' }}>{sub}</div>
         </div>
       </div>
     )
@@ -207,10 +208,10 @@ function DashboardHome() {
 
       {/* ── Header ──────────────────────────────────────── */}
       <div style={{
-        background: 'linear-gradient(135deg, #0d0818 0%, #2d1554 50%, #5B2D8E 100%)',
+        background: '#080412',
         borderRadius: 20, padding: '28px 32px', marginBottom: 24,
         position: 'relative', overflow: 'hidden',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
+        boxShadow: '0 8px 40px rgba(0,0,0,0.35)',
       }}>
         {/* Blobs de color CBIS */}
         <div style={{ position: 'absolute', width: 320, height: 320, borderRadius: '50%', background: 'radial-gradient(circle, rgba(112,60,220,0.45) 0%, transparent 70%)', filter: 'blur(55px)', top: -100, right: 180, pointerEvents: 'none' }} />
@@ -243,7 +244,7 @@ function DashboardHome() {
         />
 
         {/* Distribución por nivel */}
-        <div style={{ background: '#fff', borderRadius: 16, padding: '22px 24px', boxShadow: '0 2px 16px rgba(61,31,97,0.07)' }}>
+        <div style={{ background: '#fff', borderRadius: 16, padding: '22px 24px', boxShadow: '0 2px 20px rgba(61,31,97,0.09)' }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 16 }}>
             Distribución por nivel
           </div>
@@ -298,7 +299,7 @@ function DashboardHome() {
 
       {/* ── Tabla pagos recientes ─────────────────────────── */}
       {verFinanzas && (
-        <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', overflow: 'hidden' }}>
+        <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 20px rgba(61,31,97,0.09)', overflow: 'hidden' }}>
           <div style={{ padding: '18px 24px', borderBottom: '1px solid #f3eeff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h2 style={{ color: '#3d1f61', fontSize: 14, fontWeight: 800, margin: 0, marginBottom: 2 }}>Últimos pagos</h2>
@@ -362,7 +363,7 @@ function DashboardHome() {
 
       {/* Fallback */}
       {!verFinanzas && !verAcademico && !verDocente && (
-        <div style={{ textAlign: 'center', padding: '60px 0', background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)' }}>
+        <div style={{ textAlign: 'center', padding: '60px 0', background: '#fff', borderRadius: 16, boxShadow: '0 2px 20px rgba(61,31,97,0.09)' }}>
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d8c8f0" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 14 }}>
             <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
           </svg>

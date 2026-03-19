@@ -56,8 +56,12 @@ function Seccion({ titulo, descripcion, onImprimir, cargando, children }) {
           <div style={{ fontSize: 12, color: '#b0a8c0', fontWeight: 500, marginTop: 2 }}>{descripcion}</div>
         </div>
         <button onClick={onImprimir}
-          style={{ padding: '7px 16px', borderRadius: 8, border: '1.5px solid #5B2D8E', background: '#f3eeff', color: '#5B2D8E', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-          🖨️ Imprimir
+          style={{ padding: '7px 14px', borderRadius: 8, border: '1.5px solid #5B2D8E', background: '#f3eeff', color: '#5B2D8E', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+            <rect x="6" y="14" width="12" height="8"/>
+          </svg>
+          Imprimir
         </button>
       </div>
       <div style={{ padding: 24 }}>
@@ -459,9 +463,9 @@ export default function Reportes() {
   const year = yearEscolar || new Date().getFullYear()
 
   const TABS = [
-    ['admin','recepcion'].includes(perfil?.rol) && { id: 'cobros',     label: '💳 Cobros y pagos' },
-    ['admin','docente','direccion_academica','registro_academico'].includes(perfil?.rol) && { id: 'asistencia', label: '📋 Asistencia' },
-    ['admin','docente','direccion_academica','registro_academico'].includes(perfil?.rol) && { id: 'academico',  label: '📊 Académico' },
+    ['admin','recepcion'].includes(perfil?.rol) && { id: 'cobros', label: 'Cobros y pagos', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg> },
+    ['admin','docente','direccion_academica','registro_academico'].includes(perfil?.rol) && { id: 'asistencia', label: 'Asistencia', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg> },
+    ['admin','docente','direccion_academica','registro_academico'].includes(perfil?.rol) && { id: 'academico', label: 'Académico', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> },
   ].filter(Boolean)
 
   const [tab, setTab] = useState(TABS[0]?.id || '')
@@ -476,8 +480,8 @@ export default function Reportes() {
       <div style={{ display: 'flex', gap: 4, marginBottom: 24, borderBottom: '2px solid #f0f0f0' }}>
         {TABS.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
-            style={{ padding: '10px 20px', border: 'none', borderBottom: tab === t.id ? '3px solid #5B2D8E' : '3px solid transparent', background: 'none', color: tab === t.id ? '#3d1f61' : '#b0a8c0', fontWeight: tab === t.id ? 800 : 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', marginBottom: -2 }}>
-            {t.label}
+            style={{ padding: '10px 20px', border: 'none', borderBottom: tab === t.id ? '3px solid #5B2D8E' : '3px solid transparent', background: 'none', color: tab === t.id ? '#3d1f61' : '#b0a8c0', fontWeight: tab === t.id ? 800 : 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', marginBottom: -2, display: 'flex', alignItems: 'center', gap: 7 }}>
+            {t.icon}{t.label}
           </button>
         ))}
       </div>
