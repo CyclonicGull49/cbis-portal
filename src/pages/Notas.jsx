@@ -149,14 +149,22 @@ export default function Notas({ onVerEstudiante }) {
   const [motivoSolicitud, setMotivoSolicitud] = useState('')
   const [enviandoSolicitud, setEnviandoSolicitud] = useState(false)
 
+  async function recargarSolicitudes() {
+    if (!esDocente || !perfil) return
+    const { data } = await supabase.from('solicitudes_desbloqueo')
+      .select('materia_id, grado_id, periodo, estado, abierto_en, cierre_en')
+      .eq('docente_id', perfil.id).eq('año_escolar', year)
+    setSolicitudes(data || [])
+  }
+
   useEffect(() => {
-    if (esDocente && perfil) {
-      supabase.from('solicitudes_desbloqueo')
-        .select('materia_id, grado_id, periodo, estado, abierto_en, cierre_en')
-        .eq('docente_id', perfil.id).eq('año_escolar', year)
-        .then(({ data }) => setSolicitudes(data || []))
-    }
+    if (esDocente && perfil) recargarSolicitudes()
   }, [perfil, year])
+
+  // Recargar también al cambiar grado o materia
+  useEffect(() => {
+    if (esDocente && gradoId) recargarSolicitudes()
+  }, [gradoId, materiaId])
 
   function isMateriaDesbloqueada(matId, gradoId, periodo) {
     const s = solicitudes.find(s =>
@@ -196,11 +204,7 @@ export default function Notas({ onVerEstudiante }) {
       toast.success('Solicitud enviada a Dirección Académica')
       setModalSolicitud(null)
       setMotivoSolicitud('')
-      // Recargar solicitudes
-      const { data } = await supabase.from('solicitudes_desbloqueo')
-        .select('materia_id, grado_id, periodo, estado, abierto_en, cierre_en')
-        .eq('docente_id', perfil.id).eq('año_escolar', year)
-      setSolicitudes(data || [])
+      await recargarSolicitudes()
     }
     setEnviandoSolicitud(false)
   }
@@ -644,9 +648,13 @@ export default function Notas({ onVerEstudiante }) {
                     const nft = calcNFT(componentes, map)
                     const puedeEdit = puedeEditarPeriodo(materiaId, periodo)
                     const periodoCerrado = esDocente && !isPeriodoAbierto(gradoInfo?.nivel, periodo)
-                    const tieneSolicitud = esDocente && solicitudes.some(s =>
+                    const solicitudPeriodo = esDocente ? solicitudes.find(s =>
                       s.materia_id === materiaId && s.periodo === periodo
-                    )
+                    ) : null
+                    const estaDesbloqueada = isMateriaDesbloqueada(materiaId, gradoId, periodo)
+                    // Mostrar "En revisión" solo si hay solicitud pendiente o aprobada pero aún no abierta
+                    const enRevision = solicitudPeriodo && !estaDesbloqueada && solicitudPeriodo.estado !== 'rechazado' && solicitudPeriodo.estado !== 'cerrado'
+                    const sinSolicitud = !solicitudPeriodo || solicitudPeriodo.estado === 'rechazado' || solicitudPeriodo.estado === 'cerrado'
                     return (
                       <React.Fragment key={periodo}>
                         {componentes.map(c => {
@@ -701,9 +709,9 @@ export default function Notas({ onVerEstudiante }) {
                         <td style={{ padding: '6px 10px', textAlign: 'center', minWidth: 52, background: nft !== null ? 'rgba(91,45,142,0.04)' : 'transparent' }}>
                           <span style={{ fontSize: 13, fontWeight: 800, color: colorNota(nft) }}>{nft !== null ? nft.toFixed(2) : '—'}</span>
                         </td>
-                        {/* Botón solicitud — solo en la primera fila visible, solo docente, período cerrado */}
-                        {est.id === estudiantesFiltrados[0]?.id && periodoCerrado && !tieneSolicitud && puedeEditarMateria(materiaId) && (
-                          <td rowSpan={estudiantesFiltrados.length} style={{ padding: '6px 8px', textAlign: 'center', verticalAlign: 'middle', borderLeft: '1px solid #f3eeff' }}>
+                        {/* Botón solicitud — solo primera fila, docente, período cerrado, sin solicitud activa */}
+                        {est.id === estudiantesFiltrados[0]?.id && periodoCerrado && sinSolicitud && !estaDesbloqueada && puedeEditarMateria(materiaId) && (
+                          <td rowSpan={estudiantesFiltrados.length} style={{ padding: '6px 8px', textAlign: 'center', verticalAlign: 'middle', borderLeft: '1px solid #f3eeff', minWidth: 90 }}>
                             <button onClick={() => { setModalSolicitud({ matId: materiaId, periodo }); setMotivoSolicitud('') }}
                               title="Solicitar desbloqueo"
                               style={{ padding: '5px 8px', borderRadius: 8, border: '1.5px solid #c9b8e8', background: '#f3eeff', color: '#5B2D8E', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -714,10 +722,19 @@ export default function Notas({ onVerEstudiante }) {
                             </button>
                           </td>
                         )}
-                        {est.id === estudiantesFiltrados[0]?.id && periodoCerrado && tieneSolicitud && (
-                          <td rowSpan={estudiantesFiltrados.length} style={{ padding: '6px 8px', textAlign: 'center', verticalAlign: 'middle', borderLeft: '1px solid #f3eeff' }}>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: '#92400e', background: '#fef9c3', padding: '4px 8px', borderRadius: 8 }}>
-                              En revisión
+                        {/* En revisión — pendiente o aprobado pero no abierto aún */}
+                        {est.id === estudiantesFiltrados[0]?.id && periodoCerrado && enRevision && (
+                          <td rowSpan={estudiantesFiltrados.length} style={{ padding: '6px 8px', textAlign: 'center', verticalAlign: 'middle', borderLeft: '1px solid #f3eeff', minWidth: 90 }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: solicitudPeriodo?.estado === 'aprobado' ? '#16a34a' : '#92400e', background: solicitudPeriodo?.estado === 'aprobado' ? '#dcfce7' : '#fef9c3', padding: '4px 10px', borderRadius: 8, whiteSpace: 'nowrap' }}>
+                              {solicitudPeriodo?.estado === 'aprobado' ? 'Aprobada' : 'En revisión'}
+                            </span>
+                          </td>
+                        )}
+                        {/* Celda vacía si está desbloqueada o no aplica — para mantener estructura de tabla */}
+                        {est.id === estudiantesFiltrados[0]?.id && periodoCerrado && estaDesbloqueada && (
+                          <td rowSpan={estudiantesFiltrados.length} style={{ padding: '6px 8px', textAlign: 'center', verticalAlign: 'middle', borderLeft: '1px solid #f3eeff', minWidth: 90 }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', background: '#dcfce7', padding: '4px 10px', borderRadius: 8, whiteSpace: 'nowrap' }}>
+                              Abierto
                             </span>
                           </td>
                         )}
