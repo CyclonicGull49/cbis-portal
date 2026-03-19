@@ -208,10 +208,11 @@ export default function Notas({ onVerEstudiante }) {
     setEnviandoSolicitud(false)
   }
 
-  const componentes  = gradoInfo?.componentes_nota?.split(',') || ['ac', 'ai', 'em', 'ef']
-  const numPeriodos  = gradoInfo?.nivel === 'bachillerato' ? 4 : 3
-  const periodoLabel = gradoInfo?.nivel === 'bachillerato' ? 'Bimestre' : 'Trimestre'
-  const nivel        = nivelColor[gradoInfo?.nivel] || nivelColor.primaria
+  const componentes    = gradoInfo?.componentes_nota?.split(',') || ['ac', 'ai', 'em', 'ef']
+  const numPeriodos    = gradoInfo?.nivel === 'bachillerato' ? 4 : 3
+  const periodoLabel   = gradoInfo?.nivel === 'bachillerato' ? 'Bimestre' : 'Trimestre'
+  const numActividades = gradoInfo?.nivel === 'bachillerato' ? 5 : 7
+  const nivel          = nivelColor[gradoInfo?.nivel] || nivelColor.primaria
 
   // Componentes inglés (bachillerato usa ep en vez de em)
   const compIngles  = grupoInfo ? (['ac','ai','ep','ef']) : ['ac','ai','em','ef']
@@ -441,9 +442,8 @@ export default function Notas({ onVerEstudiante }) {
   // ── Cargar estudiantes del grupo inglés ───────────────────
   useEffect(() => {
     if (!grupoId || !materiaInglesId) return
-    setLoadingIngles(true); setPreviewIngles({})
+    setLoadingIngles(true); setPendingIngles({})
     async function cargar() {
-      // Estudiantes del grupo con su grado
       const { data: eg } = await supabase
         .from('estudiante_grupo')
         .select('estudiante_id, estudiantes(id, nombre, apellido, grado_id)')
@@ -451,16 +451,11 @@ export default function Notas({ onVerEstudiante }) {
       const ests = (eg || []).map(e => e.estudiantes).filter(Boolean)
         .sort((a, b) => `${a.apellido} ${a.nombre}`.localeCompare(`${b.apellido} ${b.nombre}`))
       setEstGrupo(ests)
-
-      // Notas de inglés para estos estudiantes
-      const estIds = ests.map(e => e.id)
-      if (estIds.length > 0) {
+      if (ests.length > 0) {
         const { data: ns } = await supabase.from('notas').select('*')
-          .in('estudiante_id', estIds).eq('materia_id', materiaInglesId).eq('año_escolar', year)
+          .in('estudiante_id', ests.map(e => e.id)).eq('materia_id', materiaInglesId).eq('año_escolar', year)
         const mapa = {}
-        for (const n of (ns || [])) {
-          mapa[`${n.estudiante_id}-${n.materia_id}-${n.grado_id}-${n.periodo}-${n.tipo}`] = n
-        }
+        for (const n of (ns || [])) mapa[`${n.estudiante_id}-${n.materia_id}-${n.grado_id}-${n.periodo}-${n.tipo}`] = n
         setNotasIngles(mapa)
       }
       setLoadingIngles(false)
@@ -468,98 +463,24 @@ export default function Notas({ onVerEstudiante }) {
     cargar()
   }, [grupoId, materiaInglesId, year])
 
-  async function guardarActividad(estId, matId, periodo, numero, valor) {
-
-    if (esDocente && !misMateriasIds.has(matId)) return
-    const key = `${estId}-${matId}-${periodo}-${numero}`
-
-    if (valor === null) {
-      await supabase.from('actividades_cotidianas')
-        .delete().eq('estudiante_id', estId).eq('materia_id', matId)
-        .eq('grado_id', gradoId).eq('año_escolar', year).eq('periodo', periodo).eq('numero', numero)
-      setActividades(a => { const c = { ...a }; delete c[key]; return c })
-    } else {
-      await supabase.from('actividades_cotidianas').upsert({
-        estudiante_id: estId, materia_id: matId, grado_id: gradoId,
-        año_escolar: year, periodo, numero, nota: valor, docente_id: perfil.id
-      }, { onConflict: 'estudiante_id,materia_id,grado_id,año_escolar,periodo,numero' })
-      setActividades(a => ({ ...a, [key]: valor }))
-    }
-
-    // Recalcular promedio AC y guardarlo en notas
-    const newActs = { ...actividades, [key]: valor }
-    const acts = Array.from({ length: numActividades }, (_, i) =>
-      newActs[`${estId}-${matId}-${periodo}-${i + 1}`]
-    ).filter(v => v !== null && v !== undefined)
-    const acPromedio = acts.length > 0 ? Math.round((acts.reduce((a, b) => a + b, 0) / acts.length) * 10) / 10 : null
-    await guardarNota(estId, matId, periodo, 'ac', acPromedio)
-  }
-
   function toggleExpandAC(estId, periodo) {
-    const key = `${estId}-${periodo}`
-    setExpandAC(prev => ({ ...prev, [key]: !prev[key] }))
-  }
-
-  async function guardarNota(estudianteId, matId, periodo, tipo, valor) {
-    if (esDocente && !misMateriasIds.has(matId)) return // no puede editar
-    const key  = `${estudianteId}-${matId}-${periodo}-${tipo}`
-    const existe = notas[key]
-
-    if (valor === null) {
-      if (existe) await supabase.from('notas').delete().eq('id', existe.id)
-      setNotas(n => { const c = { ...n }; delete c[key]; return c })
-      setPreview(p => { const c = { ...p }; delete c[key]; return c })
-      return
-    }
-
-    const payload = { estudiante_id: estudianteId, materia_id: matId, grado_id: gradoId, año_escolar: year, periodo, tipo, nota: valor, docente_id: perfil.id }
-    const { data, error } = existe
-      ? await supabase.from('notas').update({ nota: valor, docente_id: perfil.id }).eq('id', existe.id).select().single()
-      : await supabase.from('notas').insert(payload).select().single()
-
-    if (error) { toast.error('Error al guardar nota'); return }
-    if (data) {
-      setNotas(n => ({ ...n, [key]: data }))
-      setPreview(p => { const c = { ...p }; delete c[key]; return c })
-      toast.success('Nota guardada', { duration: 1200, style: { fontSize: 13, fontWeight: 600, color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0' } })
-    }
-  }
-
-  async function guardarNotaIngles(estudianteId, gradoEstId, periodo, tipo, valor) {
-    const key = `${estudianteId}-${materiaInglesId}-${gradoEstId}-${periodo}-${tipo}`
-    const existe = notasIngles[key]
-
-    if (valor === null) {
-      if (existe) await supabase.from('notas').delete().eq('id', existe.id)
-      setNotasIngles(n => { const c = { ...n }; delete c[key]; return c })
-      setPreviewIngles(p => { const c = { ...p }; delete c[key]; return c })
-      return
-    }
-
-    const payload = { estudiante_id: estudianteId, materia_id: materiaInglesId, grado_id: gradoEstId, año_escolar: year, periodo, tipo, nota: valor, docente_id: perfil.id }
-    const { data, error } = existe
-      ? await supabase.from('notas').update({ nota: valor, docente_id: perfil.id }).eq('id', existe.id).select().single()
-      : await supabase.from('notas').insert(payload).select().single()
-
-    if (error) { toast.error('Error al guardar nota'); return }
-    if (data) {
-      setNotasIngles(n => ({ ...n, [key]: data }))
-      setPreviewIngles(p => { const c = { ...p }; delete c[key]; return c })
-      toast.success('Nota guardada', { duration: 1200, style: { fontSize: 13, fontWeight: 600, color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0' } })
-    }
+    setExpandAC(prev => ({ ...prev, [`${estId}-${periodo}`]: !prev[`${estId}-${periodo}`] }))
   }
 
   // ── Estado actividades cotidianas ─────────────────────────
-  const numActividades = gradoInfo?.nivel === 'bachillerato' ? 5 : 7
-
   function setPreviewVal(estId, matId, periodo, tipo, val) {
-    setPreview(p => ({ ...p, [`${estId}-${matId}-${periodo}-${tipo}`]: val }))
+    const key = `${estId}-${matId}-${periodo}-${tipo}`
+    setPendingNotas(p => val === null
+      ? Object.fromEntries(Object.entries(p).filter(([k]) => k !== key))
+      : { ...p, [key]: val }
+    )
   }
 
   function getAC(estId, matId, periodo) {
-    const acts = Array.from({ length: numActividades }, (_, i) =>
-      actividades[`${estId}-${matId}-${periodo}-${i + 1}`]
-    ).filter(v => v !== null && v !== undefined)
+    const acts = Array.from({ length: numActividades }, (_, i) => {
+      const key = `${estId}-${matId}-${periodo}-${i + 1}`
+      return pendingActs[key] !== undefined ? pendingActs[key] : actividades[key]
+    }).filter(v => v !== null && v !== undefined)
     if (acts.length === 0) return null
     return acts.reduce((a, b) => a + b, 0) / acts.length
   }
@@ -853,111 +774,6 @@ export default function Notas({ onVerEstudiante }) {
                 </tr>
               )
             })}
-                  {Array.from({ length: numPeriodos }, (_, i) => {
-                    const periodo = i + 1
-                    const map = getNotasMap(est.id, materiaId, periodo)
-                    const nft = calcNFT(componentes, map)
-                    const puedeEdit = puedeEditarPeriodo(materiaId, periodo)
-                    const periodoCerrado = esDocente && !isPeriodoAbierto(gradoInfo?.nivel, periodo)
-                    const solicitudPeriodo = esDocente ? solicitudes.find(s =>
-                      s.materia_id === materiaId && s.periodo === periodo
-                    ) : null
-                    const estaDesbloqueada = isMateriaDesbloqueada(materiaId, gradoId, periodo)
-                    // Mostrar "En revisión" solo si hay solicitud pendiente o aprobada pero aún no abierta
-                    const enRevision = solicitudPeriodo && !estaDesbloqueada && solicitudPeriodo.estado !== 'rechazado' && solicitudPeriodo.estado !== 'cerrado'
-                    const sinSolicitud = !solicitudPeriodo || solicitudPeriodo.estado === 'rechazado' || solicitudPeriodo.estado === 'cerrado'
-                    return (
-                      <React.Fragment key={periodo}>
-                        {componentes.map(c => {
-                          if (c === 'ac') {
-                            const acVal = getAC(est.id, materiaId, periodo)
-                            const expanded = expandAC[`${est.id}-${periodo}`]
-                            return (
-                              <td key={`${est.id}-${periodo}-ac`} style={{ padding: '4px', borderLeft: '2px solid #e9e3f5', textAlign: 'center', background: expanded ? '#faf8ff' : 'transparent' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                                  <span style={{ fontSize: 13, fontWeight: 700, color: colorNota(acVal), minWidth: 36 }}>
-                                    {acVal !== null ? acVal.toFixed(1) : '—'}
-                                  </span>
-                                  {puedeEdit && (
-                                    <button onClick={() => toggleExpandAC(est.id, periodo)}
-                                      title={`${numActividades} actividades`}
-                                      style={{ width: 20, height: 20, borderRadius: 4, border: '1px solid #d8c8f0', background: expanded ? '#5B2D8E' : '#f3eeff', color: expanded ? '#fff' : '#5B2D8E', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                        {expanded ? <polyline points="18 15 12 9 6 15"/> : <polyline points="6 9 12 15 18 9"/>}
-                                      </svg>
-                                    </button>
-                                  )}
-                                </div>
-                                {expanded && puedeEdit && (
-                                  <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                                    {Array.from({ length: numActividades }, (_, j) => {
-                                      const num = j + 1
-                                      const actVal = actividades[`${est.id}-${materiaId}-${periodo}-${num}`] ?? null
-                                      return (
-                                        <div key={num} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                          <span style={{ fontSize: 9, color: '#b0a8c0', fontWeight: 700, minWidth: 14 }}>A{num}</span>
-                                          <NotaInput value={actVal} disabled={!puedeEdit} onPreview={() => {}}
-                                            onChange={v => guardarActividad(est.id, materiaId, periodo, num, v)} />
-                                        </div>
-                                      )
-                                    })}
-                                  </div>
-                                )}
-                              </td>
-                            )
-                          }
-                          return (
-                            <td key={`${est.id}-${periodo}-${c}`} style={{ padding: '6px 4px', borderLeft: c === componentes[0] ? '2px solid #e9e3f5' : undefined, textAlign: 'center' }}>
-                              <NotaInput
-                                value={getVal(est.id, materiaId, periodo, c)}
-                                disabled={!puedeEdit}
-                                onPreview={v => setPreviewVal(est.id, materiaId, periodo, c, v)}
-                                onChange={v => guardarNota(est.id, materiaId, periodo, c, v)}
-                              />
-                            </td>
-                          )
-                        })}
-                        <td style={{ padding: '6px 10px', textAlign: 'center', minWidth: 52, background: nft !== null ? 'rgba(91,45,142,0.04)' : 'transparent' }}>
-                          <span style={{ fontSize: 13, fontWeight: 800, color: colorNota(nft) }}>{nft !== null ? nft.toFixed(2) : '—'}</span>
-                        </td>
-                        {/* Botón solicitud — solo primera fila, docente, período cerrado, sin solicitud activa */}
-                        {est.id === estudiantesFiltrados[0]?.id && periodoCerrado && sinSolicitud && !estaDesbloqueada && puedeEditarMateria(materiaId) && (
-                          <td rowSpan={estudiantesFiltrados.length} style={{ padding: '6px 8px', textAlign: 'center', verticalAlign: 'middle', borderLeft: '1px solid #f3eeff', minWidth: 90 }}>
-                            <button onClick={() => { setModalSolicitud({ matId: materiaId, periodo }); setMotivoSolicitud('') }}
-                              title="Solicitar desbloqueo"
-                              style={{ padding: '5px 8px', borderRadius: 8, border: '1.5px solid #c9b8e8', background: '#f3eeff', color: '#5B2D8E', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}>
-                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>
-                              </svg>
-                              Solicitar
-                            </button>
-                          </td>
-                        )}
-                        {/* En revisión — pendiente o aprobado pero no abierto aún */}
-                        {est.id === estudiantesFiltrados[0]?.id && periodoCerrado && enRevision && (
-                          <td rowSpan={estudiantesFiltrados.length} style={{ padding: '6px 8px', textAlign: 'center', verticalAlign: 'middle', borderLeft: '1px solid #f3eeff', minWidth: 90 }}>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: solicitudPeriodo?.estado === 'aprobado' ? '#16a34a' : '#92400e', background: solicitudPeriodo?.estado === 'aprobado' ? '#dcfce7' : '#fef9c3', padding: '4px 10px', borderRadius: 8, whiteSpace: 'nowrap' }}>
-                              {solicitudPeriodo?.estado === 'aprobado' ? 'Aprobada' : 'En revisión'}
-                            </span>
-                          </td>
-                        )}
-                        {/* Celda vacía si está desbloqueada o no aplica — para mantener estructura de tabla */}
-                        {est.id === estudiantesFiltrados[0]?.id && periodoCerrado && estaDesbloqueada && (
-                          <td rowSpan={estudiantesFiltrados.length} style={{ padding: '6px 8px', textAlign: 'center', verticalAlign: 'middle', borderLeft: '1px solid #f3eeff', minWidth: 90 }}>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', background: '#dcfce7', padding: '4px 10px', borderRadius: 8, whiteSpace: 'nowrap' }}>
-                              Abierto
-                            </span>
-                          </td>
-                        )}
-                      </React.Fragment>
-                    )
-                  })}
-                  <td style={{ padding: '6px 12px', borderLeft: '2px solid #c9b8e8', textAlign: 'center', background: notaFinal !== null ? 'rgba(91,45,142,0.06)' : 'transparent' }}>
-                    <span style={{ fontSize: 14, fontWeight: 900, color: colorNota(notaFinal) }}>{notaFinal !== null ? notaFinal.toFixed(2) : '—'}</span>
-                  </td>
-                </tr>
-              )
-            })}
             {estudiantesFiltrados.length === 0 && (
               <tr><td colSpan={99} style={{ textAlign: 'center', padding: 40, color: '#b0a8c0', fontSize: 13 }}>
                 {busqueda ? `No se encontró ningún estudiante con "${busqueda}"` : 'No hay estudiantes en este grado'}
@@ -1011,9 +827,9 @@ export default function Notas({ onVerEstudiante }) {
                       </div>
                       <NotaInput
                         value={getVal(est.id, materiaId, periodoMovil, c)}
-                        disabled={!puedeEditarPeriodo(materiaId, periodoMovil)}
-                        onPreview={v => setPreviewVal(est.id, materiaId, periodoMovil, c, v)}
-                        onChange={v => guardarNota(est.id, materiaId, periodoMovil, c, v)}
+                        disabled={!puedeEditarPeriodo(materiaId, periodoMovil, est.id)}
+                        onPreview={() => {}}
+                        onChange={v => setPreviewVal(est.id, materiaId, periodoMovil, c, v)}
                       />
                     </div>
                   ))}
@@ -1099,7 +915,7 @@ export default function Notas({ onVerEstudiante }) {
                       <React.Fragment key={p}>
                         {compIngles.map(c => {
                           const k = `${est.id}-${materiaInglesId}-${est.grado_id}-${p}-${c}`
-                          const val = previewIngles[k] !== undefined ? previewIngles[k] : (notasIngles[k]?.nota ?? null)
+                          const val = getValIngles(est.id, est.grado_id, p, c)
                           return (
                             <td key={c} style={{ padding: '6px 4px', borderLeft: c === compIngles[0] ? '2px solid #e9e3f5' : undefined, textAlign: 'center' }}>
                               <NotaInput
