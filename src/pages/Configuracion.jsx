@@ -97,6 +97,7 @@ export default function Configuracion() {
   const [form, setForm]               = useState({ nombre: '', nivel: 'primaria', orden: '', monto_matricula: '', monto_mensualidad: '' })
   const [yearEscolar, setYearEscolar] = useState(new Date().getFullYear())
   const [guardandoYear, setGuardandoYear] = useState(false)
+  const [periodos, setPeriodos] = useState([])
 
   // Materias por grado
   const [panelMaterias, setPanelMaterias]       = useState(null)  // grado seleccionado
@@ -127,14 +128,16 @@ export default function Configuracion() {
 
   async function cargarDatos() {
     setLoading(true)
-    const [{ data: gra }, { data: config }, { data: mats }] = await Promise.all([
+    const [{ data: gra }, { data: config }, { data: mats }, { data: pers }] = await Promise.all([
       supabase.from('grados').select('*').order('orden', { ascending: true }),
       supabase.from('configuracion').select('valor').eq('clave', 'year_escolar_activo').single(),
       supabase.from('materias').select('*').order('nombre', { ascending: true }),
+      supabase.from('periodos_notas').select('*').order('nivel').order('numero'),
     ])
     setGrados(gra || [])
     if (config?.valor) setYearEscolar(parseInt(config.valor))
     setTodasMaterias(mats || [])
+    setPeriodos(pers || [])
     setLoading(false)
   }
 
@@ -279,6 +282,44 @@ export default function Configuracion() {
 
       {/* ── CONFIGURACIÓN DEL SISTEMA (solo admin) ── */}
       {isAdmin && (<>
+
+      {/* Períodos de notas */}
+      <div style={{ background: '#fff', borderRadius: 16, padding: '22px 24px', boxShadow: '0 2px 16px rgba(61,31,97,0.07)', marginBottom: 20, borderTop: '4px solid #c2410c' }}>
+        <div style={{ fontSize: 14, fontWeight: 800, color: '#3d1f61', marginBottom: 4 }}>Fechas límite de notas</div>
+        <div style={{ fontSize: 12, color: '#b0a8c0', fontWeight: 500, marginBottom: 20 }}>Configura hasta qué fecha pueden ingresar notas los docentes por período</div>
+        {['general','bachillerato'].map(nivel => (
+          <div key={nivel} style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 10 }}>
+              {nivel === 'general' ? 'Inicial → Noveno (Trimestres)' : 'Bachillerato (Bimestres)'}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+              {Array.from({ length: nivel === 'bachillerato' ? 4 : 3 }, (_, i) => {
+                const num = i + 1
+                const p = periodos.find(p => p.nivel === nivel && p.numero === num)
+                return (
+                  <div key={num}>
+                    <label style={s.label}>{nivel === 'bachillerato' ? `Bimestre ${num}` : `Trimestre ${num}`}</label>
+                    <input type="datetime-local" style={s.input}
+                      defaultValue={p?.fecha_limite ? new Date(p.fecha_limite).toISOString().slice(0,16) : ''}
+                      onBlur={async e => {
+                        const val = e.target.value
+                        if (!val) return
+                        const ts = new Date(val).toISOString()
+                        await supabase.from('periodos_notas').upsert({
+                          año_escolar: yearEscolar, nivel, numero: num,
+                          fecha_limite: ts, creado_por: perfil?.id
+                        }, { onConflict: 'año_escolar,nivel,numero' })
+                        toast.success(`Fecha límite ${nivel === 'bachillerato' ? 'Bimestre' : 'Trimestre'} ${num} guardada`)
+                        cargarDatos()
+                      }}
+                    />
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
 
       {/* Año escolar */}
       <div style={{ background: '#fff', borderRadius: 16, padding: '22px 24px', boxShadow: '0 2px 16px rgba(61,31,97,0.07)', marginBottom: 20, borderTop: '4px solid #D4A017' }}>

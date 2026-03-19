@@ -93,6 +93,12 @@ const Icons = {
       <polyline points="16 11 18 13 22 9"/>
     </svg>
   ),
+  solicitudes: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2"/>
+      <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+    </svg>
+  ),
   reportes: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -163,6 +169,7 @@ export default function Layout({ pagina, setPagina, children }) {
     { id: 'boletas',       label: 'Boletas',       icon: Icons.boletas },
     { id: 'cobros',        label: 'Cobros',        icon: Icons.cobros },
     { id: 'contabilidad',  label: 'Contabilidad',  icon: Icons.contabilidad },
+    { id: 'solicitudes',   label: 'Solicitudes',   icon: Icons.solicitudes },
     { id: 'reportes',      label: 'Reportes',      icon: Icons.reportes },
     { id: 'usuarios',      label: 'Usuarios',      icon: Icons.usuarios },
     { id: 'configuracion', label: 'Configuración', icon: Icons.configuracion },
@@ -181,6 +188,7 @@ export default function Layout({ pagina, setPagina, children }) {
     { id: 'asistencia',   label: 'Asistencia',   icon: Icons.asistencia },
     { id: 'cobros',       label: 'Cobros',       icon: Icons.cobros },
     { id: 'contabilidad', label: 'Contabilidad', icon: Icons.contabilidad },
+    { id: 'solicitudes',  label: 'Solicitudes',  icon: Icons.solicitudes },
     { id: 'reportes',     label: 'Reportes',     icon: Icons.reportes },
   ]
   const menuRegistro = [
@@ -191,14 +199,16 @@ export default function Layout({ pagina, setPagina, children }) {
     { id: 'asistencia',   label: 'Asistencia',   icon: Icons.asistencia },
     { id: 'boletas',      label: 'Boletas',      icon: Icons.boletas },
     { id: 'cobros',       label: 'Cobros',       icon: Icons.cobros },
+    { id: 'solicitudes',  label: 'Solicitudes',  icon: Icons.solicitudes },
     { id: 'reportes',     label: 'Reportes',     icon: Icons.reportes },
   ]
   const menuDocente = [
-    { id: 'dashboard',   label: 'Dashboard',   icon: Icons.dashboard },
-    { id: 'estudiantes', label: 'Estudiantes', icon: Icons.estudiantes },
-    { id: 'notas',       label: 'Notas',       icon: Icons.notas },
-    { id: 'asistencia',  label: 'Asistencia',  icon: Icons.asistencia },
-    { id: 'reportes',    label: 'Reportes',    icon: Icons.reportes },
+    { id: 'dashboard',    label: 'Dashboard',   icon: Icons.dashboard },
+    { id: 'estudiantes',  label: 'Estudiantes', icon: Icons.estudiantes },
+    { id: 'notas',        label: 'Notas',       icon: Icons.notas },
+    { id: 'asistencia',   label: 'Asistencia',  icon: Icons.asistencia },
+    { id: 'solicitudes',  label: 'Solicitudes', icon: Icons.solicitudes },
+    { id: 'reportes',     label: 'Reportes',    icon: Icons.reportes },
   ]
   const menuAlumno = [
     { id: 'mi-perfil',  label: 'Mi Perfil',      icon: Icons.estudiantes },

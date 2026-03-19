@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { useYearEscolar } from '../hooks/useYearEscolar'
+import { usePeriodosNotas } from '../hooks/usePeriodosNotas'
 import toast from 'react-hot-toast'
 
 function useBreakpoint() {
@@ -140,6 +141,65 @@ export default function Notas({ onVerEstudiante }) {
   const [expandAC, setExpandAC]         = useState({})
 
   const year = yearEscolar || new Date().getFullYear()
+  const { isPeriodoAbierto, getFechaLimite } = usePeriodosNotas(year)
+
+  // ── Solicitudes de desbloqueo ─────────────────────────────
+  const [solicitudes, setSolicitudes]     = useState([]) // solicitudes del docente
+  const [modalSolicitud, setModalSolicitud] = useState(null) // { matId, periodo }
+  const [motivoSolicitud, setMotivoSolicitud] = useState('')
+  const [enviandoSolicitud, setEnviandoSolicitud] = useState(false)
+
+  useEffect(() => {
+    if (esDocente && perfil) {
+      supabase.from('solicitudes_desbloqueo')
+        .select('materia_id, grado_id, periodo, estado, abierto_en, cierre_en')
+        .eq('docente_id', perfil.id).eq('año_escolar', year)
+        .then(({ data }) => setSolicitudes(data || []))
+    }
+  }, [perfil, year])
+
+  function isMateriaDesbloqueada(matId, gradoId, periodo) {
+    const s = solicitudes.find(s =>
+      s.materia_id === matId && s.grado_id === gradoId &&
+      s.periodo === periodo && s.estado === 'aprobado' &&
+      s.abierto_en && s.cierre_en && new Date() < new Date(s.cierre_en)
+    )
+    return !!s
+  }
+
+  function puedeEditarPeriodo(matId, periodo) {
+    if (!esDocente) return puedeEditar // admin/registro siempre puede
+    const nivelGrado = gradoInfo?.nivel
+    if (isPeriodoAbierto(nivelGrado, periodo)) return puedeEditarMateria(matId)
+    return isMateriaDesbloqueada(matId, gradoId, periodo)
+  }
+
+  async function enviarSolicitud() {
+    if (!motivoSolicitud.trim()) { toast.error('Escribe el motivo'); return }
+    setEnviandoSolicitud(true)
+    const { error } = await supabase.from('solicitudes_desbloqueo').insert({
+      docente_id: perfil.id,
+      materia_id: modalSolicitud.matId,
+      grado_id:   gradoId,
+      periodo:    modalSolicitud.periodo,
+      año_escolar: year,
+      motivo:     motivoSolicitud,
+    })
+    if (error) {
+      if (error.code === '23505') toast.error('Ya tienes una solicitud pendiente para esta materia')
+      else toast.error('Error al enviar')
+    } else {
+      toast.success('Solicitud enviada a Dirección Académica')
+      setModalSolicitud(null)
+      setMotivoSolicitud('')
+      // Recargar solicitudes
+      const { data } = await supabase.from('solicitudes_desbloqueo')
+        .select('materia_id, grado_id, periodo, estado, abierto_en, cierre_en')
+        .eq('docente_id', perfil.id).eq('año_escolar', year)
+      setSolicitudes(data || [])
+    }
+    setEnviandoSolicitud(false)
+  }
 
   const componentes  = gradoInfo?.componentes_nota?.split(',') || ['ac', 'ai', 'em', 'ef']
   const numPeriodos  = gradoInfo?.nivel === 'bachillerato' ? 4 : 3
@@ -528,9 +588,27 @@ export default function Notas({ onVerEstudiante }) {
                 Estudiante
                 {busqueda && <span style={{ fontWeight: 400, color: '#b0a8c0', marginLeft: 6, fontSize: 10 }}>{estudiantesFiltrados.length} resultado{estudiantesFiltrados.length !== 1 ? 's' : ''}</span>}
               </th>
-              {Array.from({ length: numPeriodos }, (_, i) => (
-                <th key={i} colSpan={componentes.length + 1} style={{ ...s.th, borderLeft: '2px solid #e9e3f5' }}>{periodoLabel} {i + 1}</th>
-              ))}
+              {Array.from({ length: numPeriodos }, (_, i) => {
+                const p = i + 1
+                const abierto = isPeriodoAbierto(gradoInfo?.nivel, p)
+                const desbloqueado = esDocente && isMateriaDesbloqueada(materiaId, gradoId, p)
+                return (
+                  <th key={i} colSpan={componentes.length + 1} style={{ ...s.th, borderLeft: '2px solid #e9e3f5' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                      {!abierto && (
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={desbloqueado ? '#16a34a' : '#dc2626'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="11" width="18" height="11" rx="2"/>
+                          {desbloqueado
+                            ? <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+                            : <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                          }
+                        </svg>
+                      )}
+                      {periodoLabel} {p}
+                    </div>
+                  </th>
+                )
+              })}
               <th style={{ ...s.th, borderLeft: '2px solid #c9b8e8' }}>ACU</th>
             </tr>
             <tr style={{ background: '#f5f3ff' }}>
@@ -560,20 +638,24 @@ export default function Notas({ onVerEstudiante }) {
                     const periodo = i + 1
                     const map = getNotasMap(est.id, materiaId, periodo)
                     const nft = calcNFT(componentes, map)
+                    const puedeEdit = puedeEditarPeriodo(materiaId, periodo)
+                    const periodoCerrado = esDocente && !isPeriodoAbierto(gradoInfo?.nivel, periodo)
+                    const tieneSolicitud = esDocente && solicitudes.some(s =>
+                      s.materia_id === materiaId && s.periodo === periodo
+                    )
                     return (
-                      <>
+                      <React.Fragment key={periodo}>
                         {componentes.map(c => {
                           if (c === 'ac') {
                             const acVal = getAC(est.id, materiaId, periodo)
                             const expanded = expandAC[`${est.id}-${periodo}`]
                             return (
                               <td key={`${est.id}-${periodo}-ac`} style={{ padding: '4px', borderLeft: '2px solid #e9e3f5', textAlign: 'center', background: expanded ? '#faf8ff' : 'transparent' }}>
-                                {/* Promedio + botón expandir */}
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                                   <span style={{ fontSize: 13, fontWeight: 700, color: colorNota(acVal), minWidth: 36 }}>
                                     {acVal !== null ? acVal.toFixed(1) : '—'}
                                   </span>
-                                  {puedeEditarMateria(materiaId) && (
+                                  {puedeEdit && (
                                     <button onClick={() => toggleExpandAC(est.id, periodo)}
                                       title={`${numActividades} actividades`}
                                       style={{ width: 20, height: 20, borderRadius: 4, border: '1px solid #d8c8f0', background: expanded ? '#5B2D8E' : '#f3eeff', color: expanded ? '#fff' : '#5B2D8E', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -583,21 +665,16 @@ export default function Notas({ onVerEstudiante }) {
                                     </button>
                                   )}
                                 </div>
-                                {/* Inputs de actividades expandibles */}
-                                {expanded && (
+                                {expanded && puedeEdit && (
                                   <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                                    {Array.from({ length: numActividades }, (_, i) => {
-                                      const num = i + 1
+                                    {Array.from({ length: numActividades }, (_, j) => {
+                                      const num = j + 1
                                       const actVal = actividades[`${est.id}-${materiaId}-${periodo}-${num}`] ?? null
                                       return (
                                         <div key={num} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                                           <span style={{ fontSize: 9, color: '#b0a8c0', fontWeight: 700, minWidth: 14 }}>A{num}</span>
-                                          <NotaInput
-                                            value={actVal}
-                                            disabled={false}
-                                            onPreview={() => {}}
-                                            onChange={v => guardarActividad(est.id, materiaId, periodo, num, v)}
-                                          />
+                                          <NotaInput value={actVal} disabled={false} onPreview={() => {}}
+                                            onChange={v => guardarActividad(est.id, materiaId, periodo, num, v)} />
                                         </div>
                                       )
                                     })}
@@ -610,17 +687,37 @@ export default function Notas({ onVerEstudiante }) {
                             <td key={`${est.id}-${periodo}-${c}`} style={{ padding: '6px 4px', borderLeft: c === componentes[0] ? '2px solid #e9e3f5' : undefined, textAlign: 'center' }}>
                               <NotaInput
                                 value={getVal(est.id, materiaId, periodo, c)}
-                                disabled={!puedeEditarMateria(materiaId)}
+                                disabled={!puedeEdit}
                                 onPreview={v => setPreviewVal(est.id, materiaId, periodo, c, v)}
                                 onChange={v => guardarNota(est.id, materiaId, periodo, c, v)}
                               />
                             </td>
                           )
                         })}
-                        <td key={`${est.id}-${periodo}-nft`} style={{ padding: '6px 10px', textAlign: 'center', minWidth: 52, background: nft !== null ? 'rgba(91,45,142,0.04)' : 'transparent' }}>
+                        <td style={{ padding: '6px 10px', textAlign: 'center', minWidth: 52, background: nft !== null ? 'rgba(91,45,142,0.04)' : 'transparent' }}>
                           <span style={{ fontSize: 13, fontWeight: 800, color: colorNota(nft) }}>{nft !== null ? nft.toFixed(2) : '—'}</span>
                         </td>
-                      </>
+                        {/* Botón solicitud — solo en la primera fila visible, solo docente, período cerrado */}
+                        {est.id === estudiantesFiltrados[0]?.id && periodoCerrado && !tieneSolicitud && puedeEditarMateria(materiaId) && (
+                          <td rowSpan={estudiantesFiltrados.length} style={{ padding: '6px 8px', textAlign: 'center', verticalAlign: 'middle', borderLeft: '1px solid #f3eeff' }}>
+                            <button onClick={() => { setModalSolicitud({ matId: materiaId, periodo }); setMotivoSolicitud('') }}
+                              title="Solicitar desbloqueo"
+                              style={{ padding: '5px 8px', borderRadius: 8, border: '1.5px solid #c9b8e8', background: '#f3eeff', color: '#5B2D8E', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+                              </svg>
+                              Solicitar
+                            </button>
+                          </td>
+                        )}
+                        {est.id === estudiantesFiltrados[0]?.id && periodoCerrado && tieneSolicitud && (
+                          <td rowSpan={estudiantesFiltrados.length} style={{ padding: '6px 8px', textAlign: 'center', verticalAlign: 'middle', borderLeft: '1px solid #f3eeff' }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#92400e', background: '#fef9c3', padding: '4px 8px', borderRadius: 8 }}>
+                              En revisión
+                            </span>
+                          </td>
+                        )}
+                      </React.Fragment>
                     )
                   })}
                   <td style={{ padding: '6px 12px', borderLeft: '2px solid #c9b8e8', textAlign: 'center', background: notaFinal !== null ? 'rgba(91,45,142,0.06)' : 'transparent' }}>
@@ -903,6 +1000,39 @@ export default function Notas({ onVerEstudiante }) {
             isMobile ? <VistaMóvil /> : (materiaId === 'todas' ? <TablaResumen /> : <TablaMateria />)
           )}
         </>
+      )}
+      {/* Modal solicitud desbloqueo */}
+      {modalSolicitud && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 16 }}
+          onClick={() => setModalSolicitud(null)}>
+          <div style={{ background: '#fff', borderRadius: 16, padding: '28px 24px', width: '100%', maxWidth: 440, fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}
+            onClick={e => e.stopPropagation()}>
+            <h2 style={{ color: '#3d1f61', fontSize: 17, fontWeight: 800, marginBottom: 6 }}>Solicitar desbloqueo</h2>
+            <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 16 }}>
+              {materias.find(m => m.id === modalSolicitud.matId)?.nombre} · {gradoInfo?.nombre} · {periodoLabel} {modalSolicitud.periodo}
+            </p>
+            <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#5B2D8E', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Motivo *
+            </label>
+            <textarea
+              value={motivoSolicitud}
+              onChange={e => setMotivoSolicitud(e.target.value)}
+              placeholder="Explica por qué necesitas modificar las notas de este período..."
+              rows={3}
+              style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: 13, fontFamily: 'inherit', resize: 'none', boxSizing: 'border-box', marginBottom: 16 }}
+            />
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={() => setModalSolicitud(null)}
+                style={{ padding: '9px 20px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#555', fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+                Cancelar
+              </button>
+              <button onClick={enviarSolicitud} disabled={enviandoSolicitud}
+                style={{ padding: '9px 20px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #3d1f61, #5B2D8E)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+                {enviandoSolicitud ? 'Enviando...' : 'Enviar solicitud'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
