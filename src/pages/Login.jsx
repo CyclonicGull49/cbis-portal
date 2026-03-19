@@ -395,7 +395,7 @@ export default function Login() {
               <div className="ll-pill"><strong>+</strong> más</div>
             </div>
           </div>
-          <div className="ll-footer">© 2026 CBIS · Sonsonate, El Salvador</div>
+          <div className="ll-footer">© 2026 CBIS</div>
         </div>
 
         {/* Panel derecho — frosted glass */}
@@ -410,8 +410,7 @@ export default function Login() {
           <div className="rr-card">
             <div className="fh">
               <div className="fh-tag">
-                <svg width="7" height="7" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#D4A017"/></svg>
-                Sistema de gestión escolar
+
               </div>
               <h2>Bienvenido</h2>
               <p>Ingresa tus credenciales para continuar</p>
@@ -474,7 +473,7 @@ export default function Login() {
               )}
             </form>
 
-            <div className="ff">CBIS · Colegio Bautista Internacional de Sonsonate</div>
+            <div className="ff">CBIS · Sonsonate, El Salvador</div>
           </div>
         </div>
       </div>

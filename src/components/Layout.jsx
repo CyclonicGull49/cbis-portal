@@ -241,11 +241,15 @@ export default function Layout({ pagina, setPagina, children }) {
   // ── Sidebar content (shared desktop + tablet) ────────────────
   const SidebarContent = () => (
     <>
-      {/* Grid overlay */}
-      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none',
-        backgroundImage: 'linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)',
+      {/* Blobs de color CBIS */}
+      <div className="sb-blob-v" />
+      <div className="sb-blob-o" />
+      <div className="sb-blob-g" />
+      <div className="sb-blob-d" />
+      {/* Noise overlay sutil */}
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.3,
+        backgroundImage: 'linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)',
         backgroundSize: '32px 32px' }} />
-      <div style={{ position: 'absolute', top: -50, right: -50, width: 140, height: 140, borderRadius: '50%', background: 'rgba(212,160,23,0.07)', pointerEvents: 'none' }} />
 
       {/* Header */}
       <div style={{ padding: '24px 18px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)', position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -276,8 +280,8 @@ export default function Layout({ pagina, setPagina, children }) {
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 10,
                 padding: '9px 12px', borderRadius: 10, border: 'none',
-                background: activo ? 'rgba(255,255,255,0.16)' : 'transparent',
-                color: activo ? '#fff' : 'rgba(255,255,255,0.6)',
+                background: activo ? 'rgba(255,255,255,0.13)' : 'transparent',
+                color: activo ? '#fff' : 'rgba(255,255,255,0.55)',
                 fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif',
                 fontWeight: activo ? 700 : 500, fontSize: 13,
                 cursor: 'pointer', marginBottom: 2,
@@ -317,9 +321,9 @@ export default function Layout({ pagina, setPagina, children }) {
 
   const sidebarStyle = {
     width: 228, flexShrink: 0,
-    background: `linear-gradient(180deg, ${CBIS_COLORS.purpleDark} 0%, ${CBIS_COLORS.purple} 60%, ${CBIS_COLORS.purpleLight} 100%)`,
+    background: '#0d0818',
     display: 'flex', flexDirection: 'column',
-    boxShadow: '4px 0 24px rgba(61,31,97,0.3)',
+    boxShadow: '4px 0 32px rgba(0,0,0,0.4)',
     position: 'relative', overflow: 'hidden',
   }
 
@@ -333,11 +337,41 @@ export default function Layout({ pagina, setPagina, children }) {
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         .layout-root { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
-        .nav-btn:hover { background: rgba(255,255,255,0.12) !important; color: #fff !important; }
+        .nav-btn:hover { background: rgba(255,255,255,0.1) !important; color: #fff !important; }
         .bottom-btn:hover { background: rgba(91,45,142,0.08) !important; }
+
+        /* Blobs del sidebar — versión suave */
+        .sb-blob-v {
+          position: absolute; border-radius: 50%; pointer-events: none;
+          width: 280px; height: 280px;
+          background: radial-gradient(circle, rgba(112,60,220,0.55) 0%, rgba(80,30,160,0.25) 50%, transparent 100%);
+          filter: blur(50px);
+          top: -60px; left: -60px;
+        }
+        .sb-blob-o {
+          position: absolute; border-radius: 50%; pointer-events: none;
+          width: 180px; height: 180px;
+          background: radial-gradient(circle, rgba(234,88,12,0.35) 0%, transparent 70%);
+          filter: blur(40px);
+          top: 120px; right: -40px;
+        }
+        .sb-blob-g {
+          position: absolute; border-radius: 50%; pointer-events: none;
+          width: 200px; height: 200px;
+          background: radial-gradient(circle, rgba(22,163,74,0.25) 0%, transparent 70%);
+          filter: blur(45px);
+          bottom: 120px; left: -30px;
+        }
+        .sb-blob-d {
+          position: absolute; border-radius: 50%; pointer-events: none;
+          width: 220px; height: 220px;
+          background: radial-gradient(circle, rgba(212,160,23,0.3) 0%, transparent 70%);
+          filter: blur(50px);
+          bottom: -40px; right: -40px;
+        }
       `}</style>
 
-      <div className="layout-root" style={{ display: 'flex', minHeight: '100vh', width: '100vw', background: '#f4f0fa' }}>
+      <div className="layout-root" style={{ display: 'flex', minHeight: '100vh', width: '100vw', background: '#F4F7FC' }}>
 
         {/* ── DESKTOP: sidebar fijo ── */}
         {isDesktop && (
@@ -365,7 +399,7 @@ export default function Layout({ pagina, setPagina, children }) {
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, paddingBottom: isMobile ? 64 : 0 }}>
 
           {/* Topbar */}
-          <div style={{ background: '#fff', padding: '0 20px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 2px 12px rgba(91,45,142,0.08)', borderBottom: `3px solid ${CBIS_COLORS.gold}`, position: 'sticky', top: 0, zIndex: 50 }}>
+          <div style={{ background: '#fff', padding: '0 20px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 2px 12px rgba(91,45,142,0.07)', borderBottom: '3px solid transparent', backgroundImage: 'linear-gradient(#fff, #fff), linear-gradient(90deg, #7B3FE4, #EA580C, #D4A017, #16A34A)', backgroundOrigin: 'border-box', backgroundClip: 'padding-box, border-box', position: 'sticky', top: 0, zIndex: 50 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               {/* Hamburguesa en tablet */}
               {isTablet && (
