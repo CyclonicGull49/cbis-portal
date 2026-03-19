@@ -225,14 +225,15 @@ export default function Notas({ onVerEstudiante }) {
   )
 
   function puedeEditarMateria(matId) {
-    if (!esDocente) return puedeEditar
+    if (!esDocente) return ['admin','registro_academico','direccion_academica','recepcion'].includes(perfil?.rol)
     if (misMateriasIds.has(matId)) return true
     return false
   }
 
   function getVal(estId, matId, periodo, tipo) {
-    const key = `${estId}-${matId}-${periodo}-${tipo}`
-    return pendingNotas[key] !== undefined ? pendingNotas[key] : (notas[key]?.nota ?? null)
+    const pKey = `${estId}|${matId}|${periodo}|${tipo}`
+    const dbKey = `${estId}-${matId}-${periodo}-${tipo}`
+    return pendingNotas[pKey] !== undefined ? pendingNotas[pKey] : (notas[dbKey]?.nota ?? null)
   }
   function getNotasMap(estId, matId, periodo) {
     const map = {}
@@ -240,13 +241,15 @@ export default function Notas({ onVerEstudiante }) {
     return map
   }
   function getValIngles(estId, gradoEstId, periodo, tipo) {
-    const key = `${estId}-${materiaInglesId}-${gradoEstId}-${periodo}-${tipo}`
-    return pendingIngles[key] !== undefined ? pendingIngles[key] : (notasIngles[key]?.nota ?? null)
+    const pKey = `${estId}|${materiaInglesId}|${gradoEstId}|${periodo}|${tipo}`
+    const dbKey = `${estId}-${materiaInglesId}-${gradoEstId}-${periodo}-${tipo}`
+    return pendingIngles[pKey] !== undefined ? pendingIngles[pKey] : (notasIngles[dbKey]?.nota ?? null)
   }
   function getAC(estId, matId, periodo) {
     const acts = Array.from({ length: numActividades }, (_, i) => {
-      const key = `${estId}-${matId}-${periodo}-${i + 1}`
-      return pendingActs[key] !== undefined ? pendingActs[key] : actividades[key]
+      const pKey = `${estId}|${matId}|${periodo}|${i + 1}`
+      const dbKey = `${estId}-${matId}-${periodo}-${i + 1}`
+      return pendingActs[pKey] !== undefined ? pendingActs[pKey] : actividades[dbKey]
     }).filter(v => v !== null && v !== undefined)
     if (acts.length === 0) return null
     return acts.reduce((a, b) => a + b, 0) / acts.length
@@ -363,9 +366,11 @@ export default function Notas({ onVerEstudiante }) {
     const keysActs  = Object.keys(pendingActs)
 
     for (const key of keysNotas) {
-      const [estId, matId, periodo, tipo] = key.split('-')
+      const parts = key.split('|')
+      const estId = parts[0], matId = parts[1], periodo = parts[2], tipo = parts[3]
       const valor = pendingNotas[key]
-      const existe = notas[key]
+      const dbKey = `${estId}-${matId}-${periodo}-${tipo}`
+      const existe = notas[dbKey]
       const payload = { estudiante_id: parseInt(estId), materia_id: matId, grado_id: gradoId, año_escolar: year, periodo: parseInt(periodo), tipo, nota: valor, docente_id: perfil.id }
       ops.push(existe
         ? supabase.from('notas').update({ nota: valor, docente_id: perfil.id }).eq('id', existe.id).select().single()
@@ -373,7 +378,8 @@ export default function Notas({ onVerEstudiante }) {
       )
     }
     for (const key of keysActs) {
-      const [estId, matId, periodo, num] = key.split('-')
+      const parts = key.split('|')
+      const estId = parts[0], matId = parts[1], periodo = parts[2], num = parts[3]
       ops.push(supabase.from('actividades_cotidianas').upsert({
         estudiante_id: parseInt(estId), materia_id: matId, grado_id: gradoId,
         año_escolar: year, periodo: parseInt(periodo), numero: parseInt(num),
@@ -387,26 +393,37 @@ export default function Notas({ onVerEstudiante }) {
       toast.error('Hubo errores al guardar algunas notas')
     } else {
       const nuevasNotas = { ...notas }
-      keysNotas.forEach((key, i) => { if (results[i]?.data) nuevasNotas[key] = results[i].data })
+      keysNotas.forEach((key, i) => {
+        if (results[i]?.data) {
+          const parts = key.split('|')
+          const dbKey = `${parts[0]}-${parts[1]}-${parts[2]}-${parts[3]}`
+          nuevasNotas[dbKey] = results[i].data
+        }
+      })
       const nuevasActs = { ...actividades }
-      keysActs.forEach((key, i) => { nuevasActs[key] = pendingActs[key] })
+      keysActs.forEach((key) => {
+        const parts = key.split('|')
+        const dbKey = `${parts[0]}-${parts[1]}-${parts[2]}-${parts[3]}`
+        nuevasActs[dbKey] = pendingActs[key]
+      })
       setActividades(nuevasActs)
 
       // Recalcular promedios AC
-      const combos = new Set(keysActs.map(k => k.split('-').slice(0, 3).join('-')))
+      const combos = new Set(keysActs.map(k => k.split('|').slice(0, 3).join('|')))
       for (const combo of combos) {
-        const [estId, matId, periodo] = combo.split('-')
-        const acts = Array.from({ length: numActividades }, (_, j) =>
-          nuevasActs[`${estId}-${matId}-${periodo}-${j + 1}`]
-        ).filter(v => v !== null && v !== undefined)
+        const [estId, matId, periodo] = combo.split('|')
+        const acts = Array.from({ length: numActividades }, (_, j) => {
+          const dbKey = `${estId}-${matId}-${periodo}-${j + 1}`
+          return nuevasActs[dbKey]
+        }).filter(v => v !== null && v !== undefined)
         const acPromedio = acts.length > 0 ? Math.round((acts.reduce((a, b) => a + b, 0) / acts.length) * 10) / 10 : null
-        const acKey = `${estId}-${matId}-${periodo}-ac`
-        const existeAC = nuevasNotas[acKey]
+        const acDbKey = `${estId}-${matId}-${periodo}-ac`
+        const existeAC = nuevasNotas[acDbKey]
         const payloadAC = { estudiante_id: parseInt(estId), materia_id: matId, grado_id: gradoId, año_escolar: year, periodo: parseInt(periodo), tipo: 'ac', nota: acPromedio, docente_id: perfil.id }
         const { data: acData } = existeAC
           ? await supabase.from('notas').update({ nota: acPromedio, docente_id: perfil.id }).eq('id', existeAC.id).select().single()
           : await supabase.from('notas').insert(payloadAC).select().single()
-        if (acData) nuevasNotas[acKey] = acData
+        if (acData) nuevasNotas[acDbKey] = acData
       }
       setNotas(nuevasNotas)
       setPendingNotas({}); setPendingActs({})
@@ -420,8 +437,10 @@ export default function Notas({ onVerEstudiante }) {
     setGuardando(true)
     const keys = Object.keys(pendingIngles)
     const ops = keys.map(key => {
-      const [estId, matId, gradoEstId, periodo, tipo] = key.split('-')
-      const existe = notasIngles[key]
+      const parts = key.split('|')
+      const estId = parts[0], matId = parts[1], gradoEstId = parts[2], periodo = parts[3], tipo = parts[4]
+      const dbKey = `${estId}-${matId}-${gradoEstId}-${periodo}-${tipo}`
+      const existe = notasIngles[dbKey]
       const payload = { estudiante_id: parseInt(estId), materia_id: matId, grado_id: parseInt(gradoEstId), año_escolar: year, periodo: parseInt(periodo), tipo, nota: pendingIngles[key], docente_id: perfil.id }
       return existe
         ? supabase.from('notas').update({ nota: pendingIngles[key], docente_id: perfil.id }).eq('id', existe.id).select().single()
@@ -432,7 +451,13 @@ export default function Notas({ onVerEstudiante }) {
       toast.error('Hubo errores al guardar')
     } else {
       const nuevas = { ...notasIngles }
-      keys.forEach((key, i) => { if (results[i].data) nuevas[key] = results[i].data })
+      keys.forEach((key, i) => {
+        if (results[i].data) {
+          const parts = key.split('|')
+          const dbKey = `${parts[0]}-${parts[1]}-${parts[2]}-${parts[3]}-${parts[4]}`
+          nuevas[dbKey] = results[i].data
+        }
+      })
       setNotasIngles(nuevas); setPendingIngles({})
       toast.success('Cambios guardados', { duration: 2500, style: { fontSize: 13, fontWeight: 600, color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0' } })
     }
@@ -469,7 +494,7 @@ export default function Notas({ onVerEstudiante }) {
 
   // ── Estado actividades cotidianas ─────────────────────────
   function setPreviewVal(estId, matId, periodo, tipo, val) {
-    const key = `${estId}-${matId}-${periodo}-${tipo}`
+    const key = `${estId}|${matId}|${periodo}|${tipo}`
     setPendingNotas(p => val === null
       ? Object.fromEntries(Object.entries(p).filter(([k]) => k !== key))
       : { ...p, [key]: val }
@@ -664,8 +689,8 @@ export default function Notas({ onVerEstudiante }) {
               const nfts = Array.from({ length: numPeriodos }, (_, i) => calcNFT(componentes, getNotasMap(est.id, materiaId, i + 1)))
               const validos = nfts.filter(v => v !== null)
               const notaFinal = validos.length ? validos.reduce((a, b) => a + b, 0) / validos.length : null
-              const tienePendientes = Object.keys(pendingNotas).some(k => k.startsWith(`${est.id}-`)) ||
-                                     Object.keys(pendingActs).some(k => k.startsWith(`${est.id}-`))
+              const tienePendientes = Object.keys(pendingNotas).some(k => k.startsWith(`${est.id}|`)) ||
+                                     Object.keys(pendingActs).some(k => k.startsWith(`${est.id}|`))
               return (
                 <tr key={est.id} style={{ borderTop: '1px solid #f3eeff', background: tienePendientes ? '#fffbeb' : idx % 2 === 0 ? '#fff' : '#fdfcff' }}>
                   <td style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, color: '#3d1f61', whiteSpace: 'nowrap' }}>
@@ -711,8 +736,9 @@ export default function Notas({ onVerEstudiante }) {
                                   <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 3 }}>
                                     {Array.from({ length: numActividades }, (_, j) => {
                                       const num = j + 1
-                                      const actKey = `${est.id}-${materiaId}-${periodo}-${num}`
-                                      const actVal = pendingActs[actKey] !== undefined ? pendingActs[actKey] : (actividades[actKey] ?? null)
+                                      const actKey = `${est.id}|${materiaId}|${periodo}|${num}`
+                                      const dbKey  = `${est.id}-${materiaId}-${periodo}-${num}`
+                                      const actVal = pendingActs[actKey] !== undefined ? pendingActs[actKey] : (actividades[dbKey] ?? null)
                                       return (
                                         <div key={num} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                                           <span style={{ fontSize: 9, color: '#b0a8c0', fontWeight: 700, minWidth: 14 }}>A{num}</span>
@@ -894,7 +920,7 @@ export default function Notas({ onVerEstudiante }) {
                 const map = {}
                 for (const c of compIngles) {
                   const k = `${est.id}-${materiaInglesId}-${est.grado_id}-${p}-${c}`
-                  map[c] = previewIngles[k] !== undefined ? previewIngles[k] : (notasIngles[k]?.nota ?? null)
+                  map[c] = getValIngles(est.id, est.grado_id, p, c)
                 }
                 return calcNFT(compIngles, map)
               })
@@ -923,7 +949,7 @@ export default function Notas({ onVerEstudiante }) {
                                 disabled={!isPeriodoAbierto('bachillerato', p) && perfil?.rol !== 'registro_academico'}
                                 onPreview={() => {}}
                                 onChange={v => {
-                                  const k = `${est.id}-${materiaInglesId}-${est.grado_id}-${p}-${c}`
+                                  const k = `${est.id}|${materiaInglesId}|${est.grado_id}|${p}|${c}`
                                   setPendingIngles(prev => v === null
                                     ? Object.fromEntries(Object.entries(prev).filter(([key]) => key !== k))
                                     : { ...prev, [k]: v }
