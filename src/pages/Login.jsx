@@ -37,35 +37,109 @@ export default function Login() {
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        /* ── ROOT: fondo oscuro full-page ── */
         .lr {
           min-height: 100vh; width: 100vw;
           font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-          background: #0d0818;
+          background: #07030f;
           display: grid;
-          grid-template-columns: 1fr auto;
+          grid-template-columns: 1fr 500px;
           position: relative;
           overflow: hidden;
         }
 
-        /* Gradientes de ambiente */
-        .lr::before {
-          content: '';
-          position: fixed; inset: 0;
-          background:
-            radial-gradient(ellipse 60% 50% at 15% 85%, rgba(212,160,23,0.09) 0%, transparent 60%),
-            radial-gradient(ellipse 50% 60% at 85% 10%, rgba(91,45,142,0.18) 0%, transparent 60%),
-            radial-gradient(ellipse 40% 40% at 50% 50%, rgba(45,21,84,0.4) 0%, transparent 80%);
-          pointer-events: none;
-          z-index: 0;
+        /* ── BLOBS colores logo CBIS ── */
+        .blobs { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+        /* Violeta — círculo principal del logo */
+        .b1 {
+          position: absolute;
+          width: 600px; height: 600px; border-radius: 50%;
+          background: radial-gradient(circle, rgba(112,60,220,0.8) 0%, rgba(80,30,160,0.45) 45%, transparent 100%);
+          filter: blur(70px);
+          top: -150px; right: 120px;
+          animation: fa 9s ease-in-out infinite;
+        }
+        /* Naranja */
+        .b2 {
+          position: absolute;
+          width: 320px; height: 320px; border-radius: 50%;
+          background: radial-gradient(circle, rgba(234,88,12,0.7) 0%, rgba(194,65,12,0.35) 55%, transparent 100%);
+          filter: blur(55px);
+          top: 100px; right: 20px;
+          animation: fb 11s ease-in-out infinite;
+        }
+        /* Dorado/amarillo */
+        .b3 {
+          position: absolute;
+          width: 280px; height: 280px; border-radius: 50%;
+          background: radial-gradient(circle, rgba(212,160,23,0.65) 0%, rgba(180,130,0,0.3) 55%, transparent 100%);
+          filter: blur(50px);
+          bottom: 100px; right: 300px;
+          animation: fc 13s ease-in-out infinite;
+        }
+        /* Verde */
+        .b4 {
+          position: absolute;
+          width: 260px; height: 260px; border-radius: 50%;
+          background: radial-gradient(circle, rgba(22,163,74,0.6) 0%, rgba(15,120,55,0.28) 55%, transparent 100%);
+          filter: blur(55px);
+          bottom: -40px; right: 80px;
+          animation: fd 10s ease-in-out infinite;
         }
 
-        /* ── PANEL IZQUIERDO: headline ── */
+        @keyframes fa { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-18px,25px)} }
+        @keyframes fb { 0%,100%{transform:translate(0,0)} 50%{transform:translate(12px,-20px)} }
+        @keyframes fc { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-8px,18px)} }
+        @keyframes fd { 0%,100%{transform:translate(0,0)} 50%{transform:translate(16px,-12px)} }
+
+
+        /* Violeta — círculo principal del logo */
+        .b1 {
+          position: absolute;
+          width: 580px; height: 580px; border-radius: 50%;
+          background: radial-gradient(circle, rgba(112,60,220,0.75) 0%, rgba(80,30,160,0.4) 50%, transparent 100%);
+          filter: blur(72px);
+          top: -140px; right: 160px;
+          animation: fa 9s ease-in-out infinite;
+        }
+        /* Naranja */
+        .b2 {
+          position: absolute;
+          width: 340px; height: 340px; border-radius: 50%;
+          background: radial-gradient(circle, rgba(234,100,30,0.65) 0%, rgba(200,70,10,0.3) 55%, transparent 100%);
+          filter: blur(60px);
+          top: 120px; right: 30px;
+          animation: fb 11s ease-in-out infinite;
+        }
+        /* Dorado/amarillo */
+        .b3 {
+          position: absolute;
+          width: 300px; height: 300px; border-radius: 50%;
+          background: radial-gradient(circle, rgba(212,160,23,0.6) 0%, rgba(180,130,0,0.25) 55%, transparent 100%);
+          filter: blur(55px);
+          bottom: 80px; right: 280px;
+          animation: fc 13s ease-in-out infinite;
+        }
+        /* Verde */
+        .b4 {
+          position: absolute;
+          width: 280px; height: 280px; border-radius: 50%;
+          background: radial-gradient(circle, rgba(30,180,100,0.55) 0%, rgba(10,140,70,0.25) 55%, transparent 100%);
+          filter: blur(60px);
+          bottom: -60px; right: 60px;
+          animation: fd 10s ease-in-out infinite;
+        }
+
+        @keyframes fa { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-20px,30px) scale(1.05)} }
+        @keyframes fb { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(15px,-25px) scale(0.95)} }
+        @keyframes fc { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-10px,20px) scale(1.08)} }
+        @keyframes fd { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(20px,-15px) scale(0.97)} }
+
+        /* ── PANEL IZQUIERDO ── */
         .ll {
           position: relative; z-index: 1;
           display: flex; flex-direction: column;
           justify-content: space-between;
-          padding: 52px 64px 52px 64px;
+          padding: 52px 64px;
           min-height: 100vh;
         }
 
@@ -80,7 +154,7 @@ export default function Login() {
           text-transform: uppercase; color: #D4A017; margin-bottom: 24px;
           display: flex; align-items: center; gap: 12px;
         }
-        .ll-eyebrow::before { content: ''; width: 24px; height: 1.5px; background: #D4A017; border-radius: 2px; flex-shrink: 0; }
+        .ll-eyebrow::before { content: ''; width: 24px; height: 1.5px; background: #D4A017; flex-shrink: 0; }
 
         .ll-title {
           font-size: clamp(38px, 3.2vw, 56px);
@@ -100,34 +174,35 @@ export default function Login() {
           background: rgba(255,255,255,0.035);
         }
         .ll-pill strong { color: rgba(255,255,255,0.7); font-weight: 700; }
-
         .ll-footer { font-size: 11px; color: rgba(255,255,255,0.18); font-weight: 500; }
 
-        /* ── PANEL DERECHO: tarjeta blanca flotante ── */
+        /* ── PANEL DERECHO — frosted glass ── */
         .rr {
           position: relative; z-index: 1;
-          width: 460px;
           display: flex; align-items: center; justify-content: center;
-          padding: 48px 48px;
+          padding: 48px 40px;
         }
 
         .rr-card {
           width: 100%; max-width: 380px;
-          
+          background: rgba(14, 6, 28, 0.55);
+          backdrop-filter: blur(32px) saturate(1.6);
+          -webkit-backdrop-filter: blur(32px) saturate(1.6);
           border-radius: 24px;
           padding: 44px 40px;
+          border: 1px solid rgba(255,255,255,0.1);
           box-shadow:
-            0 0 0 1px rgba(0,0,0,0.06),
-            0 24px 64px rgba(0,0,0,0.45),
-            0 8px 24px rgba(0,0,0,0.25);
-          animation: fadeUp 0.45s cubic-bezier(0.16,1,0.3,1) both;
+            inset 0 1px 0 rgba(255,255,255,0.08),
+            0 32px 80px rgba(0,0,0,0.6),
+            0 8px 24px rgba(0,0,0,0.4);
+          animation: slideIn 0.5s cubic-bezier(0.16,1,0.3,1) both;
         }
-        @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(24px) scale(0.98); }
+        @keyframes slideIn {
+          from { opacity: 0; transform: translateY(28px) scale(0.97); }
           to   { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        /* Header del formulario */
+        /* Form header */
         .fh { margin-bottom: 36px; }
         .fh-tag {
           display: inline-flex; align-items: center; gap: 6px;
@@ -140,23 +215,21 @@ export default function Login() {
         .fh h2 { font-size: 24px; font-weight: 800; color: #fff; letter-spacing: -0.8px; margin-bottom: 5px; }
         .fh p { font-size: 13px; color: rgba(255,255,255,0.38); font-weight: 400; }
 
-        /* Inputs con borde inferior */
-        .fg { margin-bottom: 24px; }
+        /* Fields */
+        .fg { margin-bottom: 26px; }
         .fg-label {
           display: block; font-size: 10px; font-weight: 700;
-          color: rgba(255,255,255,0.3); text-transform: uppercase;
-          letter-spacing: 1.2px; margin-bottom: 10px;
-          transition: color 0.2s;
+          color: rgba(255,255,255,0.28); text-transform: uppercase;
+          letter-spacing: 1.2px; margin-bottom: 10px; transition: color 0.2s;
         }
         .fg:focus-within .fg-label { color: #D4A017; }
 
         .fg-row {
           display: flex; align-items: center; gap: 10px;
           border-bottom: 1px solid rgba(255,255,255,0.12);
-          padding-bottom: 10px;
-          transition: border-color 0.2s;
+          padding-bottom: 10px; transition: border-color 0.2s;
         }
-        .fg:focus-within .fg-row { border-color: #D4A017; }
+        .fg:focus-within .fg-row { border-color: rgba(212,160,23,0.7); }
 
         .fg-icon { color: rgba(255,255,255,0.22); flex-shrink: 0; display: flex; transition: color 0.2s; }
         .fg:focus-within .fg-icon { color: #D4A017; }
@@ -165,20 +238,22 @@ export default function Login() {
           flex: 1; border: none; outline: none;
           font-size: 14px; font-weight: 500;
           font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-          color: #fff; background: transparent; -webkit-text-fill-color: #fff;
+          color: #fff; background: transparent;
+          -webkit-text-fill-color: #fff;
         }
-        .fg-input::placeholder { color: rgba(255,255,255,0.2); -webkit-text-fill-color: rgba(255,255,255,0.2); font-weight: 400; }
+        .fg-input::placeholder { color: rgba(255,255,255,0.18); -webkit-text-fill-color: rgba(255,255,255,0.18); font-weight: 400; }
         .fg-input:-webkit-autofill,
         .fg-input:-webkit-autofill:hover,
         .fg-input:-webkit-autofill:focus {
-          -webkit-box-shadow: 0 0 0 1000px rgba(18,8,36,0.95) inset !important;
+          -webkit-box-shadow: 0 0 0 1000px rgba(14,6,28,0.98) inset !important;
           -webkit-text-fill-color: #fff !important;
+          transition: background-color 5000s ease-in-out 0s;
         }
 
         .fg-btn {
           background: none; border: none; cursor: pointer;
-          color: rgba(255,255,255,0.22); padding: 0; display: flex;
-          align-items: center; transition: color 0.2s;
+          color: rgba(255,255,255,0.22); padding: 0;
+          display: flex; align-items: center; transition: color 0.2s;
         }
         .fg-btn:hover { color: #D4A017; }
 
@@ -186,27 +261,26 @@ export default function Login() {
         .err {
           display: flex; align-items: center; gap: 8px;
           background: rgba(220,38,38,0.12); border: 1px solid rgba(220,38,38,0.25);
-          border-radius: 10px; padding: 10px 14px;
-          margin-bottom: 20px;
+          border-radius: 10px; padding: 10px 14px; margin-bottom: 20px;
           font-size: 13px; color: #f87171; font-weight: 500;
         }
 
-        /* Botón submit — púrpura oscuro */
+        /* Submit */
         .sbtn {
           width: 100%; padding: 14px;
-          background: linear-gradient(135deg, #1a0d30 0%, #5B2D8E 100%);
+          background: linear-gradient(135deg, #5B2D8E 0%, #7c3aed 100%);
           color: #fff; border: none; border-radius: 12px;
           font-size: 14px; font-weight: 800;
           font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-          cursor: pointer; letter-spacing: -0.1px;
+          cursor: pointer;
           transition: all 0.2s;
           position: relative; overflow: hidden;
-          box-shadow: 0 4px 20px rgba(91,45,142,0.4);
+          box-shadow: 0 4px 20px rgba(91,45,142,0.5), inset 0 1px 0 rgba(255,255,255,0.15);
           margin-bottom: 4px;
         }
-        .sbtn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 28px rgba(91,45,142,0.5); }
+        .sbtn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 28px rgba(91,45,142,0.65), inset 0 1px 0 rgba(255,255,255,0.15); }
         .sbtn:active:not(:disabled) { transform: translateY(0); }
-        .sbtn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .sbtn:disabled { opacity: 0.55; cursor: not-allowed; }
         .sbtn-shine {
           position: absolute; inset: 0;
           background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.12) 50%, transparent 65%);
@@ -225,43 +299,34 @@ export default function Login() {
 
         .rst-ok {
           margin-top: 14px; padding: 11px 14px;
-          background: #f0fdf4; border: 1px solid #bbf7d0;
+          background: rgba(22,163,74,0.12); border: 1px solid rgba(22,163,74,0.25);
           border-radius: 10px; font-size: 13px;
-          color: #16a34a; font-weight: 600;
+          color: #4ade80; font-weight: 600;
           display: flex; align-items: center; gap: 8px;
         }
 
-        .ff { margin-top: 28px; text-align: center; font-size: 11px; color: rgba(255,255,255,0.18); font-weight: 500; }
-
-        /* ── DECORACIÓN: línea vertical sutil entre paneles ── */
-        .sep {
-          position: absolute; left: 0; top: 10%; bottom: 10%;
-          width: 1px;
-          background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.08) 30%, rgba(0,0,0,0.08) 70%, transparent);
-        }
+        .ff { margin-top: 28px; text-align: center; font-size: 11px; color: rgba(255,255,255,0.15); font-weight: 500; }
 
         /* ── RESPONSIVE MÓVIL ── */
         @media (max-width: 768px) {
-          .lr { display: flex; flex-direction: column; background: linear-gradient(160deg, #0d0818 0%, #2d1554 55%, #3d1f61 100%); }
           .ll { display: none; }
-          .rr { width: 100%; padding: 0; align-items: flex-end; min-height: 100vh; flex-direction: column; justify-content: flex-end; }
-          .sep { display: none; }
-
+          .lr {
+            display: flex; flex-direction: column;
+            background: #07030f;
+          }
+          .rr {
+            flex: 1; padding: 0;
+            display: flex; flex-direction: column;
+            align-items: stretch; justify-content: flex-end;
+            min-height: 100vh;
+          }
           .rr-card {
-            width: 100%; max-width: 100%;
             border-radius: 28px 28px 0 0;
             padding: 12px 28px 52px;
-            background: rgba(18, 8, 36, 0.85);
-            backdrop-filter: blur(28px);
-            -webkit-backdrop-filter: blur(28px);
-            border-top: 1px solid rgba(255,255,255,0.1);
-            box-shadow: 0 -8px 40px rgba(0,0,0,0.5);
+            max-width: 100%;
           }
-
-          /* Branding en móvil — sobre la tarjeta */
           .rr-card::before {
-            content: '';
-            display: block;
+            content: ''; display: block;
             width: 40px; height: 3px;
             border-radius: 100px;
             background: rgba(255,255,255,0.15);
@@ -270,22 +335,20 @@ export default function Login() {
 
           .mob-brand {
             display: flex; flex-direction: column;
-            align-items: center; gap: 10px;
-            padding: 64px 32px 40px;
-            text-align: center;
-            flex: 1;
+            align-items: center; gap: 12px;
+            padding: 64px 32px 48px;
+            text-align: center; flex: 1;
           }
           .mob-logo { width: 64px; height: 64px; border-radius: 16px; object-fit: cover; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
           .mob-name { font-size: 28px; font-weight: 800; color: #fff; letter-spacing: -1px; display: flex; align-items: center; gap: 6px; }
-          .mob-lema { font-size: 13px; color: rgba(255,255,255,0.4); font-style: italic; }
+          .mob-lema { font-size: 13px; color: rgba(255,255,255,0.38); font-style: italic; }
           .mob-pills { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
-          .mob-pill { padding: 4px 11px; border-radius: 100px; font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); }
+          .mob-pill { padding: 4px 11px; border-radius: 100px; font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.38); border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); }
 
           .fh { margin-bottom: 24px; }
           .fh h2 { font-size: 21px; }
           .fh-tag { display: none; }
           .ff { margin-top: 20px; }
-          .rr-deco { display: none; }
         }
 
         @media (min-width: 769px) {
@@ -295,7 +358,15 @@ export default function Login() {
 
       <div className="lr">
 
-        {/* ── IZQUIERDA: headline ── */}
+        {/* Blobs de color */}
+        <div className="blobs">
+          <div className="b1" />
+          <div className="b2" />
+          <div className="b3" />
+          <div className="b4" />
+        </div>
+
+        {/* Panel izquierdo */}
         <div className="ll">
           <div className="ll-brand">
             <img src="/logo.png" alt="CBIS" className="ll-logo" />
@@ -307,7 +378,6 @@ export default function Login() {
               </svg>
             </div>
           </div>
-
           <div className="ll-center">
             <div className="ll-eyebrow">Portal Académico 2026</div>
             <h1 className="ll-title">
@@ -322,15 +392,11 @@ export default function Login() {
               <div className="ll-pill"><strong>+</strong> más</div>
             </div>
           </div>
-
-          <div className="ll-footer">© 2026 CBIS · Sonsonate, El Salvador</div>
+          <div className="ll-footer">© 2026 CBIS</div>
         </div>
 
-        {/* ── DERECHA: tarjeta blanca ── */}
+        {/* Panel derecho — frosted glass */}
         <div className="rr">
-          <div className="sep" />
-
-          {/* Branding móvil */}
           <div className="mob-brand">
             <img src="/logo.png" alt="CBIS" className="mob-logo" />
             <div className="mob-name">CBIS <svg width="18" height="18" viewBox="0 0 28 28" fill="none"><rect x="11" y="2" width="6" height="24" rx="3" fill="#D4A017"/><rect x="2" y="11" width="24" height="6" rx="3" fill="#D4A017"/></svg></div>
@@ -341,7 +407,7 @@ export default function Login() {
           <div className="rr-card">
             <div className="fh">
               <div className="fh-tag">
-                <svg width="7" height="7" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#5B2D8E"/></svg>
+                <svg width="7" height="7" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#D4A017"/></svg>
                 Sistema de gestión escolar
               </div>
               <h2>Bienvenido</h2>
@@ -383,7 +449,7 @@ export default function Login() {
 
               {error && (
                 <div className="err">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                   {error}
                 </div>
               )}
@@ -395,7 +461,7 @@ export default function Login() {
 
               {resetSent ? (
                 <div className="rst-ok">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                   Revisa tu correo — enlace enviado
                 </div>
               ) : (
@@ -405,7 +471,7 @@ export default function Login() {
               )}
             </form>
 
-            <div className="ff">CBIS · Colegio Bautista Internacional de Sonsonate</div>
+            <div className="ff">CBIS · Sonsonate, El Salvador</div>
           </div>
         </div>
       </div>
