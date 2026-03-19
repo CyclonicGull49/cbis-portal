@@ -121,10 +121,13 @@ export default function Login() {
         /* ── PANEL DERECHO — blanco limpio ── */
         .rr {
           width: 480px; min-width: 380px;
-          background: #fff;
+          background: rgba(255,255,255,0.08);
+          backdrop-filter: blur(40px) saturate(1.8);
+          -webkit-backdrop-filter: blur(40px) saturate(1.8);
           display: flex; align-items: center; justify-content: center;
           padding: 64px 56px;
-          box-shadow: -8px 0 40px rgba(0,0,0,0.15);
+          border-left: 1px solid rgba(255,255,255,0.12);
+          box-shadow: inset 1px 0 0 rgba(255,255,255,0.08);
         }
 
         .rr-inner {
@@ -138,55 +141,56 @@ export default function Login() {
 
         /* Form header */
         .fh { margin-bottom: 40px; }
-        .fh h2 { font-size: 26px; font-weight: 800; color: #1a0d30; letter-spacing: -0.8px; margin-bottom: 6px; }
-        .fh p { font-size: 13px; color: #9ca3af; font-weight: 400; }
+        .fh h2 { font-size: 26px; font-weight: 800; color: #fff; letter-spacing: -0.8px; margin-bottom: 6px; }
+        .fh p { font-size: 13px; color: rgba(255,255,255,0.45); font-weight: 400; }
 
         /* Fields — underline style */
         .fg { margin-bottom: 28px; }
         .fg-label {
           display: block; font-size: 10px; font-weight: 700;
-          color: #9ca3af; text-transform: uppercase;
+          color: rgba(255,255,255,0.35); text-transform: uppercase;
           letter-spacing: 1.2px; margin-bottom: 10px; transition: color 0.2s;
         }
-        .fg:focus-within .fg-label { color: #5B2D8E; }
+        .fg:focus-within .fg-label { color: #D4A017; }
 
         .fg-row {
           display: flex; align-items: center; gap: 10px;
-          border-bottom: 1.5px solid #e5e7eb;
+          border-bottom: 1px solid rgba(255,255,255,0.18);
           padding-bottom: 10px; transition: border-color 0.2s;
         }
-        .fg:focus-within .fg-row { border-color: #5B2D8E; }
+        .fg:focus-within .fg-row { border-color: rgba(212,160,23,0.7); }
 
-        .fg-icon { color: #d1d5db; flex-shrink: 0; display: flex; transition: color 0.2s; }
-        .fg:focus-within .fg-icon { color: #5B2D8E; }
+        .fg-icon { color: rgba(255,255,255,0.25); flex-shrink: 0; display: flex; transition: color 0.2s; }
+        .fg:focus-within .fg-icon { color: #D4A017; }
 
         .fg-input {
           flex: 1; border: none; outline: none;
           font-size: 15px; font-weight: 500;
           font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-          color: #111827; background: transparent;
+          color: #fff; background: transparent; -webkit-text-fill-color: #fff;
         }
-        .fg-input::placeholder { color: #d1d5db; font-weight: 400; }
+        .fg-input::placeholder { color: rgba(255,255,255,0.22); -webkit-text-fill-color: rgba(255,255,255,0.22); font-weight: 400; }
         .fg-input:-webkit-autofill,
         .fg-input:-webkit-autofill:hover,
         .fg-input:-webkit-autofill:focus {
-          -webkit-box-shadow: 0 0 0 1000px #fff inset !important;
-          -webkit-text-fill-color: #111827 !important;
+          -webkit-box-shadow: 0 0 0 1000px rgba(45,21,84,0.0) inset !important;
+          -webkit-text-fill-color: #fff !important;
+          transition: background-color 5000s ease-in-out 0s;
         }
 
         .fg-btn {
           background: none; border: none; cursor: pointer;
-          color: #d1d5db; padding: 0; display: flex;
+          color: rgba(255,255,255,0.25); padding: 0; display: flex;
           align-items: center; transition: color 0.2s;
         }
-        .fg-btn:hover { color: #5B2D8E; }
+        .fg-btn:hover { color: #D4A017; }
 
         /* Error */
         .err {
           display: flex; align-items: center; gap: 8px;
-          background: #fef2f2; border: 1px solid #fecaca;
+          background: rgba(220,38,38,0.12); border: 1px solid rgba(220,38,38,0.3);
           border-radius: 10px; padding: 10px 14px; margin-bottom: 20px;
-          font-size: 13px; color: #dc2626; font-weight: 500;
+          font-size: 13px; color: #fca5a5; font-weight: 500;
         }
 
         /* Submit — púrpura del sidebar */
@@ -213,22 +217,22 @@ export default function Login() {
 
         .fbtn {
           width: 100%; background: none; border: none;
-          color: #c4bad4; font-size: 13px; font-weight: 500;
+          color: rgba(255,255,255,0.28); font-size: 13px; font-weight: 500;
           cursor: pointer; padding: 10px 0; margin-top: 2px;
           font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
           transition: color 0.2s;
         }
-        .fbtn:hover { color: #5B2D8E; }
+        .fbtn:hover { color: rgba(255,255,255,0.7); }
 
         .rst-ok {
           margin-top: 14px; padding: 11px 14px;
-          background: #f0fdf4; border: 1px solid #bbf7d0;
+          background: rgba(22,163,74,0.15); border: 1px solid rgba(22,163,74,0.3);
           border-radius: 10px; font-size: 13px;
-          color: #16a34a; font-weight: 600;
+          color: #4ade80; font-weight: 600;
           display: flex; align-items: center; gap: 8px;
         }
 
-        .ff { margin-top: 36px; text-align: center; font-size: 11px; color: #d1d5db; font-weight: 500; }
+        .ff { margin-top: 36px; text-align: center; font-size: 11px; color: rgba(255,255,255,0.18); font-weight: 500; }
 
         /* ── RESPONSIVE MÓVIL ── */
         @media (max-width: 768px) {
@@ -264,12 +268,15 @@ export default function Login() {
           .mob-pill { padding: 4px 12px; border-radius: 100px; font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.45); border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.06); }
 
           .mob-card {
-            background: #fff;
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
             border-radius: 28px 28px 0 0;
             padding: 36px 28px 52px;
+            border-top: 1px solid rgba(255,255,255,0.12);
             box-shadow: 0 -8px 32px rgba(0,0,0,0.2);
           }
-          .mob-card::before { content: ''; display: block; width: 40px; height: 3px; border-radius: 100px; background: #e5e7eb; margin: 0 auto 28px; }
+          .mob-card::before { content: ''; display: block; width: 40px; height: 3px; border-radius: 100px; background: rgba(255,255,255,0.15); margin: 0 auto 28px; }
           .fh { margin-bottom: 28px; }
           .fh h2 { font-size: 22px; }
           .ff { margin-top: 24px; }
