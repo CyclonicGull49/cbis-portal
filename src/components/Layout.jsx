@@ -340,6 +340,14 @@ export default function Layout({ pagina, setPagina, children }) {
         .nav-btn:hover { background: rgba(255,255,255,0.1) !important; color: #fff !important; }
         .bottom-btn:hover { background: rgba(91,45,142,0.08) !important; }
 
+        /* ── Safe area para notch y barra de navegación ── */
+        :root {
+          --sat: env(safe-area-inset-top, 0px);
+          --sar: env(safe-area-inset-right, 0px);
+          --sab: env(safe-area-inset-bottom, 0px);
+          --sal: env(safe-area-inset-left, 0px);
+        }
+
         /* Blobs del sidebar — versión suave */
         .sb-blob-v {
           position: absolute; border-radius: 50%; pointer-events: none;
@@ -432,7 +440,7 @@ export default function Layout({ pagina, setPagina, children }) {
           </div>
 
           {/* Página */}
-          <div style={{ flex: 1, padding: isMobile ? 16 : 28, overflowY: 'auto' }}>
+          <div style={{ flex: 1, padding: isMobile ? 16 : 28, overflowY: 'auto', paddingBottom: isMobile ? 'calc(76px + env(safe-area-inset-bottom, 0px))' : 28 }}>
             {children}
           </div>
         </div>
@@ -448,7 +456,7 @@ export default function Layout({ pagina, setPagina, children }) {
 
             {/* Panel "Más" */}
             {masOpen && masItems.length > 0 && (
-              <div style={{ position: 'fixed', bottom: 64, left: 0, right: 0, background: '#fff', borderTop: '1px solid #e5e7eb', borderRadius: '16px 16px 0 0', zIndex: 200, padding: '16px 8px 8px', boxShadow: '0 -4px 24px rgba(61,31,97,0.12)' }}>
+              <div style={{ position: 'fixed', bottom: 'calc(60px + env(safe-area-inset-bottom, 0px))', left: 0, right: 0, background: '#fff', borderTop: '1px solid #e5e7eb', borderRadius: '16px 16px 0 0', zIndex: 200, padding: '16px 8px 8px', boxShadow: '0 -4px 24px rgba(61,31,97,0.12)' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4 }}>
                   {masItems.map(item => {
                     const activo = pagina === item.id
@@ -471,7 +479,8 @@ export default function Layout({ pagina, setPagina, children }) {
             )}
 
             {/* Barra inferior */}
-            <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: 64, background: '#fff', borderTop: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', zIndex: 200, boxShadow: '0 -2px 16px rgba(61,31,97,0.1)' }}>
+            <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff', borderTop: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', zIndex: 200, boxShadow: '0 -2px 16px rgba(61,31,97,0.1)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+              <div style={{ display: 'flex', width: '100%', height: 60 }}>
               {barraItems.map(item => {
                 const activo = pagina === item.id
                 return (
@@ -493,6 +502,7 @@ export default function Layout({ pagina, setPagina, children }) {
                   <span style={{ fontSize: 10, fontWeight: masOpen ? 700 : 500, color: masOpen ? CBIS_COLORS.purple : '#9ca3af' }}>Más</span>
                 </button>
               )}
+              </div>
             </div>
           </>
         )}

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">CBIS+</string>
+    <string name="title_activity_main">CBIS+</string>
+    <string name="package_name">sv.edu.cbis.portal</string>
+    <string name="custom_url_scheme">sv.edu.cbis.portal</string>
+</resources>
