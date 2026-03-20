@@ -348,7 +348,7 @@ export default function Notas({ onVerEstudiante }) {
           mat = ms || []
         }
       }
-      setMaterias(mat); setMateriaId('todas'); setBusqueda('')
+      setMaterias(mat); setMateriaId(mat.length > 0 ? mat[0].id : 'todas'); setBusqueda('')
     }
     cargar()
   }, [gradoId, year])
