@@ -73,6 +73,7 @@ const NIVEL_COLOR = {
 function DashboardHome() {
   const { perfil } = useAuth()
   const rol = perfil?.rol
+  const isMobile = window.innerWidth < 768
 
   const verFinanzas  = ['admin', 'recepcion', 'direccion_academica'].includes(rol)
   const verAcademico = ['admin', 'direccion_academica', 'registro_academico'].includes(rol)
