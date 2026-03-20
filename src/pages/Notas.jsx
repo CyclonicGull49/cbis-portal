@@ -837,6 +837,19 @@ export default function Notas({ onVerEstudiante }) {
     const periodos = Array.from({ length: numPeriodos }, (_, i) => i + 1)
     return (
       <div>
+        {/* Botón guardar + indicador pendientes */}
+        {hayPendientes && (
+          <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'flex-end' }}>
+            <button onClick={guardarTodo} disabled={guardando}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 18px', borderRadius: 10, border: 'none', background: guardando ? '#c4bad4' : 'linear-gradient(135deg, #3d1f61, #5B2D8E)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: guardando ? 'not-allowed' : 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 12px rgba(91,45,142,0.3)' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+              </svg>
+              {guardando ? 'Guardando...' : `Guardar todo`}
+            </button>
+          </div>
+        )}
         {/* Selector período */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 16, overflowX: 'auto', paddingBottom: 4 }}>
           {periodos.map(p => (
@@ -861,19 +874,63 @@ export default function Notas({ onVerEstudiante }) {
                   </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: `repeat(${componentes.length}, 1fr)`, gap: 8 }}>
-                  {componentes.map(c => (
-                    <div key={c} style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>
-                        {LABELS[c]}
+                  {componentes.map(c => {
+                    const puedeEdit = puedeEditarPeriodo(materiaId, periodoMovil, est.id)
+                    if (c === 'ac') {
+                      const acVal = getAC(est.id, materiaId, periodoMovil)
+                      const expanded = expandAC[`${est.id}-${periodoMovil}`]
+                      return (
+                        <div key={c} style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>
+                            AC ({numActividades})
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                            <span style={{ fontSize: 14, fontWeight: 700, color: colorNota(acVal) }}>
+                              {acVal !== null ? acVal.toFixed(1) : '—'}
+                            </span>
+                            {puedeEdit && (
+                              <button onClick={() => toggleExpandAC(est.id, periodoMovil)}
+                                style={{ width: 22, height: 22, borderRadius: 4, border: '1px solid #d8c8f0', background: expanded ? '#5B2D8E' : '#f3eeff', color: expanded ? '#fff' : '#5B2D8E', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                  {expanded ? <polyline points="18 15 12 9 6 15"/> : <polyline points="6 9 12 15 18 9"/>}
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+                          {expanded && puedeEdit && (
+                            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {Array.from({ length: numActividades }, (_, j) => {
+                                const num = j + 1
+                                const actKey = `${est.id}|${materiaId}|${periodoMovil}|${num}`
+                                const dbKey  = `${est.id}-${materiaId}-${periodoMovil}-${num}`
+                                const actVal = pendingActs[actKey] !== undefined ? pendingActs[actKey] : (actividades[dbKey] ?? null)
+                                return (
+                                  <div key={num} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <span style={{ fontSize: 10, color: '#b0a8c0', fontWeight: 700, minWidth: 20 }}>A{num}</span>
+                                    <NotaInput value={actVal} disabled={false} onPreview={() => {}}
+                                      onChange={v => setPendingActs(p => ({ ...p, [actKey]: v }))} />
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    }
+                    return (
+                      <div key={c} style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>
+                          {LABELS[c]}
+                        </div>
+                        <NotaInput
+                          value={getVal(est.id, materiaId, periodoMovil, c)}
+                          disabled={!puedeEdit}
+                          onPreview={() => {}}
+                          onChange={v => setPreviewVal(est.id, materiaId, periodoMovil, c, v)}
+                        />
                       </div>
-                      <NotaInput
-                        value={getVal(est.id, materiaId, periodoMovil, c)}
-                        disabled={!puedeEditarPeriodo(materiaId, periodoMovil, est.id)}
-                        onPreview={() => {}}
-                        onChange={v => setPreviewVal(est.id, materiaId, periodoMovil, c, v)}
-                      />
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             )
