@@ -169,11 +169,10 @@ function DashboardHome() {
         boxShadow: acento
           ? '0 8px 32px rgba(61,31,97,0.45)'
           : '0 2px 20px rgba(61,31,97,0.09)',
-        display: 'flex', flexDirection: isMobile && acento ? 'row' : 'column',
-        alignItems: isMobile && acento ? 'center' : undefined,
-        justifyContent: isMobile && acento ? 'space-between' : 'space-between',
+        display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
         position: 'relative', overflow: 'hidden',
-        minHeight: isMobile ? (acento ? 80 : 100) : 130,
+        minHeight: isMobile ? (acento ? 100 : 90) : 130,
+        maxHeight: isMobile && acento ? 120 : undefined,
       }}>
         {/* Blobs en card acento */}
         {acento && (<>

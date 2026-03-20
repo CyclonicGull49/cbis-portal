@@ -404,13 +404,13 @@ export default function Layout({ pagina, setPagina, children }) {
         )}
 
         {/* ── Contenido principal ── */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, paddingBottom: isMobile ? 64 : 0 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, paddingBottom: isMobile ? 'calc(60px + env(safe-area-inset-bottom, 0px))' : 0 }}>
 
           {/* Topbar + safe area — sticky juntos */}
           <div style={{ position: 'sticky', top: 0, zIndex: 50 }}>
-            {/* Safe area top púrpura */}
+            {/* Safe area top — cubre notch/dynamic island en iOS y barra en Android */}
             {isMobile && (
-              <div style={{ height: 'env(safe-area-inset-top, 0px)', background: '#1a0d30' }} />
+              <div style={{ height: 'env(safe-area-inset-top, 44px)', background: '#1a0d30', minHeight: 44 }} />
             )}
             {/* Topbar */}
             <div style={{ background: '#fff', padding: '0 20px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 2px 12px rgba(91,45,142,0.07)', borderBottom: '3px solid transparent', backgroundImage: 'linear-gradient(#fff, #fff), linear-gradient(90deg, #7B3FE4, #EA580C, #D4A017, #16A34A)', backgroundOrigin: 'border-box', backgroundClip: 'padding-box, border-box' }}>
