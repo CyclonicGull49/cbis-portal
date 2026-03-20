@@ -88,14 +88,18 @@ function NotaInput({ value, onChange, onPreview, disabled }) {
   return (
     <input
       type="number" min="0" max="10" step="0.1"
+      inputMode="decimal"
       value={local} disabled={disabled}
       onChange={handleChange} onBlur={handleBlur}
       style={{
         width: 52, padding: '5px 4px', borderRadius: 7, textAlign: 'center',
-        border: '1.5px solid #e5e7eb', fontSize: 12, fontWeight: 600,
+        border: '1.5px solid #e5e7eb',
+        fontSize: 16, fontWeight: 600,
+        transform: 'scale(0.75)', transformOrigin: 'center',
         background: disabled ? '#f9fafb' : '#fff',
         color: local === '' ? '#ccc' : parseFloat(local) < 5 ? '#dc2626' : '#3d1f61',
         fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', outline: 'none',
+        WebkitAppearance: 'none', MozAppearance: 'textfield',
       }}
     />
   )
