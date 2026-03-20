@@ -406,13 +406,14 @@ export default function Layout({ pagina, setPagina, children }) {
         {/* ── Contenido principal ── */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, paddingBottom: isMobile ? 64 : 0 }}>
 
-          {/* Safe area top — color púrpura en móvil */}
-          {isMobile && (
-            <div style={{ height: 'env(safe-area-inset-top, 0px)', background: '#1a0d30', flexShrink: 0 }} />
-          )}
-
-          {/* Topbar */}
-          <div style={{ background: '#fff', padding: '0 20px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 2px 12px rgba(91,45,142,0.07)', borderBottom: '3px solid transparent', backgroundImage: 'linear-gradient(#fff, #fff), linear-gradient(90deg, #7B3FE4, #EA580C, #D4A017, #16A34A)', backgroundOrigin: 'border-box', backgroundClip: 'padding-box, border-box', position: 'sticky', top: 0, zIndex: 50 }}>
+          {/* Topbar + safe area — sticky juntos */}
+          <div style={{ position: 'sticky', top: 0, zIndex: 50 }}>
+            {/* Safe area top púrpura */}
+            {isMobile && (
+              <div style={{ height: 'env(safe-area-inset-top, 0px)', background: '#1a0d30' }} />
+            )}
+            {/* Topbar */}
+            <div style={{ background: '#fff', padding: '0 20px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 2px 12px rgba(91,45,142,0.07)', borderBottom: '3px solid transparent', backgroundImage: 'linear-gradient(#fff, #fff), linear-gradient(90deg, #7B3FE4, #EA580C, #D4A017, #16A34A)', backgroundOrigin: 'border-box', backgroundClip: 'padding-box, border-box' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               {/* Hamburguesa en tablet */}
               {isTablet && (
@@ -443,6 +444,7 @@ export default function Layout({ pagina, setPagina, children }) {
               </div>
             )}
           </div>
+          </div>{/* fin sticky wrapper */}
 
           {/* Página */}
           <div style={{ flex: 1, padding: isMobile ? 16 : 28, overflowY: 'auto', paddingBottom: isMobile ? 'calc(76px + env(safe-area-inset-bottom, 0px))' : 28 }}>
