@@ -164,13 +164,15 @@ function DashboardHome() {
       <div style={{
         background: acento ? 'linear-gradient(135deg, #1a0d30 0%, #3d1f61 100%)' : '#fff',
         borderRadius: 16,
-        padding: '22px 24px',
+        padding: isMobile ? '16px 20px' : '22px 24px',
         boxShadow: acento
           ? '0 8px 32px rgba(61,31,97,0.45)'
           : '0 2px 20px rgba(61,31,97,0.09)',
-        display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+        display: 'flex', flexDirection: isMobile && acento ? 'row' : 'column',
+        alignItems: isMobile && acento ? 'center' : undefined,
+        justifyContent: isMobile && acento ? 'space-between' : 'space-between',
         position: 'relative', overflow: 'hidden',
-        minHeight: 130,
+        minHeight: isMobile ? (acento ? 80 : 100) : 130,
       }}>
         {/* Blobs en card acento */}
         {acento && (<>
@@ -209,7 +211,7 @@ function DashboardHome() {
       {/* ── Header ──────────────────────────────────────── */}
       <div style={{
         background: 'linear-gradient(135deg, #1a0d30 0%, #2d1554 50%, #5B2D8E 100%)',
-        borderRadius: 20, padding: '28px 32px', marginBottom: 24,
+        borderRadius: 20, padding: isMobile ? '20px 20px' : '28px 32px', marginBottom: 16,
         position: 'relative', overflow: 'hidden',
         boxShadow: '0 8px 32px rgba(61,31,97,0.35)',
       }}>
@@ -221,7 +223,7 @@ function DashboardHome() {
           <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginBottom: 6, letterSpacing: '0.5px' }}>
             {new Date().toLocaleDateString('es-SV', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </div>
-          <h1 style={{ color: '#fff', fontSize: 24, fontWeight: 800, letterSpacing: '-0.5px', margin: 0, marginBottom: 4 }}>
+          <h1 style={{ color: '#fff', fontSize: isMobile ? 20 : 24, fontWeight: 800, letterSpacing: '-0.5px', margin: 0, marginBottom: 4 }}>
             {saludo}, {perfil?.nombre}
           </h1>
           <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, margin: 0 }}>
@@ -231,7 +233,7 @@ function DashboardHome() {
       </div>
 
       {/* ── Fila 1: Estudiantes + distribución ─────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 16, marginBottom: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '220px 1fr', gap: 16, marginBottom: 16 }}>
 
         {/* Card acento — estudiantes */}
         <KpiCard
@@ -251,7 +253,7 @@ function DashboardHome() {
           {loading ? (
             <div style={{ color: '#c4bad4', fontSize: 13 }}>Cargando...</div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(160px, 1fr))', gap: isMobile ? 8 : 12 }}>
               {stats.porNivel.map(({ nivel, count }) => {
                 const cfg = NIVEL_COLOR[nivel] || { bg: '#f3f4f6', color: '#6b7280', bar: '#6b7280', label: nivel }
                 const pct = Math.round((count / stats.maxNivel) * 100)
@@ -273,7 +275,7 @@ function DashboardHome() {
 
       {/* ── Fila 2: KPIs finanzas ──────────────────────── */}
       {verFinanzas && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(200px, 1fr))', gap: isMobile ? 10 : 16, marginBottom: 16 }}>
           <KpiCard icon={<IcoCobradoHoy />} label="Cobrado hoy"        val={`$${stats.cobradoHoy.toFixed(2)}`}      sub="ingresos del día"                            color="#16a34a" />
           <KpiCard icon={<IcoMes />}        label="Cobrado este mes"   val={`$${stats.totalMes.toFixed(2)}`}        sub="ingresos del mes"                            color="#D4A017" />
           <KpiCard icon={<IcoPendiente />}  label="Pendiente de cobro" val={`$${stats.totalPendiente.toFixed(2)}`}  sub={`${stats.cobrosPendientes} cobros pendientes`} color="#c2410c" />
