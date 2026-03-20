@@ -188,15 +188,22 @@ function DashboardHome() {
           <div style={{ fontSize: 11, fontWeight: 700, color: acento ? 'rgba(255,255,255,0.55)' : '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
             {label}
           </div>
-          <div style={{ color: acento ? 'rgba(255,255,255,0.6)' : color }}>
-            {icon}
-          </div>
+          {!isMobile && (
+            <div style={{ color: acento ? 'rgba(255,255,255,0.6)' : color }}>
+              {icon}
+            </div>
+          )}
         </div>
-        <div style={{ position: 'relative' }}>
-          <div style={{ fontSize: 30, fontWeight: 900, color: acento ? '#fff' : color, letterSpacing: '-1px', lineHeight: 1, marginBottom: 4 }}>
-            {loading ? <Skeleton /> : val}
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: isMobile && acento ? 12 : 0 }}>
+          {isMobile && acento && (
+            <div style={{ color: 'rgba(255,255,255,0.6)', flexShrink: 0 }}>{icon}</div>
+          )}
+          <div>
+            <div style={{ fontSize: isMobile ? 26 : 30, fontWeight: 900, color: acento ? '#fff' : color, letterSpacing: '-1px', lineHeight: 1, marginBottom: 4 }}>
+              {loading ? <Skeleton /> : val}
+            </div>
+            <div style={{ fontSize: 11, fontWeight: 500, color: acento ? 'rgba(255,255,255,0.4)' : '#c4bad4' }}>{sub}</div>
           </div>
-          <div style={{ fontSize: 11, fontWeight: 500, color: acento ? 'rgba(255,255,255,0.4)' : '#c4bad4' }}>{sub}</div>
         </div>
       </div>
     )
