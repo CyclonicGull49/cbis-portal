@@ -1,5 +1,19 @@
 {
   "appId": "sv.edu.cbis.portal",
   "appName": "CBIS+",
-  "webDir": "dist"
+  "webDir": "dist",
+  "plugins": {
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#1a0d30",
+      "overlaysWebView": false
+    },
+    "SplashScreen": {
+      "launchShowDuration": 1500,
+      "launchAutoHide": true,
+      "backgroundColor": "#1a0d30",
+      "androidSplashResourceName": "splash",
+      "showSpinner": false
+    }
+  }
 }
