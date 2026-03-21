@@ -227,11 +227,17 @@ export default function Notas({ onVerEstudiante }) {
   const compIngles   = grupoInfo ? ['ac','ai','ep','ef'] : ['ac','ai','em','ef']
   const numPerIngles = 4
 
+  const [paginaNota, setPaginaNota] = useState(1)
+  const POR_PAGINA_NOTA = 10
+
   const estudiantesFiltrados = estudiantes.filter(e =>
     busqueda === '' ||
     `${e.nombre} ${e.apellido}`.toLowerCase().includes(busqueda.toLowerCase()) ||
     `${e.apellido} ${e.nombre}`.toLowerCase().includes(busqueda.toLowerCase())
   )
+
+  const totalPaginasNota = Math.ceil(estudiantesFiltrados.length / POR_PAGINA_NOTA)
+  const estudiantesPaginados = estudiantesFiltrados.slice((paginaNota - 1) * POR_PAGINA_NOTA, paginaNota * POR_PAGINA_NOTA)
 
   function puedeEditarMateria(matId) {
     if (!esDocenteTambien) return ['admin','registro_academico','direccion_academica','recepcion'].includes(perfil?.rol)
@@ -577,7 +583,7 @@ export default function Notas({ onVerEstudiante }) {
             </tr>
           </thead>
           <tbody>
-            {estudiantesFiltrados.map((est, idx) => {
+            {estudiantesPaginados.map((est, idx) => {
               const nftsPorMateria = materias.map(m => {
                 const vals = Array.from({ length: numPeriodos }, (_, i) => calcNFT(componentes, getNotasMap(est.id, m.id, i + 1))).filter(v => v !== null)
                 return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
@@ -605,6 +611,33 @@ export default function Notas({ onVerEstudiante }) {
             )}
           </tbody>
         </table>
+        {totalPaginasNota > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px 0', borderTop: '1px solid #f3eeff' }}>
+            <button onClick={() => setPaginaNota(p => Math.max(1, p - 1))} disabled={paginaNota === 1}
+              style={{ padding: '5px 12px', borderRadius: 8, border: '1.5px solid #e5e7eb', background: paginaNota === 1 ? '#f9fafb' : '#fff', color: paginaNota === 1 ? '#d1d5db' : '#5B2D8E', fontWeight: 700, fontSize: 12, cursor: paginaNota === 1 ? 'default' : 'pointer', fontFamily: 'inherit' }}>
+              ‹ Ant
+            </button>
+            {Array.from({ length: totalPaginasNota }, (_, i) => i + 1)
+              .filter(p => p === 1 || p === totalPaginasNota || Math.abs(p - paginaNota) <= 1)
+              .reduce((acc, p, i, arr) => {
+                if (i > 0 && p - arr[i-1] > 1) acc.push('...')
+                acc.push(p)
+                return acc
+              }, [])
+              .map((p, i) => p === '...'
+                ? <span key={`e${i}`} style={{ fontSize: 12, color: '#b0a8c0' }}>...</span>
+                : <button key={p} onClick={() => setPaginaNota(p)}
+                    style={{ width: 30, height: 30, borderRadius: 8, border: '1.5px solid', borderColor: paginaNota === p ? '#5B2D8E' : '#e5e7eb', background: paginaNota === p ? '#5B2D8E' : '#fff', color: paginaNota === p ? '#fff' : '#3d1f61', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    {p}
+                  </button>
+              )
+            }
+            <button onClick={() => setPaginaNota(p => Math.min(totalPaginasNota, p + 1))} disabled={paginaNota === totalPaginasNota}
+              style={{ padding: '5px 12px', borderRadius: 8, border: '1.5px solid #e5e7eb', background: paginaNota === totalPaginasNota ? '#f9fafb' : '#fff', color: paginaNota === totalPaginasNota ? '#d1d5db' : '#5B2D8E', fontWeight: 700, fontSize: 12, cursor: paginaNota === totalPaginasNota ? 'default' : 'pointer', fontFamily: 'inherit' }}>
+              Sig ›
+            </button>
+          </div>
+        )}
       </div>
     )
   }
@@ -1060,7 +1093,7 @@ export default function Notas({ onVerEstudiante }) {
                 <label style={s.label}>Grado</label>
                 <select style={s.select} value={gradoId || ''} onChange={e => {
                   const id = parseInt(e.target.value)
-                  setGradoId(id); setGradoInfo(grados.find(g => g.id === id)); setBusqueda('')
+                  setGradoId(id); setGradoInfo(grados.find(g => g.id === id)); setBusqueda(''); setPaginaNota(1)
                 }}>
                   <option value="">Selecciona un grado</option>
                   {grados.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
@@ -1069,7 +1102,7 @@ export default function Notas({ onVerEstudiante }) {
             )}
             <div style={{ flex: 1, minWidth: 160 }}>
               <label style={s.label}>Materia</label>
-              <select style={s.select} value={materiaId} onChange={e => { setMateriaId(e.target.value); setBusqueda('') }} disabled={!gradoId}>
+              <select style={s.select} value={materiaId} onChange={e => { setMateriaId(e.target.value); setBusqueda(''); setPaginaNota(1)  }} disabled={!gradoId}>
                 {!isMobile && <option value="todas">Ver todas las materias</option>}
                 {materias.map(m => (
                   <option key={m.id} value={m.id}>

@@ -642,7 +642,7 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion, perfil }) {
           <Dato label="Folio" val={estudiante.folio_partida} />
           <Dato label="Nº de libro" val={estudiante.libro_partida} />
           <Dato label="Tipo de ingreso" val={estudiante.tipo_ingreso} />
-          <Dato label="Correo institucional" val={estudiante.correo_institucional} />
+          <Dato label="Correo institucional" val={estudiante.email} />
           <Dato label="Institución de procedencia" val={estudiante.institucion_procedencia} />
           <Dato label="Dirección" val={estudiante.direccion} />
           <Dato label="Municipio" val={estudiante.municipio} />
@@ -908,6 +908,9 @@ export default function Estudiantes({ estudianteIdInicial, onVolver }) {
     setError('')
   }
 
+  const [paginaEst, setPaginaEst] = useState(1)
+  const POR_PAGINA_EST = 25
+
   const filtrados = estudiantes.filter(e => {
     const matchBusqueda =
       `${e.nombre} ${e.apellido}`.toLowerCase().includes(busqueda.toLowerCase()) ||
@@ -916,6 +919,9 @@ export default function Estudiantes({ estudianteIdInicial, onVolver }) {
     const matchGrado = !gradoFiltro || e.grado_id === parseInt(gradoFiltro)
     return matchBusqueda && matchGrado
   })
+
+  const totalPaginasEst = Math.ceil(filtrados.length / POR_PAGINA_EST)
+  const filtradosPaginados = filtrados.slice((paginaEst - 1) * POR_PAGINA_EST, paginaEst * POR_PAGINA_EST)
 
   function descargarPlantilla() {
     // Grados disponibles como comentario de referencia
@@ -1141,10 +1147,10 @@ export default function Estudiantes({ estudianteIdInicial, onVolver }) {
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
         <input style={{ ...s.search, flex: '1 1 220px', marginBottom: 0 }}
           placeholder="Buscar por nombre, grado o NIE..."
-          value={busqueda} onChange={e => setBusqueda(e.target.value)} />
+         value={busqueda} onChange={e => { setBusqueda(e.target.value); setPaginaEst(1) }}
+ />
         <select
-          value={gradoFiltro}
-          onChange={e => setGradoFiltro(e.target.value)}
+          value={gradoFiltro} onChange={e => { setGradoFiltro(e.target.value ? parseInt(e.target.value) : ''); setPaginaEst(1) }}
           style={{ flex: '0 0 180px', padding: '10px 14px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: 13, background: '#fff', color: gradoFiltro ? '#3d1f61' : '#9ca3af', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', cursor: 'pointer' }}>
           <option value="">Todos los grados</option>
           {grados.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
@@ -1169,7 +1175,7 @@ export default function Estudiantes({ estudianteIdInicial, onVolver }) {
               </tr>
             </thead>
             <tbody>
-              {filtrados.map((e, idx) => (
+              {filtradosPaginados.map((e, idx) => (
                 <tr key={e.id} style={{ ...s.tr, cursor: 'pointer', background: idx % 2 === 0 ? '#fff' : '#fdfcff' }} onClick={() => setEstudianteDetalle(e)}>
                   <td style={s.td}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -1193,8 +1199,34 @@ export default function Estudiantes({ estudianteIdInicial, onVolver }) {
             </tbody>
           </table>
         )}
+        {totalPaginasEst > 1 && !loading && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px 0', borderTop: '1px solid #f3eeff' }}>
+            <button onClick={() => setPaginaEst(p => Math.max(1, p - 1))} disabled={paginaEst === 1}
+              style={{ padding: '5px 12px', borderRadius: 8, border: '1.5px solid #e5e7eb', background: paginaEst === 1 ? '#f9fafb' : '#fff', color: paginaEst === 1 ? '#d1d5db' : '#5B2D8E', fontWeight: 700, fontSize: 12, cursor: paginaEst === 1 ? 'default' : 'pointer', fontFamily: 'inherit' }}>
+              ‹ Ant
+            </button>
+            {Array.from({ length: totalPaginasEst }, (_, i) => i + 1)
+              .filter(p => p === 1 || p === totalPaginasEst || Math.abs(p - paginaEst) <= 1)
+              .reduce((acc, p, i, arr) => {
+                if (i > 0 && p - arr[i-1] > 1) acc.push('...')
+                acc.push(p)
+                return acc
+              }, [])
+              .map((p, i) => p === '...'
+                ? <span key={`e${i}`} style={{ fontSize: 12, color: '#b0a8c0' }}>...</span>
+                : <button key={p} onClick={() => setPaginaEst(p)}
+                    style={{ width: 30, height: 30, borderRadius: 8, border: '1.5px solid', borderColor: paginaEst === p ? '#5B2D8E' : '#e5e7eb', background: paginaEst === p ? '#5B2D8E' : '#fff', color: paginaEst === p ? '#fff' : '#3d1f61', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    {p}
+                  </button>
+              )
+            }
+            <button onClick={() => setPaginaEst(p => Math.min(totalPaginasEst, p + 1))} disabled={paginaEst === totalPaginasEst}
+              style={{ padding: '5px 12px', borderRadius: 8, border: '1.5px solid #e5e7eb', background: paginaEst === totalPaginasEst ? '#f9fafb' : '#fff', color: paginaEst === totalPaginasEst ? '#d1d5db' : '#5B2D8E', fontWeight: 700, fontSize: 12, cursor: paginaEst === totalPaginasEst ? 'default' : 'pointer', fontFamily: 'inherit' }}>
+              Sig ›
+            </button>
+          </div>
+        )}
       </div>
-
       {/* Modal nuevo estudiante */}
       {modalAbierto && (
         <div style={s.modalBg} onClick={() => { setModalAbierto(false); resetForm() }}>

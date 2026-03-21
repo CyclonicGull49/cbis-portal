@@ -38,6 +38,10 @@ export default function Usuarios() {
   const [grados, setGrados]                 = useState([])
   const [estudiantes, setEstudiantes]       = useState([])
   const [resetando, setResetando]           = useState(null)
+  const [busquedaUsuarios, setBusquedaUsuarios] = useState('')
+  const [paginaStaff, setPaginaStaff]       = useState(1)
+  const [paginaAlumnos, setPaginaAlumnos]   = useState(1)
+  const POR_PAGINA = 25
   const [form, setForm] = useState({ nombre: '', apellido: '', email: '', rol: 'recepcion', grado_id: '', estudiante_id: '' })
 
   // ── Masivo ────────────────────────────────────────────────
@@ -183,7 +187,7 @@ export default function Usuarios() {
     { value: 'registro_academico',  label: 'Registro Académico' },
     { value: 'recepcion',           label: 'Recepción' },
     { value: 'docente',             label: 'Docente' },
-    { value: 'alumno',              label: 'Alumno' },
+    { value: 'talento_humano',      label: 'Talento Humano' },
   ]
 
   const rolColor = {
@@ -193,6 +197,7 @@ export default function Usuarios() {
     recepcion:           { bg: '#f3eeff', color: '#5B2D8E' },
     docente:             { bg: '#e0f7f6', color: '#0e9490' },
     alumno:              { bg: '#fff0e6', color: '#c2410c' },
+    talento_humano:      { bg: '#f0fdf4', color: '#166534' },
   }
 
   const rolLabel = {
@@ -202,6 +207,7 @@ export default function Usuarios() {
     recepcion:           'Recepción',
     docente:             'Docente',
     alumno:              'Alumno',
+    talento_humano:      'Talento Humano',
   }
 
   const staff   = usuarios.filter(u => u.rol !== 'alumno')
@@ -250,13 +256,27 @@ export default function Usuarios() {
     )
   }
 
-  function TablaUsuarios({ lista, titulo, colorAcento }) {
+  function TablaUsuarios({ lista, titulo, colorAcento, pagina, setPagina }) {
     if (!lista.length) return null
+
+    const filtrada = busquedaUsuarios
+      ? lista.filter(u =>
+          `${u.nombre} ${u.apellido}`.toLowerCase().includes(busquedaUsuarios.toLowerCase()) ||
+          u.email?.toLowerCase().includes(busquedaUsuarios.toLowerCase())
+        )
+      : lista
+
+    const totalPaginas = Math.ceil(filtrada.length / POR_PAGINA)
+    const inicio = (pagina - 1) * POR_PAGINA
+    const paginada = filtrada.slice(inicio, inicio + POR_PAGINA)
+
     return (
       <div style={{ marginBottom: 28 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
           <h2 style={{ fontSize: 15, fontWeight: 800, color: '#3d1f61', margin: 0 }}>{titulo}</h2>
-          <span style={{ fontSize: 11, fontWeight: 700, color: colorAcento, background: colorAcento + '18', padding: '2px 10px', borderRadius: 20 }}>{lista.length}</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: colorAcento, background: colorAcento + '18', padding: '2px 10px', borderRadius: 20 }}>
+            {filtrada.length}{busquedaUsuarios ? ` de ${lista.length}` : ''}
+          </span>
         </div>
         <div style={s.card}>
           <table style={s.table}>
@@ -268,7 +288,7 @@ export default function Usuarios() {
               </tr>
             </thead>
             <tbody>
-              {lista.map((u, idx) => (
+              {paginada.map((u, idx) => (
                 <tr key={u.id} style={{ ...s.tr, background: idx % 2 === 0 ? '#fff' : '#fdfcff' }}>
                   <td style={s.td}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -305,6 +325,33 @@ export default function Usuarios() {
               ))}
             </tbody>
           </table>
+          {totalPaginas > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px 0', borderTop: '1px solid #f3eeff' }}>
+              <button onClick={() => setPagina(p => Math.max(1, p - 1))} disabled={pagina === 1}
+                style={{ padding: '5px 12px', borderRadius: 8, border: '1.5px solid #e5e7eb', background: pagina === 1 ? '#f9fafb' : '#fff', color: pagina === 1 ? '#d1d5db' : '#5B2D8E', fontWeight: 700, fontSize: 12, cursor: pagina === 1 ? 'default' : 'pointer', fontFamily: 'inherit' }}>
+                ‹ Ant
+              </button>
+              {Array.from({ length: totalPaginas }, (_, i) => i + 1)
+                .filter(p => p === 1 || p === totalPaginas || Math.abs(p - pagina) <= 1)
+                .reduce((acc, p, i, arr) => {
+                  if (i > 0 && p - arr[i-1] > 1) acc.push('...')
+                  acc.push(p)
+                  return acc
+                }, [])
+                .map((p, i) => p === '...'
+                  ? <span key={`e${i}`} style={{ fontSize: 12, color: '#b0a8c0' }}>...</span>
+                  : <button key={p} onClick={() => setPagina(p)}
+                      style={{ width: 30, height: 30, borderRadius: 8, border: '1.5px solid', borderColor: pagina === p ? '#5B2D8E' : '#e5e7eb', background: pagina === p ? '#5B2D8E' : '#fff', color: pagina === p ? '#fff' : '#3d1f61', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      {p}
+                    </button>
+                )
+              }
+              <button onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))} disabled={pagina === totalPaginas}
+                style={{ padding: '5px 12px', borderRadius: 8, border: '1.5px solid #e5e7eb', background: pagina === totalPaginas ? '#f9fafb' : '#fff', color: pagina === totalPaginas ? '#d1d5db' : '#5B2D8E', fontWeight: 700, fontSize: 12, cursor: pagina === totalPaginas ? 'default' : 'pointer', fontFamily: 'inherit' }}>
+                Sig ›
+              </button>
+            </div>
+          )}
         </div>
       </div>
     )
@@ -330,12 +377,27 @@ export default function Usuarios() {
         </div>
       </div>
 
-      {loading ? (
+     {loading ? (
         <p style={{ textAlign: 'center', color: '#b0a8c0', padding: 48, fontSize: 13 }}>Cargando...</p>
       ) : (
         <>
-          <TablaUsuarios lista={staff} titulo="Personal" colorAcento="#5B2D8E" />
-          <TablaUsuarios lista={alumnos} titulo="Alumnos" colorAcento="#c2410c" />
+          <div style={{ position: 'relative', maxWidth: 360, marginBottom: 20 }}>
+            <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#b0a8c0' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            </span>
+            <input type="text" placeholder="Buscar por nombre o correo..."
+              value={busquedaUsuarios}
+              onChange={e => { setBusquedaUsuarios(e.target.value); setPaginaStaff(1); setPaginaAlumnos(1) }}
+              style={{ width: '100%', padding: '9px 14px 9px 34px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }}
+            />
+            {busquedaUsuarios && (
+              <button onClick={() => setBusquedaUsuarios('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#b0a8c0', fontSize: 16 }}>×</button>
+            )}
+          </div>
+          <TablaUsuarios lista={staff} titulo="Personal" colorAcento="#5B2D8E" pagina={paginaStaff} setPagina={setPaginaStaff} />
+          <TablaUsuarios lista={alumnos} titulo="Alumnos" colorAcento="#c2410c" pagina={paginaAlumnos} setPagina={setPaginaAlumnos} />
         </>
       )}
 
