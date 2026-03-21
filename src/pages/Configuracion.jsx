@@ -1,3 +1,4 @@
+import GruposIngles from '../components/GruposIngles'
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
@@ -542,6 +543,9 @@ export default function Configuracion() {
       )}
 
       </>)} {/* fin isAdmin */}
+      {(isAdmin || perfil?.rol === 'registro_academico' || perfil?.rol === 'docente') && (
+  <GruposIngles />
+)}
     </div>
   )
 }

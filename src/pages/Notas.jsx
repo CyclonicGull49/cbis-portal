@@ -28,6 +28,8 @@ function calcNFT(componentes, notasMap) {
   return componentes.reduce((sum, c) => sum + parseFloat(notasMap[c]) * PESOS[c], 0)
 }
 
+
+
 const nivelColor = {
   primera_infancia: { bg: '#e0f7f6', color: '#0e9490' },
   inicial:          { bg: '#e0f7f6', color: '#0e9490' },
@@ -48,8 +50,6 @@ function NotaInput({ value, onChange, onPreview, disabled }) {
   const timerRef = React.useRef(null)
 
   useEffect(() => { setLocal(value ?? '') }, [value])
-
-  // Limpiar timer al desmontar
   useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current) }, [])
 
   function tryGuardar(v) {
@@ -65,14 +65,11 @@ function NotaInput({ value, onChange, onPreview, disabled }) {
     const n = parseFloat(v)
     if (!isNaN(n) && n >= 0 && n <= 10) onPreview?.(Math.round(n * 10) / 10)
     else if (v === '') onPreview?.(null)
-
-    // Guardar automáticamente 800ms después de dejar de escribir
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => tryGuardar(v), 800)
   }
 
   function handleBlur() {
-    // Cancelar debounce y guardar inmediatamente al salir
     if (timerRef.current) clearTimeout(timerRef.current)
     const n = parseFloat(local)
     if (local === '' || local === null) { onChange(null); return }
@@ -111,10 +108,9 @@ export default function Notas({ onVerEstudiante }) {
   const bp = useBreakpoint()
   const isMobile = bp === 'mobile'
 
-  const esDocente      = perfil?.rol === 'docente'
-  const puedeEditar    = ['admin', 'registro_academico', 'docente'].includes(perfil?.rol)
+  const esDocente   = perfil?.rol === 'docente'
+  const puedeEditar = ['admin', 'registro_academico', 'docente'].includes(perfil?.rol)
 
-  // Admin que también tiene asignaciones → se trata como docente en Notas
   const [tieneAsignaciones, setTieneAsignaciones] = useState(false)
   const esDocenteTambien = esDocente || (perfil?.rol === 'admin' && tieneAsignaciones)
 
@@ -126,46 +122,45 @@ export default function Notas({ onVerEstudiante }) {
   }, [perfil])
 
   // ── Estado principal ──────────────────────────────────────
-  const [modo, setModo]               = useState('grados')
-  const [grados, setGrados]           = useState([])
-  const [gradoId, setGradoId]         = useState(null)
-  const [gradoInfo, setGradoInfo]     = useState(null)
-  const [materias, setMaterias]       = useState([])
+  const [modo, setModo]             = useState('grados')
+  const [grados, setGrados]         = useState([])
+  const [gradoId, setGradoId]       = useState(null)
+  const [gradoInfo, setGradoInfo]   = useState(null)
+  const [materias, setMaterias]     = useState([])
   const [misMateriasIds, setMisMateriasIds] = useState(new Set())
   const [esEncargado, setEsEncargado] = useState(false)
-  const [materiaId, setMateriaId]     = useState('todas')
+  const [materiaId, setMateriaId]   = useState('todas')
   const [estudiantes, setEstudiantes] = useState([])
-  const [notas, setNotas]             = useState({})
-  const [loading, setLoading]         = useState(false)
-  const [guardando, setGuardando]     = useState(false)
-  const [busqueda, setBusqueda]       = useState('')
+  const [notas, setNotas]           = useState({})
+  const [loading, setLoading]       = useState(false)
+  const [guardando, setGuardando]   = useState(false)
+  const [busqueda, setBusqueda]     = useState('')
   const [periodoMovil, setPeriodoMovil] = useState(1)
 
-  // ── Cambios pendientes (reemplaza preview/debounce) ───────
-  const [pendingNotas, setPendingNotas]   = useState({}) // key: estId-matId-periodo-tipo → valor
-  const [pendingActs, setPendingActs]     = useState({}) // key: estId-matId-periodo-num → valor
+  const [pendingNotas, setPendingNotas] = useState({})
+  const [pendingActs, setPendingActs]   = useState({})
   const hayPendientes = Object.keys(pendingNotas).length > 0 || Object.keys(pendingActs).length > 0
 
-  // ── Estado grupos inglés ──────────────────────────────────
-  const [grupos, setGrupos]               = useState([])
-  const [grupoId, setGrupoId]             = useState(null)
-  const [grupoInfo, setGrupoInfo]         = useState(null)
+  // ── Grupos inglés ─────────────────────────────────────────
+  const [grupos, setGrupos]             = useState([])
+  const [grupoId, setGrupoId]           = useState(null)
+  const [grupoInfo, setGrupoInfo]       = useState(null)
   const [materiaInglesId, setMateriaInglesId] = useState(null)
-  const [estGrupo, setEstGrupo]           = useState([])
-  const [notasIngles, setNotasIngles]     = useState({})
+  const [estGrupo, setEstGrupo]         = useState([])
+  const [notasIngles, setNotasIngles]   = useState({})
   const [pendingIngles, setPendingIngles] = useState({})
   const [loadingIngles, setLoadingIngles] = useState(false)
 
-  // ── Estado actividades cotidianas ─────────────────────────
-  const [actividades, setActividades] = useState({})
-  const [expandAC, setExpandAC]       = useState({})
+  // ── Actividades + competencias ────────────────────────────
+  const [actividades, setActividades]       = useState({})
+  const [expandAC, setExpandAC]             = useState({})
 
   const year = yearEscolar || new Date().getFullYear()
   const { isPeriodoAbierto } = usePeriodosNotas(year)
 
-  // ── Solicitudes por estudiante ────────────────────────────
-  const [solicitudes, setSolicitudes]       = useState([])
-  const [modalSolicitud, setModalSolicitud] = useState(null) // { matId, periodo, estId, estNombre }
+  // ── Solicitudes ───────────────────────────────────────────
+  const [solicitudes, setSolicitudes]         = useState([])
+  const [modalSolicitud, setModalSolicitud]   = useState(null)
   const [motivoSolicitud, setMotivoSolicitud] = useState('')
   const [enviandoSolicitud, setEnviandoSolicitud] = useState(false)
 
@@ -229,9 +224,8 @@ export default function Notas({ onVerEstudiante }) {
   const numActividades = gradoInfo?.nivel === 'bachillerato' ? 5 : 7
   const nivel          = nivelColor[gradoInfo?.nivel] || nivelColor.primaria
 
-  // Componentes inglés (bachillerato usa ep en vez de em)
-  const compIngles  = grupoInfo ? (['ac','ai','ep','ef']) : ['ac','ai','em','ef']
-  const numPerIngles = 4 // inglés siempre 4 períodos (bimestral)
+  const compIngles   = grupoInfo ? ['ac','ai','ep','ef'] : ['ac','ai','em','ef']
+  const numPerIngles = 4
 
   const estudiantesFiltrados = estudiantes.filter(e =>
     busqueda === '' ||
@@ -272,13 +266,19 @@ export default function Notas({ onVerEstudiante }) {
   function toggleExpandAC(estId, periodo) {
     setExpandAC(prev => ({ ...prev, [`${estId}-${periodo}`]: !prev[`${estId}-${periodo}`] }))
   }
+  function setPreviewVal(estId, matId, periodo, tipo, val) {
+    const key = `${estId}|${matId}|${periodo}|${tipo}`
+    setPendingNotas(p => val === null
+      ? Object.fromEntries(Object.entries(p).filter(([k]) => k !== key))
+      : { ...p, [key]: val }
+    )
+  }
 
-  // ── Cargar grados + grupos al iniciar ─────────────────────
+  // ── Cargar grados + grupos ────────────────────────────────
   useEffect(() => {
     if (!perfil) return
     async function cargar() {
       if (esDocenteTambien) {
-        // Grados desde asignaciones
         const { data: asig } = await supabase
           .from('asignaciones')
           .select('grado_id, grados(id, nombre, nivel, orden, componentes_nota, encargado_id)')
@@ -292,15 +292,10 @@ export default function Notas({ onVerEstudiante }) {
         lista.sort((a, b) => a.orden - b.orden)
         setGrados(lista)
         if (lista.length === 1) { setGradoId(lista[0].id); setGradoInfo(lista[0]) }
-
-        // Grupos especiales de inglés
         const { data: grps } = await supabase
-          .from('grupos_especiales')
-          .select('id, nombre, materia')
+          .from('grupos_especiales').select('id, nombre, materia')
           .eq('docente_id', perfil.id).eq('año_escolar', year)
         setGrupos(grps || [])
-
-        // ID de la materia Inglés
         const { data: matIng } = await supabase
           .from('materias').select('id').ilike('nombre', 'inglés').single()
         setMateriaInglesId(matIng?.id || null)
@@ -320,8 +315,6 @@ export default function Notas({ onVerEstudiante }) {
       const gInfo = grados.find(g => g.id === gradoId)
       const esEnc = esDocenteTambien && gInfo?.encargado_id === perfil?.id
       setEsEncargado(esEnc)
-
-      // Materias que puede EDITAR el docente
       let misIds = new Set()
       if (esDocenteTambien) {
         const { data: asig } = await supabase.from('asignaciones').select('materia_id')
@@ -329,19 +322,15 @@ export default function Notas({ onVerEstudiante }) {
         misIds = new Set((asig || []).map(a => a.materia_id))
         setMisMateriasIds(misIds)
       }
-
-      // Materias visibles: si es encargado o admin, todas; si no, solo las suyas
       let mat = []
       if (!esDocenteTambien || esEnc) {
-        const { data: mgs } = await supabase.from('materia_grado').select('materia_id')
-          .eq('grado_id', gradoId)
+        const { data: mgs } = await supabase.from('materia_grado').select('materia_id').eq('grado_id', gradoId)
         if (mgs?.length) {
           const { data: ms } = await supabase.from('materias').select('id, nombre')
             .in('id', mgs.map(m => m.materia_id)).order('nombre')
           mat = ms || []
         }
       } else {
-        // Docente no encargado: solo sus materias
         if (misIds.size > 0) {
           const { data: ms } = await supabase.from('materias').select('id, nombre')
             .in('id', Array.from(misIds)).order('nombre')
@@ -353,7 +342,7 @@ export default function Notas({ onVerEstudiante }) {
     cargar()
   }, [gradoId, year])
 
-  // ── Cargar estudiantes y notas del grado ──────────────────
+  // ── Cargar estudiantes, notas y competencias ──────────────
   useEffect(() => { if (gradoId) cargarDatos() }, [gradoId, year])
 
   async function cargarDatos() {
@@ -373,13 +362,13 @@ export default function Notas({ onVerEstudiante }) {
     setLoading(false)
   }
 
+  // ── Guardar notas ─────────────────────────────────────────
   async function guardarTodo() {
     if (!hayPendientes) return
     setGuardando(true)
     const ops = []
     const keysNotas = Object.keys(pendingNotas)
     const keysActs  = Object.keys(pendingActs)
-
     for (const key of keysNotas) {
       const parts = key.split('|')
       const estId = parts[0], matId = parts[1], periodo = parts[2], tipo = parts[3]
@@ -401,7 +390,6 @@ export default function Notas({ onVerEstudiante }) {
         nota: pendingActs[key], docente_id: perfil.id
       }, { onConflict: 'estudiante_id,materia_id,grado_id,año_escolar,periodo,numero' }))
     }
-
     const results = await Promise.all(ops)
     const errores = results.filter(r => r.error)
     if (errores.length > 0) {
@@ -422,8 +410,6 @@ export default function Notas({ onVerEstudiante }) {
         nuevasActs[dbKey] = pendingActs[key]
       })
       setActividades(nuevasActs)
-
-      // Recalcular promedios AC
       const combos = new Set(keysActs.map(k => k.split('|').slice(0, 3).join('|')))
       for (const combo of combos) {
         const [estId, matId, periodo] = combo.split('|')
@@ -442,7 +428,7 @@ export default function Notas({ onVerEstudiante }) {
       }
       setNotas(nuevasNotas)
       setPendingNotas({}); setPendingActs({})
-      toast.success(`Cambios guardados correctamente`, { duration: 2500, style: { fontSize: 13, fontWeight: 600, color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0' } })
+      toast.success('Cambios guardados correctamente', { duration: 2500, style: { fontSize: 13, fontWeight: 600, color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0' } })
     }
     setGuardando(false)
   }
@@ -479,7 +465,39 @@ export default function Notas({ onVerEstudiante }) {
     setGuardando(false)
   }
 
-  // ── Cargar estudiantes del grupo inglés ───────────────────
+  async function guardarCompetencias() {
+    if (!hayPendientesComp) return
+    setGuardando(true)
+    const keys = Object.keys(pendingComp)
+    const ops = keys.map(key => {
+      const [estId, periodo, ...compParts] = key.split('|')
+      const competencia = compParts.join('|')
+      const valor = pendingComp[key]
+      const dbKey = `${estId}-${periodo}-${competencia}`
+      const existe = compCiudadanas[dbKey]
+      const payload = { estudiante_id: parseInt(estId), grado_id: gradoId, año_escolar: year, periodo: parseInt(periodo), competencia, valor, docente_id: perfil.id }
+      return existe
+        ? supabase.from('competencias_ciudadanas').update({ valor, docente_id: perfil.id, updated_at: new Date() }).eq('id', existe.id).select().single()
+        : supabase.from('competencias_ciudadanas').insert(payload).select().single()
+    })
+    const results = await Promise.all(ops)
+    if (results.some(r => r.error)) {
+      toast.error('Error al guardar competencias')
+    } else {
+      const nuevas = { ...compCiudadanas }
+      keys.forEach((key, i) => {
+        if (results[i].data) {
+          const [estId, periodo, ...compParts] = key.split('|')
+          nuevas[`${estId}-${periodo}-${compParts.join('|')}`] = results[i].data
+        }
+      })
+      setCompCiudadanas(nuevas); setPendingComp({})
+      toast.success('Competencias guardadas', { duration: 2500, style: { fontSize: 13, fontWeight: 600, color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0' } })
+    }
+    setGuardando(false)
+  }
+
+  // ── Cargar grupo inglés ───────────────────────────────────
   useEffect(() => {
     if (!grupoId || !materiaInglesId) return
     setLoadingIngles(true); setPendingIngles({})
@@ -503,41 +521,14 @@ export default function Notas({ onVerEstudiante }) {
     cargar()
   }, [grupoId, materiaInglesId, year])
 
-  function toggleExpandAC(estId, periodo) {
-    setExpandAC(prev => ({ ...prev, [`${estId}-${periodo}`]: !prev[`${estId}-${periodo}`] }))
-  }
-
-  // ── Estado actividades cotidianas ─────────────────────────
-  function setPreviewVal(estId, matId, periodo, tipo, val) {
-    const key = `${estId}|${matId}|${periodo}|${tipo}`
-    setPendingNotas(p => val === null
-      ? Object.fromEntries(Object.entries(p).filter(([k]) => k !== key))
-      : { ...p, [key]: val }
-    )
-  }
-
-  function getAC(estId, matId, periodo) {
-    const acts = Array.from({ length: numActividades }, (_, i) => {
-      const key = `${estId}-${matId}-${periodo}-${i + 1}`
-      return pendingActs[key] !== undefined ? pendingActs[key] : actividades[key]
-    }).filter(v => v !== null && v !== undefined)
-    if (acts.length === 0) return null
-    return acts.reduce((a, b) => a + b, 0) / acts.length
-  }
-
-  // ── Nombre clickeable ──────────────────────────────────────
+  // ── Componentes de UI ─────────────────────────────────────
   function NombreEstudiante({ est }) {
     const canClick = !!onVerEstudiante
     return (
       <td style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, color: canClick ? '#5B2D8E' : '#3d1f61', whiteSpace: 'nowrap' }}>
         <span
           onClick={() => canClick && onVerEstudiante(est.id)}
-          style={{
-            cursor: canClick ? 'pointer' : 'default',
-            borderBottom: canClick ? '1px dashed #c9b8e8' : 'none',
-            paddingBottom: canClick ? 1 : 0,
-            transition: 'color 0.15s',
-          }}
+          style={{ cursor: canClick ? 'pointer' : 'default', borderBottom: canClick ? '1px dashed #c9b8e8' : 'none', paddingBottom: canClick ? 1 : 0, transition: 'color 0.15s' }}
           onMouseEnter={e => { if (canClick) e.target.style.color = '#3d1f61' }}
           onMouseLeave={e => { if (canClick) e.target.style.color = '#5B2D8E' }}
         >
@@ -547,7 +538,6 @@ export default function Notas({ onVerEstudiante }) {
     )
   }
 
-  // ── Barra de búsqueda ──────────────────────────────────────
   function BarraBusqueda() {
     if (!gradoId || !estudiantes.length) return null
     return (
@@ -557,17 +547,8 @@ export default function Notas({ onVerEstudiante }) {
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
         </span>
-        <input
-          type="text"
-          placeholder="Buscar estudiante..."
-          value={busqueda}
-          onChange={e => setBusqueda(e.target.value)}
-          style={{
-            width: '100%', padding: '10px 14px 10px 34px', borderRadius: 10,
-            border: '1.5px solid #e5e7eb', fontSize: 13, background: '#fff',
-            color: '#222', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif',
-            outline: 'none', boxSizing: 'border-box',
-          }}
+        <input type="text" placeholder="Buscar estudiante..." value={busqueda} onChange={e => setBusqueda(e.target.value)}
+          style={{ width: '100%', padding: '10px 14px 10px 34px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: 13, background: '#fff', color: '#222', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', outline: 'none', boxSizing: 'border-box' }}
         />
         {busqueda && (
           <button onClick={() => setBusqueda('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#b0a8c0', fontSize: 16, lineHeight: 1 }}>×</button>
@@ -576,7 +557,7 @@ export default function Notas({ onVerEstudiante }) {
     )
   }
 
-  // ── Tabla resumen ──────────────────────────────────────────
+  // ── Tabla resumen ─────────────────────────────────────────
   function TablaResumen() {
     return (
       <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', overflow: 'auto' }}>
@@ -628,7 +609,7 @@ export default function Notas({ onVerEstudiante }) {
     )
   }
 
-  // ── Tabla materia individual ───────────────────────────────
+  // ── Tabla materia ─────────────────────────────────────────
   function TablaMateria() {
     const materia = materias.find(m => m.id === materiaId)
     return (
@@ -671,10 +652,7 @@ export default function Notas({ onVerEstudiante }) {
                       {!abierto && (
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={desbloqueado ? '#16a34a' : '#dc2626'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                           <rect x="3" y="11" width="18" height="11" rx="2"/>
-                          {desbloqueado
-                            ? <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
-                            : <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                          }
+                          {desbloqueado ? <path d="M7 11V7a5 5 0 0 1 9.9-1"/> : <path d="M7 11V7a5 5 0 0 1 10 0v4"/>}
                         </svg>
                       )}
                       {periodoLabel} {p}
@@ -682,21 +660,22 @@ export default function Notas({ onVerEstudiante }) {
                   </th>
                 )
               })}
-              <th style={{ ...s.th, borderLeft: '2px solid #c9b8e8' }}>ACU</th>
+              <th rowSpan={2} style={{ ...s.th, borderLeft: '2px solid #c9b8e8', verticalAlign: 'middle' }}>
+                ACU<br/><span style={{ fontWeight: 900, color: '#5B2D8E' }}>Final</span>
+              </th>
             </tr>
             <tr style={{ background: '#f5f3ff' }}>
               <th style={s.th2} />
               {Array.from({ length: numPeriodos }, (_, i) => (
-                <>
+                <React.Fragment key={i}>
                   {componentes.map(c => (
                     <th key={`${i}-${c}`} style={{ ...s.th2, borderLeft: c === componentes[0] ? '2px solid #e9e3f5' : undefined }} title={FULL_LABELS[c]}>
                       {c === 'ac' ? `AC (${numActividades})` : LABELS[c]}
                     </th>
                   ))}
                   <th key={`${i}-nft`} style={{ ...s.th2, color: '#5B2D8E', fontWeight: 800 }}>NFT</th>
-                </>
+                </React.Fragment>
               ))}
-              <th style={{ ...s.th2, borderLeft: '2px solid #c9b8e8', color: '#5B2D8E', fontWeight: 800 }}>Final</th>
             </tr>
           </thead>
           <tbody>
@@ -781,7 +760,6 @@ export default function Notas({ onVerEstudiante }) {
                         <td style={{ padding: '6px 10px', textAlign: 'center', minWidth: 52, background: nft !== null ? 'rgba(91,45,142,0.04)' : 'transparent' }}>
                           <span style={{ fontSize: 13, fontWeight: 800, color: colorNota(nft) }}>{nft !== null ? nft.toFixed(2) : '—'}</span>
                         </td>
-                        {/* Solicitud por estudiante */}
                         {periodoCerrado && sinSolicitud && !desbloqueado && puedeEditarMateria(materiaId) && (
                           <td style={{ padding: '4px 6px', textAlign: 'center', borderLeft: '1px solid #f3eeff' }}>
                             <button onClick={() => { setModalSolicitud({ matId: materiaId, periodo, estId: est.id, estNombre: `${est.apellido}, ${est.nombre}` }); setMotivoSolicitud('') }}
@@ -826,7 +804,7 @@ export default function Notas({ onVerEstudiante }) {
     )
   }
 
-  // ── Vista móvil: tarjetas ─────────────────────────────────
+  // ── Vista móvil ───────────────────────────────────────────
   function VistaMóvil() {
     const mat = materias.find(m => m.id === materiaId)
     if (!mat) return (
@@ -837,7 +815,6 @@ export default function Notas({ onVerEstudiante }) {
     const periodos = Array.from({ length: numPeriodos }, (_, i) => i + 1)
     return (
       <div>
-        {/* Botón guardar + indicador pendientes */}
         {hayPendientes && (
           <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'flex-end' }}>
             <button onClick={guardarTodo} disabled={guardando}
@@ -846,11 +823,10 @@ export default function Notas({ onVerEstudiante }) {
                 <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
                 <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
               </svg>
-              {guardando ? 'Guardando...' : `Guardar todo`}
+              {guardando ? 'Guardando...' : 'Guardar todo'}
             </button>
           </div>
         )}
-        {/* Selector período */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 16, overflowX: 'auto', paddingBottom: 4 }}>
           {periodos.map(p => (
             <button key={p} onClick={() => setPeriodoMovil(p)}
@@ -859,7 +835,6 @@ export default function Notas({ onVerEstudiante }) {
             </button>
           ))}
         </div>
-        {/* Tarjetas */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {estudiantesFiltrados.map(est => {
             const map = getNotasMap(est.id, materiaId, periodoMovil)
@@ -881,13 +856,9 @@ export default function Notas({ onVerEstudiante }) {
                       const expanded = expandAC[`${est.id}-${periodoMovil}`]
                       return (
                         <div key={c} style={{ textAlign: 'center' }}>
-                          <div style={{ fontSize: 10, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>
-                            AC ({numActividades})
-                          </div>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>AC ({numActividades})</div>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                            <span style={{ fontSize: 14, fontWeight: 700, color: colorNota(acVal) }}>
-                              {acVal !== null ? acVal.toFixed(1) : '—'}
-                            </span>
+                            <span style={{ fontSize: 14, fontWeight: 700, color: colorNota(acVal) }}>{acVal !== null ? acVal.toFixed(1) : '—'}</span>
                             {puedeEdit && (
                               <button onClick={() => toggleExpandAC(est.id, periodoMovil)}
                                 style={{ width: 22, height: 22, borderRadius: 4, border: '1px solid #d8c8f0', background: expanded ? '#5B2D8E' : '#f3eeff', color: expanded ? '#fff' : '#5B2D8E', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -919,9 +890,7 @@ export default function Notas({ onVerEstudiante }) {
                     }
                     return (
                       <div key={c} style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>
-                          {LABELS[c]}
-                        </div>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>{LABELS[c]}</div>
                         <NotaInput
                           value={getVal(est.id, materiaId, periodoMovil, c)}
                           disabled={!puedeEdit}
@@ -987,50 +956,37 @@ export default function Notas({ onVerEstudiante }) {
           </thead>
           <tbody>
             {estGrupo.map((est, idx) => {
-              const compEst = est.grado_id ? (['ac','ai','ep','ef']) : compIngles // bachillerato usa ep
               const nfts = periodos.map(p => {
                 const map = {}
-                for (const c of compIngles) {
-                  const k = `${est.id}-${materiaInglesId}-${est.grado_id}-${p}-${c}`
-                  map[c] = getValIngles(est.id, est.grado_id, p, c)
-                }
+                for (const c of compIngles) map[c] = getValIngles(est.id, est.grado_id, p, c)
                 return calcNFT(compIngles, map)
               })
               const validos = nfts.filter(v => v !== null)
               const notaFinal = validos.length ? validos.reduce((a, b) => a + b, 0) / validos.length : null
-
               return (
                 <tr key={est.id} style={{ borderTop: '1px solid #f3eeff', background: idx % 2 === 0 ? '#fff' : '#fdfcff' }}>
-                  <td style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, color: '#3d1f61', whiteSpace: 'nowrap' }}>
-                    {est.apellido}, {est.nombre}
-                  </td>
-                  <td style={{ padding: '8px 10px', fontSize: 11, color: '#b0a8c0', whiteSpace: 'nowrap' }}>
-                    {est.grado_id}
-                  </td>
+                  <td style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, color: '#3d1f61', whiteSpace: 'nowrap' }}>{est.apellido}, {est.nombre}</td>
+                  <td style={{ padding: '8px 10px', fontSize: 11, color: '#b0a8c0', whiteSpace: 'nowrap' }}>{est.grado_id}</td>
                   {periodos.map(p => {
                     const nft = nfts[p - 1]
                     return (
                       <React.Fragment key={p}>
-                        {compIngles.map(c => {
-                          const k = `${est.id}-${materiaInglesId}-${est.grado_id}-${p}-${c}`
-                          const val = getValIngles(est.id, est.grado_id, p, c)
-                          return (
-                            <td key={c} style={{ padding: '6px 4px', borderLeft: c === compIngles[0] ? '2px solid #e9e3f5' : undefined, textAlign: 'center' }}>
-                              <NotaInput
-                                value={getValIngles(est.id, est.grado_id, p, c)}
-                                disabled={!isPeriodoAbierto('bachillerato', p) && perfil?.rol !== 'registro_academico'}
-                                onPreview={() => {}}
-                                onChange={v => {
-                                  const k = `${est.id}|${materiaInglesId}|${est.grado_id}|${p}|${c}`
-                                  setPendingIngles(prev => v === null
-                                    ? Object.fromEntries(Object.entries(prev).filter(([key]) => key !== k))
-                                    : { ...prev, [k]: v }
-                                  )
-                                }}
-                              />
-                            </td>
-                          )
-                        })}
+                        {compIngles.map(c => (
+                          <td key={c} style={{ padding: '6px 4px', borderLeft: c === compIngles[0] ? '2px solid #e9e3f5' : undefined, textAlign: 'center' }}>
+                            <NotaInput
+                              value={getValIngles(est.id, est.grado_id, p, c)}
+                              disabled={!isPeriodoAbierto('bachillerato', p) && perfil?.rol !== 'registro_academico'}
+                              onPreview={() => {}}
+                              onChange={v => {
+                                const k = `${est.id}|${materiaInglesId}|${est.grado_id}|${p}|${c}`
+                                setPendingIngles(prev => v === null
+                                  ? Object.fromEntries(Object.entries(prev).filter(([key]) => key !== k))
+                                  : { ...prev, [k]: v }
+                                )
+                              }}
+                            />
+                          </td>
+                        ))}
                         <td style={{ padding: '6px 8px', textAlign: 'center', background: nft !== null ? 'rgba(91,45,142,0.04)' : 'transparent' }}>
                           <span style={{ fontSize: 13, fontWeight: 800, color: colorNota(nft) }}>{nft !== null ? nft.toFixed(2) : '—'}</span>
                         </td>
@@ -1049,10 +1005,10 @@ export default function Notas({ onVerEstudiante }) {
     )
   }
 
+  // ── Render ────────────────────────────────────────────────
   return (
     <div style={{ fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
 
-      {/* Tabs modo — solo si docente tiene grupos inglés */}
       {esDocenteTambien && grupos.length > 0 && (
         <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '2px solid #f0f0f0' }}>
           <button onClick={() => setModo('grados')}
@@ -1068,7 +1024,6 @@ export default function Notas({ onVerEstudiante }) {
         </div>
       )}
 
-      {/* ── MODO GRUPOS INGLÉS ── */}
       {modo === 'ingles' && (
         <div>
           <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
@@ -1097,10 +1052,8 @@ export default function Notas({ onVerEstudiante }) {
         </div>
       )}
 
-      {/* ── MODO GRADOS ── */}
       {modo === 'grados' && (
         <>
-          {/* Selectores */}
           <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
             {(!esDocenteTambien || grados.length > 1) && (
               <div style={{ flex: 1, minWidth: 160 }}>
@@ -1133,7 +1086,6 @@ export default function Notas({ onVerEstudiante }) {
             )}
           </div>
 
-          {/* Aviso encargado */}
           {esEncargado && (
             <div style={{ marginBottom: 12, padding: '10px 16px', background: '#fffbeb', borderRadius: 10, fontSize: 12, color: '#92400e', fontWeight: 600, border: '1px solid #fde68a' }}>
               👁 Eres encargado de este grado — ves todas las materias. Las marcadas con 👁 son de solo lectura.
@@ -1162,7 +1114,7 @@ export default function Notas({ onVerEstudiante }) {
           )}
         </>
       )}
-      {/* Modal solicitud desbloqueo */}
+
       {modalSolicitud && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 16 }}
           onClick={() => setModalSolicitud(null)}>
@@ -1177,9 +1129,7 @@ export default function Notas({ onVerEstudiante }) {
                 {modalSolicitud.estNombre}
               </p>
             )}
-            <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#5B2D8E', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Motivo *
-            </label>
+            <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#5B2D8E', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Motivo *</label>
             <textarea
               value={motivoSolicitud}
               onChange={e => setMotivoSolicitud(e.target.value)}
