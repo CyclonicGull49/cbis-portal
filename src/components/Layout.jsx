@@ -99,6 +99,12 @@ const Icons = {
       <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
     </svg>
   ),
+  calendario: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+  ),
   reportes: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -139,7 +145,7 @@ function LogoCBIS({ size = 36 }) {
 const ROL_LABEL = {
   admin: 'Administrador', direccion_academica: 'Dirección Académica',
   registro_academico: 'Registro Académico', recepcion: 'Recepción',
-  docente: 'Docente', alumno: 'Alumno',
+  docente: 'Docente', alumno: 'Alumno', talento_humano: 'Talento Humano',
 }
 
 export default function Layout({ pagina, setPagina, children }) {
@@ -172,6 +178,7 @@ export default function Layout({ pagina, setPagina, children }) {
     { id: 'solicitudes',   label: 'Solicitudes',   icon: Icons.solicitudes },
     { id: 'reportes',      label: 'Reportes',      icon: Icons.reportes },
     { id: 'usuarios',      label: 'Usuarios',      icon: Icons.usuarios },
+    { id: 'calendario',    label: 'Calendario',    icon: Icons.calendario },
     { id: 'configuracion', label: 'Configuración', icon: Icons.configuracion },
   ]
   const menuRecepcion = [
@@ -190,6 +197,7 @@ export default function Layout({ pagina, setPagina, children }) {
     { id: 'contabilidad', label: 'Contabilidad', icon: Icons.contabilidad },
     { id: 'solicitudes',  label: 'Solicitudes',  icon: Icons.solicitudes },
     { id: 'reportes',     label: 'Reportes',     icon: Icons.reportes },
+    { id: 'calendario',   label: 'Calendario',   icon: Icons.calendario },
   ]
   const menuRegistro = [
     { id: 'dashboard',    label: 'Dashboard',    icon: Icons.dashboard },
@@ -201,6 +209,7 @@ export default function Layout({ pagina, setPagina, children }) {
     { id: 'cobros',       label: 'Cobros',       icon: Icons.cobros },
     { id: 'solicitudes',  label: 'Solicitudes',  icon: Icons.solicitudes },
     { id: 'reportes',     label: 'Reportes',     icon: Icons.reportes },
+    { id: 'calendario',   label: 'Calendario',   icon: Icons.calendario },
   ]
   const menuDocente = [
     { id: 'dashboard',    label: 'Dashboard',   icon: Icons.dashboard },
@@ -208,21 +217,34 @@ export default function Layout({ pagina, setPagina, children }) {
     { id: 'notas',        label: 'Notas',       icon: Icons.notas },
     { id: 'asistencia',   label: 'Asistencia',  icon: Icons.asistencia },
     { id: 'solicitudes',  label: 'Solicitudes', icon: Icons.solicitudes },
-    { id: 'reportes',     label: 'Reportes',    icon: Icons.reportes },
+    { id: 'reportes',    label: 'Reportes',    icon: Icons.reportes },
+    { id: 'calendario',  label: 'Calendario',  icon: Icons.calendario },
   ]
   const menuAlumno = [
     { id: 'mi-perfil',  label: 'Mi Perfil',      icon: Icons.estudiantes },
     { id: 'mis-notas',  label: 'Mis Notas',       icon: Icons.notas },
     { id: 'mis-cobros', label: 'Mis Cobros',      icon: Icons.cobros },
     { id: 'mis-docs',   label: 'Documentos',      icon: Icons.contabilidad },
-    { id: 'mi-config',  label: 'Configuración',   icon: Icons.configuracion },
+    { id: 'calendario', label: 'Calendario',     icon: Icons.calendario },
+    { id: 'mi-config',  label: 'Configuración',  icon: Icons.configuracion },
+  ]
+
+  const menuTalentoHumano = [
+    { id: 'dashboard',     label: 'Dashboard',     icon: Icons.dashboard },
+    { id: 'estudiantes',   label: 'Estudiantes',   icon: Icons.estudiantes },
+    { id: 'usuarios',      label: 'Usuarios',      icon: Icons.usuarios },
+    { id: 'calendario',    label: 'Calendario',    icon: Icons.calendario },
+    { id: 'reportes',      label: 'Reportes',      icon: Icons.reportes },
+    { id: 'configuracion', label: 'Configuración', icon: Icons.configuracion },
   ]
 
   const menuPorRol = {
     admin: menuAdmin, direccion_academica: menuDireccion,
     registro_academico: menuRegistro, recepcion: menuRecepcion,
     docente: menuDocente, alumno: menuAlumno,
+    talento_humano: menuTalentoHumano,
   }
+
   const menu = menuPorRol[perfil?.rol] || menuRecepcion
 
   // ── Barra inferior móvil: máx 4 ítems prioritarios + "Más" ──

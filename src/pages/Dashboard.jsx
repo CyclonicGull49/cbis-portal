@@ -14,6 +14,7 @@ import Boletas from './Boletas'
 import Asistencia from './Asistencia'
 import PerfilAlumno from './PerfilAlumno'
 import Solicitudes from './Solicitudes'
+import Calendario from './Calendario'
 
 // ── Iconos únicos por KPI ────────────────────────────────────
 const IcoEstudiantes = () => (
@@ -403,6 +404,7 @@ export default function Dashboard() {
       case 'estudiantes':   return <Estudiantes />
       case 'cobros':        return <Cobros />
       case 'notas':         return <Notas onVerEstudiante={id => setPagina(`perfil-estudiante-${id}`)} />
+      case 'calendario':    return <Calendario />
       case 'contabilidad':  return <Contabilidad />
       case 'usuarios':      return <Usuarios />
       case 'configuracion': return <Configuracion />
