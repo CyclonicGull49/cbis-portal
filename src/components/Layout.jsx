@@ -213,12 +213,11 @@ export default function Layout({ pagina, setPagina, children }) {
   ]
   const menuDocente = [
     { id: 'dashboard',    label: 'Dashboard',   icon: Icons.dashboard },
-    { id: 'estudiantes',  label: 'Estudiantes', icon: Icons.estudiantes },
     { id: 'notas',        label: 'Notas',       icon: Icons.notas },
     { id: 'asistencia',   label: 'Asistencia',  icon: Icons.asistencia },
     { id: 'solicitudes',  label: 'Solicitudes', icon: Icons.solicitudes },
-    { id: 'reportes',    label: 'Reportes',    icon: Icons.reportes },
-    { id: 'calendario',  label: 'Calendario',  icon: Icons.calendario },
+    { id: 'reportes',     label: 'Reportes',    icon: Icons.reportes },
+    { id: 'calendario',   label: 'Calendario',  icon: Icons.calendario },
   ]
   const menuAlumno = [
     { id: 'mi-perfil',  label: 'Mi Perfil',      icon: Icons.estudiantes },

@@ -835,6 +835,7 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion, perfil }) {
 export default function Estudiantes({ estudianteIdInicial, onVolver }) {
   const { perfil } = useAuth()
   const esRecepcion = perfil?.rol === 'recepcion'
+  const esDocente   = perfil?.rol === 'docente'
   const [estudianteDetalle, setEstudianteDetalle] = useState(null)
   const [estudiantes, setEstudiantes] = useState([])
   const [grados, setGrados] = useState([])
@@ -866,8 +867,23 @@ export default function Estudiantes({ estudianteIdInicial, onVolver }) {
 
   async function cargarDatos() {
     setLoading(true)
+
+    // Si es docente, verificar si es encargado
+    let gradoEncargadoId = null
+    if (esDocente) {
+      const { data: gradoEnc } = await supabase.from('grados')
+        .select('id').eq('encargado_id', perfil.id).single()
+      gradoEncargadoId = gradoEnc?.id || null
+      if (!gradoEncargadoId) {
+        setEstudiantes([]); setGrados([]); setLoading(false); return
+      }
+    }
+
+    let q = supabase.from('estudiantes').select('*, grados(nombre, nivel)').order('apellido')
+    if (gradoEncargadoId) q = q.eq('grado_id', gradoEncargadoId)
+
     const [{ data: est }, { data: gra }] = await Promise.all([
-      supabase.from('estudiantes').select(`*, grados(id, nombre, orden)`).order('apellido'),
+      q,
       supabase.from('grados').select('*').order('orden')
     ])
     // Ordenar por orden de grado, luego por apellido
