@@ -61,23 +61,12 @@ export default function Asistencia() {
   useEffect(() => {
     if (!perfil) return
     if (isDocente) {
-      // Docente: solo sus grados asignados
-      supabase.from('asignaciones')
-        .select('grado_id, grados(id, nombre, nivel, orden)')
-        .eq('docente_id', perfil.id)
-        .eq('año_escolar', year)
-        .then(({ data }) => {
-          const vistos = new Set()
-          const lista = []
-          for (const a of (data || [])) {
-            if (!vistos.has(a.grado_id)) {
-              vistos.add(a.grado_id)
-              lista.push(a.grados)
-            }
-          }
-          lista.sort((a, b) => a.orden - b.orden)
-          setGrados(lista)
-        })
+      // Docente: solo su grado encargado
+      supabase.from('grados')
+        .select('id, nombre, nivel, orden')
+        .eq('encargado_id', perfil.id)
+        .then(({ data }) => setGrados(data ? [data[0]].filter(Boolean) : []))
+
     } else {
       // Admin / dirección: todos los grados
       supabase.from('grados').select('id, nombre, nivel, orden')
@@ -166,18 +155,19 @@ export default function Asistencia() {
     try {
       const registros = estudiantes.map(e => ({
         fecha,
-        estudiante_id: e.id,
-        grado_id:      parseInt(gradoId),
-        docente_id:    perfil.id,
-        año_escolar:   year,
-        estado:        asistencia[e.id] || 'presente',
-        observacion:   observaciones[e.id] || null,
-        // materia_id null cuando es por grado completo
-        materia_id:    null,
+        estudiante_id:  e.id,
+        grado_id:       parseInt(gradoId),
+        docente_id:     perfil.id,
+        año_escolar:    year,
+        estado:         asistencia[e.id] || 'presente',
+        observacion:    observaciones[e.id] || null,
+        materia_id:     null,
+        registrado_por: perfil.id,
       }))
 
       const { error } = await supabase.from('asistencia')
-        .upsert(registros, { onConflict: 'fecha,estudiante_id,grado_id' })
+        .upsert(registros, { onConflict: 'estudiante_id,fecha' })
+
 
       if (error) throw error
       toast.success('Asistencia guardada', { id: toastId })

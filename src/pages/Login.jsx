@@ -373,7 +373,7 @@ export default function Login() {
             )}
           </form>
 
-          <div className="ff">CBIS · Colegio Bautista Internacional de Sonsonate</div>
+          <div className="ff">CBIS · Sonsonate, El Salvador</div>
         </div>
       </div>
     </>
