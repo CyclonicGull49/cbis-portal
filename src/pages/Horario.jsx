@@ -4,6 +4,59 @@ import { useAuth } from '../context/AuthContext'
 import { useYearEscolar } from '../hooks/useYearEscolar'
 import toast from 'react-hot-toast'
 
+// ── Iconos ────────────────────────────────────
+const IcoSave = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+    <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+  </svg>
+)
+const IcoCheck = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="20 6 9 17 4 12"/>
+  </svg>
+)
+const IcoClose = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+  </svg>
+)
+const IcoWarn = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+    <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+  </svg>
+)
+const IcoMsg = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+  </svg>
+)
+const IcoList = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+    <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+  </svg>
+)
+const IcoArrowUp = () => (
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="18 15 12 9 6 15"/>
+  </svg>
+)
+const IcoArrowDown = () => (
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="6 9 12 15 18 9"/>
+  </svg>
+)
+const IcoCalEmpty = () => (
+  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#d8c8f0" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+    <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+  </svg>
+)
+
+
+
 const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes']
 const DIA_COLOR = { 1: '#5B2D8E', 2: '#0e9490', 3: '#a16207', 4: '#c2410c', 5: '#2563eb' }
 const ESTADO_CONFIG = {
@@ -26,7 +79,6 @@ export default function Horario() {
 
   const [grados,          setGrados]          = useState([])
   const [gradoId,         setGradoId]         = useState('')
-  const [modoEspecialista, setModoEspecialista] = useState(false)
   const [filas,           setFilas]           = useState([])
   const [loading,         setLoading]         = useState(true)
   const [guardando,       setGuardando]       = useState(false)
@@ -50,32 +102,18 @@ export default function Horario() {
     setGrados(gra || [])
 
     if (esDocente) {
-      const gradosEnc = (gra || []).filter(g => g.encargado_id === perfil.id)
-      const gradoEnc = gradosEnc[0] || null
+      // ¿Es encargado de algún grado?
+      const gradoEnc = (gra || []).find(g => g.encargado_id === perfil.id)
       if (gradoEnc) {
         setGradoEncargado(gradoEnc)
         setEsEncargado(true)
-        // Si tiene varios grados encargados, mostrar selector
-        if (gradosEnc.length > 1) {
-          setGradoId('') // dejar que elija
-        } else {
-          setGradoId(String(gradoEnc.id))
-        }
-        setModoEspecialista(false)
-
-        // También puede ser especialista en otros grados
-        const { data: asigs } = await supabase.from('asignaciones')
-          .select('grado_id').eq('docente_id', perfil.id).eq('año_escolar', year)
-        const gradosConAsig = [...new Set((asigs || []).map(a => a.grado_id))]
-        const esEsp = gradosConAsig.some(gId => gId !== gradoEnc.id)
-        setEsEspecialista(esEsp)
+        setEsEspecialista(false)
+        setGradoId(String(gradoEnc.id))
       } else {
         setEsEncargado(false)
         setEsEspecialista(true)
-        setModoEspecialista(true)
       }
-    } 
-    else if (esAlumno && perfil?.estudiante_id) {
+    } else if (esAlumno && perfil?.estudiante_id) {
       const { data: est } = await supabase.from('estudiantes').select('grado_id').eq('id', perfil.estudiante_id).single()
       if (est?.grado_id) setGradoId(String(est.grado_id))
     }
@@ -351,7 +389,7 @@ export default function Horario() {
       .upsert(payload, { onConflict: 'grado_id,año_escolar' }).select().single()
     if (error) { toast.error('Error al cambiar estado'); return }
     setEstadoHorario(data)
-    const msgs = { en_revision: '✓ Enviado a dirección', aprobado: '✓ Horario aprobado', devuelto: 'Horario devuelto', borrador: 'Regresado a borrador' }
+    const msgs = { en_revision: 'Enviado a dirección', aprobado: 'Horario aprobado', devuelto: 'Horario devuelto', borrador: 'Regresado a borrador' }
     toast.success(msgs[nuevoEstado] || 'Estado actualizado')
     setModalEstado(false); setComentario('')
   }
@@ -366,8 +404,8 @@ export default function Horario() {
 
   const gradoInfo = grados.find(g => g.id === parseInt(gradoId))
   const estadoCfg = ESTADO_CONFIG[estado]
-  const canEditEnc = puedeEditarEncargado() && !modoEspecialista
-  const canEditEsp = puedeEditarEspecialista() && (modoEspecialista || !esEncargado)
+  const canEditEnc = puedeEditarEncargado()
+  const canEditEsp = puedeEditarEspecialista()
 
   // Bloques vacíos disponibles para especialista (filas sin receso y sin materia en ese día)
   function esBloqueDisponible(fila, dia) {
@@ -403,25 +441,17 @@ export default function Horario() {
             {canEditEnc && hayCambios && (
               <button onClick={guardarTodo} disabled={guardando}
                 style={{ ...s.btnPrimary, fontSize: 12, padding: '7px 16px', background: 'linear-gradient(135deg, #16a34a, #166534)' }}>
-                {guardando ? 'Guardando...' : '💾 Guardar cambios'}
+                <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>{guardando ? 'Guardando...' : <><IcoSave /> Guardar cambios</>}</span>
               </button>
             )}
             {canEditEnc && !hayCambios && filas.length > 0 && (
               <button onClick={guardarTodo} disabled={guardando}
                 style={{ ...s.btnSecondary, fontSize: 12, padding: '7px 14px' }}>
-                💾 Guardar
+                <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><IcoSave /> Guardar</span>
               </button>
             )}
-                        {esEncargado && !modoEspecialista && (estado === 'borrador' || estado === 'devuelto') && filas.length > 0 && !hayCambios && (
-              <button onClick={() => {
-                const bloquesVacios = filas.filter(f => !f.es_receso && !f.es_almuerzo)
-                  .some(f => DIAS.some((_, di) => !f.dias[di + 1]?.materia_id))
-                if (bloquesVacios) {
-                  toast.error('Aún hay bloques sin asignar — el horario debe estar completo antes de enviarlo')
-                  return
-                }
-                cambiarEstado('en_revision')
-              }}
+            {esEncargado && (estado === 'borrador' || estado === 'devuelto') && filas.length > 0 && !hayCambios && (
+              <button onClick={() => cambiarEstado('en_revision')}
                 style={{ ...s.btnPrimary, fontSize: 12, padding: '7px 14px' }}>
                 Enviar a dirección →
               </button>
@@ -429,8 +459,8 @@ export default function Horario() {
             {esDireccion && estado === 'en_revision' && (
               <>
                 <button onClick={() => cambiarEstado('aprobado')}
-                  style={{ ...s.btnPrimary, fontSize: 12, padding: '7px 14px', background: 'linear-gradient(135deg, #16a34a, #166534)' }}>
-                  ✓ Aprobar
+                  style={{ ...s.btnPrimary, fontSize: 12, padding: '7px 14px', background: 'linear-gradient(135deg, #16a34a, #166534)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <IcoCheck /> Aprobar
                 </button>
                 <button onClick={() => setModalEstado(true)}
                   style={{ ...s.btnSecondary, fontSize: 12, padding: '7px 14px', borderColor: '#fca5a5', color: '#dc2626' }}>
@@ -455,24 +485,24 @@ export default function Horario() {
       </div>
 
       {/* Alertas */}
-      {estadoHorario?.estado === 'devuelto' && estadoHorario?.comentario && !modoEspecialista && esEncargado && (
-        <div style={{ background: '#fef2f2', border: '1.5px solid #fca5a5', borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: '#dc2626', fontWeight: 600 }}>
-          💬 Dirección: {estadoHorario.comentario}
+      {estadoHorario?.estado === 'devuelto' && estadoHorario?.comentario && (
+        <div style={{ background: '#fef2f2', border: '1.5px solid #fca5a5', borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: '#dc2626', fontWeight: 600, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+          <IcoMsg /> <span>Dirección: {estadoHorario.comentario}</span>
         </div>
       )}
-      {estadoHorario?.estado === 'en_revision' && esEncargado && !modoEspecialista && (
+      {estadoHorario?.estado === 'en_revision' && esEncargado && (
         <div style={{ background: '#fffbeb', border: '1.5px solid #fcd34d', borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: '#92400e', fontWeight: 600 }}>
           ⏳ Enviado a dirección — en espera de aprobación
         </div>
       )}
-      {estadoHorario?.estado === 'aprobado' && !esDireccion && esEncargado && !modoEspecialista && (
-        <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: '#166534', fontWeight: 600 }}>
-          ✓ Horario aprobado — vigente para {year}
+      {estadoHorario?.estado === 'aprobado' && !esDireccion && !esEspecialista && (
+        <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: '#166534', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <IcoCheck /> Horario aprobado — vigente para {year}
         </div>
       )}
       {esEspecialista && gradoId && misMateriasGrado.length > 0 && (
-        <div style={{ background: '#e0f7f6', border: '1.5px solid #0e9490', borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: '#0e9490', fontWeight: 600 }}>
-          📋 Tus materias en este grado: {misMateriasGrado.map(m => m.nombre).join(', ')} — Toca un bloque verde para asignarte
+        <div style={{ background: '#e0f7f6', border: '1.5px solid #0e9490', borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: '#0e9490', fontWeight: 600, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+          <IcoList /> <span>Tus materias en este grado: {misMateriasGrado.map(m => m.nombre).join(', ')} — Toca un bloque verde para asignarte</span>
         </div>
       )}
       {esEspecialista && gradoId && misMateriasGrado.length === 0 && (
@@ -481,35 +511,13 @@ export default function Horario() {
         </div>
       )}
       {hayCambios && canEditEnc && (
-        <div style={{ background: '#fffbeb', border: '1.5px solid #fcd34d', borderRadius: 12, padding: '10px 16px', marginBottom: 16, fontSize: 12, color: '#92400e', fontWeight: 600 }}>
-          ⚠️ Cambios sin guardar
+        <div style={{ background: '#fffbeb', border: '1.5px solid #fcd34d', borderRadius: 12, padding: '10px 16px', marginBottom: 16, fontSize: 12, color: '#92400e', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <IcoWarn /> Cambios sin guardar
         </div>
       )}
 
       {/* Selector grado */}
-{/* Toggle modo encargado/especialista — solo si es ambos */}
-      {esDocente && esEncargado && esEspecialista && (
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16, background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', padding: '12px 16px', alignItems: 'center' }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: '#b0a8c0', marginRight: 4 }}>Vista:</span>
-          <button onClick={() => { setModoEspecialista(false); setGradoId(String(gradoEncargado.id)); setHayCambios(false) }}
-            style={{ padding: '6px 14px', borderRadius: 20, border: '1.5px solid', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-              borderColor: !modoEspecialista ? '#5B2D8E' : '#e5e7eb',
-              background: !modoEspecialista ? '#f3eeff' : '#fff',
-              color: !modoEspecialista ? '#5B2D8E' : '#6b7280' }}>
-            📋 Mi grado ({gradoEncargado?.nombre})
-          </button>
-          <button onClick={() => { setModoEspecialista(true); setGradoId(''); setHayCambios(false) }}
-            style={{ padding: '6px 14px', borderRadius: 20, border: '1.5px solid', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-              borderColor: modoEspecialista ? '#0e9490' : '#e5e7eb',
-              background: modoEspecialista ? '#e0f7f6' : '#fff',
-              color: modoEspecialista ? '#0e9490' : '#6b7280' }}>
-            🎯 Mis horas en otros grados
-          </button>
-        </div>
-      )}
-
-      {/* Selector grado */}
-      {(esDireccion || (esEspecialista && modoEspecialista) || (esEncargado && grados.filter(g => g.encargado_id === perfil?.id).length > 1)) && (
+      {(esDireccion || esEspecialista) && (
         <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', padding: '16px 20px', marginBottom: 16 }}>
           <label style={s.label}>Grado</label>
           <select style={{ ...s.select, maxWidth: 320 }} value={gradoId}
@@ -533,7 +541,7 @@ export default function Horario() {
         <div style={{ textAlign: 'center', padding: 60, color: '#b0a8c0' }}>Cargando...</div>
       ) : !gradoId ? (
         <div style={{ textAlign: 'center', padding: '60px 20px', background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', color: '#b0a8c0' }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>📅</div>
+          <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><IcoCalEmpty /></div>
           <div style={{ fontSize: 15, fontWeight: 600 }}>Selecciona un grado para ver su horario</div>
         </div>
       ) : (
@@ -569,8 +577,8 @@ export default function Horario() {
                       {canEditEnc && (
                         <td style={{ ...s.td, padding: '4px 2px', textAlign: 'center', borderRight: '1px solid #f3eeff' }}>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                            <button onClick={() => moverFila(fila.id, 'up')} style={s.iconBtn}>▲</button>
-                            <button onClick={() => moverFila(fila.id, 'down')} style={s.iconBtn}>▼</button>
+                            <button onClick={() => moverFila(fila.id, 'up')} style={s.iconBtn}><IcoArrowUp /></button>
+                            <button onClick={() => moverFila(fila.id, 'down')} style={s.iconBtn}><IcoArrowDown /></button>
                           </div>
                         </td>
                       )}
@@ -641,7 +649,7 @@ export default function Horario() {
                               <div style={{ fontSize: 10, color: '#0e9490', opacity: 0.7 }}>Tú</div>
                               <button onClick={() => quitarCeldaEspecialista(fila, dia)}
                                 title="Liberar bloque"
-                                style={{ position: 'absolute', top: 4, right: 4, background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: 11, lineHeight: 1 }}>✕</button>
+                                style={{ position: 'absolute', top: 4, right: 4, background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', display: 'flex' }}><IcoClose /></button>
                             </td>
                           )
                         }
@@ -665,7 +673,7 @@ export default function Horario() {
                       {canEditEnc && (
                         <td style={{ ...s.td, padding: '4px 6px', textAlign: 'center' }}>
                           <button onClick={() => eliminarFila(fila.id)}
-                            style={{ ...s.iconBtn, color: '#dc2626', fontSize: 13 }}>✕</button>
+                            style={{ ...s.iconBtn, color: '#dc2626' }}><IcoClose /></button>
                         </td>
                       )}
                     </tr>
@@ -692,7 +700,7 @@ export default function Horario() {
               {hayCambios && (
                 <button onClick={guardarTodo} disabled={guardando}
                   style={{ ...s.btnPrimary, fontSize: 12, padding: '8px 20px', marginLeft: 'auto' }}>
-                  {guardando ? 'Guardando...' : '💾 Guardar todo'}
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>{guardando ? 'Guardando...' : <><IcoSave /> Guardar todo</>}</span>
                 </button>
               )}
             </div>

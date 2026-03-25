@@ -4,14 +4,49 @@ import { useAuth } from '../context/AuthContext'
 import { useYearEscolar } from '../hooks/useYearEscolar'
 import toast from 'react-hot-toast'
 
+// ── Iconos por tipo de registro ──────────────────────────────
+function TipoIcono({ tipo, size = 16 }) {
+  const p = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }
+  if (tipo === 'conversacion')     return <svg {...p}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+  if (tipo === 'visita_direccion') return <svg {...p}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+  if (tipo === 'llamada_padres')   return <svg {...p}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.77 1.2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9a16 16 0 0 0 6.08 6.08l1.07-1.07a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7a2 2 0 0 1 1.72 2.02z"/></svg>
+  if (tipo === 'reunion_padres')   return <svg {...p}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+  if (tipo === 'incidencia')       return <svg {...p}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+  if (tipo === 'logro')            return <svg {...p}><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+  return <svg {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+}
+
+const IcoSearch = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+  </svg>
+)
+const IcoPin = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17z"/>
+  </svg>
+)
+const IcoPlus = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+  </svg>
+)
+const IcoEmpty = () => (
+  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#d8c8f0" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+    <polyline points="14 2 14 8 20 8"/>
+    <line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
+  </svg>
+)
+
 const TIPOS = {
-  conversacion:     { label: 'Conversación con estudiante', color: '#5B2D8E', bg: '#f3eeff', icon: '💬' },
-  visita_direccion: { label: 'Visita a dirección',          color: '#dc2626', bg: '#fef2f2', icon: '🏫' },
-  llamada_padres:   { label: 'Llamada a padres',            color: '#d97706', bg: '#fffbeb', icon: '📞' },
-  reunion_padres:   { label: 'Reunión con padres',          color: '#0e9490', bg: '#e0f7f6', icon: '👨‍👩‍👧' },
-  incidencia:       { label: 'Incidencia',                  color: '#c2410c', bg: '#fff0e6', icon: '⚠️' },
-  logro:            { label: 'Logro / Reconocimiento',      color: '#16a34a', bg: '#f0fdf4', icon: '🏆' },
-  otro:             { label: 'Otro',                        color: '#6b7280', bg: '#f9fafb', icon: '📝' },
+  conversacion:     { label: 'Conversación',     color: '#5B2D8E', bg: '#f3eeff' },
+  visita_direccion: { label: 'Visita a dirección', color: '#dc2626', bg: '#fef2f2' },
+  llamada_padres:   { label: 'Llamada a padres',  color: '#d97706', bg: '#fffbeb' },
+  reunion_padres:   { label: 'Reunión con padres', color: '#0e9490', bg: '#e0f7f6' },
+  incidencia:       { label: 'Incidencia',         color: '#c2410c', bg: '#fff0e6' },
+  logro:            { label: 'Logro',              color: '#16a34a', bg: '#f0fdf4' },
+  otro:             { label: 'Otro',               color: '#6b7280', bg: '#f9fafb' },
 }
 
 export default function Anecdotario() {
@@ -172,8 +207,8 @@ export default function Anecdotario() {
           <p style={{ color: '#b0a8c0', fontSize: 13 }}>{registros.length} registros — Año {year}</p>
         </div>
         <button onClick={() => { resetForm(); setEditando(null); setModalAbierto(true) }}
-          style={s.btnPrimary}>
-          + Nueva anotación
+          style={{ ...s.btnPrimary, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <IcoPlus /> Nueva anotación
         </button>
       </div>
 
@@ -182,7 +217,7 @@ export default function Anecdotario() {
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           {/* Buscador */}
           <div style={{ flex: '2 1 220px', position: 'relative' }}>
-            <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#b0a8c0', fontSize: 13 }}>🔍</span>
+            <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#b0a8c0', display: 'flex' }}><IcoSearch /></span>
             <input type="text" placeholder="Buscar estudiante..." value={busqueda}
               onChange={e => setBusqueda(e.target.value)}
               style={{ ...s.input, paddingLeft: 34, width: '100%', boxSizing: 'border-box' }} />
@@ -219,7 +254,7 @@ export default function Anecdotario() {
         <div style={{ textAlign: 'center', padding: 60, color: '#b0a8c0' }}>Cargando...</div>
       ) : registrosFiltrados.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px 20px', background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', color: '#b0a8c0' }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>📓</div>
+          <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><IcoEmpty /></div>
           <div style={{ fontSize: 15, fontWeight: 600 }}>No hay registros aún</div>
           <div style={{ fontSize: 13, marginTop: 6 }}>Presiona "+ Nueva anotación" para comenzar</div>
         </div>
@@ -242,8 +277,8 @@ export default function Anecdotario() {
                 </div>
                 <button
                   onClick={() => { setFiltroEstudiante(String(regsEst[0].estudiante_id)); setForm(f => ({ ...f, estudiante_id: String(regsEst[0].estudiante_id) })); resetForm(); setEditando(null); setModalAbierto(true) }}
-                  style={{ marginLeft: 'auto', ...s.btnSecondary, fontSize: 11, padding: '5px 12px' }}>
-                  + Anotar
+                  style={{ marginLeft: 'auto', ...s.btnSecondary, fontSize: 11, padding: '5px 12px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <IcoPlus /> Anotar
                 </button>
               </div>
 
@@ -260,7 +295,7 @@ export default function Anecdotario() {
                       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                         {/* Tipo badge */}
                         <div style={{ flexShrink: 0, marginTop: 1 }}>
-                          <span style={{ fontSize: 18 }}>{tipo.icon}</span>
+                          <span style={{ color: tipo.color }}><TipoIcono tipo={reg.tipo} size={18} /></span>
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
@@ -281,7 +316,7 @@ export default function Anecdotario() {
                           </div>
                           {reg.seguimiento && (
                             <div style={{ fontSize: 11, color: '#5B2D8E', fontWeight: 600, marginTop: 4 }}>
-                              📌 Seguimiento: {reg.seguimiento}
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><IcoPin /> Seguimiento: {reg.seguimiento}</span>
                             </div>
                           )}
                         </div>
@@ -372,7 +407,7 @@ export default function Anecdotario() {
               return (
                 <>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                    <span style={{ fontSize: 28 }}>{tipo.icon}</span>
+                    <div style={{ width: 44, height: 44, borderRadius: 12, background: tipo.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: tipo.color, flexShrink: 0 }}><TipoIcono tipo={modalDetalle.tipo} size={20} /></div>
                     <div>
                       <div style={{ fontSize: 11, fontWeight: 700, color: tipo.color, background: tipo.bg, padding: '2px 10px', borderRadius: 10, display: 'inline-block', marginBottom: 4 }}>
                         {tipo.label}
@@ -393,7 +428,7 @@ export default function Anecdotario() {
 
                   {modalDetalle.seguimiento && (
                     <div style={{ background: '#f3eeff', borderRadius: 12, padding: '12px 16px', marginBottom: 14 }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>📌 Seguimiento</div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}><IcoPin /> Seguimiento</div>
                       <div style={{ fontSize: 13, color: '#3d1f61', fontWeight: 600 }}>{modalDetalle.seguimiento}</div>
                     </div>
                   )}
