@@ -1192,7 +1192,10 @@ export default function Estudiantes({ estudianteIdInicial, onVolver }) {
             </thead>
             <tbody>
               {filtradosPaginados.map((e, idx) => (
-                <tr key={e.id} style={{ ...s.tr, cursor: 'pointer', background: idx % 2 === 0 ? '#fff' : '#fdfcff' }} onClick={() => setEstudianteDetalle(e)}>
+                <tr key={e.id} style={{ ...s.tr, cursor: 'pointer', background: idx % 2 === 0 ? '#fff' : '#fdfcff' }} onClick={() => {
+                  const puedeVerPerfil = ['admin', 'direccion_academica', 'recepcion', 'registro_academico'].includes(perfil?.rol)
+                  if (puedeVerPerfil) setEstudianteDetalle(e)
+}}>
                   <td style={s.td}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'linear-gradient(135deg, #3d1f61, #5B2D8E)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 11, flexShrink: 0 }}>
@@ -1311,7 +1314,7 @@ export default function Estudiantes({ estudianteIdInicial, onVolver }) {
                   </div>
                 </div>
               </div>
-              <button onClick={() => setEstudianteDetalle(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#aaa' }}>✕</button>
+              <button onClick={() => setEstudianteDetalle(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: ['admin', 'direccion_academica', 'recepcion', 'registro_academico'].includes(perfil?.rol) ? 'pointer' : 'default', color: '#aaa' }}>✕</button>
             </div>
             <FichaTabs estudiante={estudianteDetalle} esRecepcion={esRecepcion} perfil={perfil} onUpdate={(updated) => { setEstudianteDetalle(updated); cargarDatos() }} onDelete={() => { setEstudianteDetalle(null); cargarDatos() }} />
           </div>

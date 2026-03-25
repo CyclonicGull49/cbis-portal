@@ -533,7 +533,10 @@ export default function Notas({ onVerEstudiante }) {
     return (
       <td style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, color: canClick ? '#5B2D8E' : '#3d1f61', whiteSpace: 'nowrap' }}>
         <span
-          onClick={() => canClick && onVerEstudiante(est.id)}
+          onClick={() => {
+  const puedeVerPerfil = ['admin', 'direccion_academica', 'recepcion', 'registro_academico'].includes(perfil?.rol)
+  if (canClick && puedeVerPerfil && onVerEstudiante) onVerEstudiante(est.id)
+}}
           style={{ cursor: canClick ? 'pointer' : 'default', borderBottom: canClick ? '1px dashed #c9b8e8' : 'none', paddingBottom: canClick ? 1 : 0, transition: 'color 0.15s' }}
           onMouseEnter={e => { if (canClick) e.target.style.color = '#3d1f61' }}
           onMouseLeave={e => { if (canClick) e.target.style.color = '#5B2D8E' }}
@@ -723,7 +726,10 @@ export default function Notas({ onVerEstudiante }) {
                   <td style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, color: '#3d1f61', whiteSpace: 'nowrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       {tienePendientes && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b', flexShrink: 0 }} title="Cambios sin guardar" />}
-                      <span onClick={() => onVerEstudiante && onVerEstudiante(est.id)} style={{ cursor: onVerEstudiante ? 'pointer' : 'default', borderBottom: onVerEstudiante ? '1px dashed #c9b8e8' : 'none' }}>
+                      <span onClick={() => {
+  const puedeVerPerfil = ['admin', 'direccion_academica', 'recepcion', 'registro_academico'].includes(perfil?.rol)
+  if (onVerEstudiante && puedeVerPerfil) onVerEstudiante(est.id)
+}} style={{ cursor: (onVerEstudiante && ['admin', 'direccion_academica', 'recepcion', 'registro_academico'].includes(perfil?.rol)) ? 'pointer' : 'default', borderBottom: (onVerEstudiante && ['admin', 'direccion_academica', 'recepcion', 'registro_academico'].includes(perfil?.rol)) ? '1px dashed #c9b8e8' : 'none' }}>
                         {est.apellido}, {est.nombre}
                       </span>
                     </div>

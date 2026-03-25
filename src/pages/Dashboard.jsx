@@ -18,6 +18,8 @@ const PerfilAlumno  = lazy(() => import('./PerfilAlumno'))
 const Solicitudes   = lazy(() => import('./Solicitudes'))
 const Calendario    = lazy(() => import('./Calendario'))
 const Horario       = lazy(() => import('./Horario'))
+const Anecdotario   = lazy(() => import('./Anecdotario'))
+
 
 
 
@@ -511,6 +513,8 @@ export default function Dashboard() {
 
   function renderPagina() {
     if (pagina.startsWith('perfil-estudiante-')) {
+      const puedeVerPerfil = ['admin', 'direccion_academica', 'recepcion', 'registro_academico'].includes(perfil?.rol)
+      if (!puedeVerPerfil) return <Notas onVerEstudiante={id => setPagina(`perfil-estudiante-${id}`)} />
       const id = parseInt(pagina.replace('perfil-estudiante-', ''))
       return <Estudiantes estudianteIdInicial={id} onVolver={() => setPagina('notas')} />
     }
@@ -534,6 +538,7 @@ export default function Dashboard() {
       case 'mis-docs':      return <PerfilAlumno seccion="docs" />
       case 'mis-notas':     return <PerfilAlumno seccion="notas" />
       case 'mi-config':     return <PerfilAlumno seccion="config" />
+      case 'anecdotario':   return <Anecdotario />
       default:              return esAlumno ? <PerfilAlumno seccion="perfil" /> : <DashboardHome />
     }
   }
