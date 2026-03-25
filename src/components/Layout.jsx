@@ -122,6 +122,13 @@ const Icons = {
     <line x1="9" y1="15" x2="15" y2="15"/>
   </svg>
 ),
+permisos: (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+    <circle cx="9" cy="7" r="4"/>
+    <polyline points="16 11 18 13 22 9"/>
+  </svg>
+),
   reportes: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -208,6 +215,7 @@ export default function Layout({ pagina, setPagina, children }) {
     { id: 'cobros',      label: 'Cobros',      icon: Icons.cobros },
     { id: 'reportes',    label: 'Reportes',    icon: Icons.reportes },
     { id: 'calendario',  label: 'Calendario',  icon: Icons.calendario },
+    { id: 'permisos', label: 'Permisos', icon: Icons.permisos },
   ]
 
   const menuDireccion = [
@@ -248,6 +256,7 @@ export default function Layout({ pagina, setPagina, children }) {
     { id: 'horario',     label: 'Horario',     icon: Icons.horario },
     { id: 'calendario',  label: 'Calendario',  icon: Icons.calendario },
     { id: 'anecdotario', label: 'Anecdotario', icon: Icons.anecdotario },
+    { id: 'permisos', label: 'Permisos', icon: Icons.permisos },
 
   ]
 
@@ -315,7 +324,7 @@ export default function Layout({ pagina, setPagina, children }) {
           <div>
             <div style={{ color: '#fff', fontWeight: 800, fontSize: 16, letterSpacing: '-0.3px' }}>CBIS+</div>
             <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 9.5, fontStyle: 'italic', letterSpacing: '0.1px', lineHeight: 1.4, maxWidth: 130 }}>
-              Fe, Cultura, Innovación y Disciplina
+              Fe, Innovación, Cultura y Disciplina
             </div>
           </div>
         </div>

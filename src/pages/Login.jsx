@@ -294,8 +294,8 @@ export default function Login() {
           <div className="ll-center">
             <div className="ll-eyebrow">Portal Académico 2026</div>
             <h1 className="ll-title">
-              Fe, <em>Cultura,</em><br/>
-              Innovación<br/>
+              Fe, <em>Innovación,</em><br/>
+              Cultura<br/>
               <span>&amp;</span> Disciplina.
             </h1>
             <div className="ll-pills">

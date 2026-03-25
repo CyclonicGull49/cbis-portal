@@ -9,7 +9,8 @@ const TIPOS = {
   excursion: { label: 'Excursión',         color: '#0e9490', bg: '#e0f7f6', dot: '#0e9490' },
   feriado:   { label: 'Feriado/Asueto',   color: '#d97706', bg: '#fffbeb', dot: '#d97706' },
   actividad: { label: 'Actividad',         color: '#5B2D8E', bg: '#f3eeff', dot: '#5B2D8E' },
-  otro:      { label: 'Otro',             color: '#6b7280', bg: '#f9fafb', dot: '#6b7280' },
+  otro:              { label: 'Otro',                    color: '#6b7280', bg: '#f9fafb', dot: '#6b7280' },
+  recordatorio_docente: { label: 'Recordatorio docente', color: '#0369a1', bg: '#e0f2fe', dot: '#0284c7' },
 }
 
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
@@ -47,8 +48,11 @@ export default function Calendario() {
   useEffect(() => { cargarEventos() }, [year])
 
   async function cargarEventos() {
-    const { data } = await supabase.from('eventos_calendario')
+    let q = supabase.from('eventos_calendario')
       .select('*').eq('año_escolar', year).order('fecha_inicio')
+    // Alumnos no ven recordatorios de docentes
+    if (esAlumno) q = q.neq('tipo', 'recordatorio_docente')
+    const { data } = await q
     setEventos(data || [])
   }
 
@@ -379,7 +383,9 @@ export default function Calendario() {
             <div style={s.field}>
               <label style={s.label}>Tipo</label>
               <select style={s.input} value={form.tipo} onChange={e => setForm({ ...form, tipo: e.target.value })}>
-                {Object.entries(TIPOS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                {Object.entries(TIPOS)
+                  .filter(([k]) => k !== 'recordatorio_docente' || perfil?.rol === 'docente' || puedeEditar)
+                  .map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
               </select>
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>

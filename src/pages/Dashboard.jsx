@@ -19,6 +19,8 @@ const Solicitudes   = lazy(() => import('./Solicitudes'))
 const Calendario    = lazy(() => import('./Calendario'))
 const Horario       = lazy(() => import('./Horario'))
 const Anecdotario   = lazy(() => import('./Anecdotario'))
+const Permisos      = lazy(() => import('./Permisos'))
+
 
 
 
@@ -539,6 +541,8 @@ export default function Dashboard() {
       case 'mis-notas':     return <PerfilAlumno seccion="notas" />
       case 'mi-config':     return <PerfilAlumno seccion="config" />
       case 'anecdotario':   return <Anecdotario />
+      case 'permisos':      return <Permisos />
+
       default:              return esAlumno ? <PerfilAlumno seccion="perfil" /> : <DashboardHome />
     }
   }
