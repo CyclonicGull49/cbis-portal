@@ -306,7 +306,7 @@ export default function Login() {
             </div>
           </div>
 
-          <div className="ll-footer">© 2026 CBIS · Sonsonate, El Salvador</div>
+          <div className="ll-footer">© 2026 CBIS</div>
         </div>
 
         {/* Tarjeta glass flotante */}

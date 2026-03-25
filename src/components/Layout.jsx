@@ -6,7 +6,6 @@ const CBIS_COLORS = {
   gold: '#D4A017',
 }
 
-// ── Breakpoints ───────────────────────────────────────────────
 function useBreakpoint() {
   const [bp, setBp] = useState(() => {
     const w = window.innerWidth
@@ -27,7 +26,6 @@ function useBreakpoint() {
   return bp
 }
 
-// ── Icons ─────────────────────────────────────────────────────
 const Icons = {
   dashboard: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -82,8 +80,7 @@ const Icons = {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
       <polyline points="14 2 14 8 20 8"/>
-      <line x1="9" y1="13" x2="15" y2="13"/>
-      <line x1="9" y1="17" x2="12" y2="17"/>
+      <line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="12" y2="17"/>
     </svg>
   ),
   asistencia: (
@@ -103,6 +100,18 @@ const Icons = {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
       <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+  ),
+  horario: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
+      <line x1="8" y1="14" x2="8.01" y2="14" strokeWidth="2.5"/>
+      <line x1="12" y1="14" x2="12.01" y2="14" strokeWidth="2.5"/>
+      <line x1="16" y1="14" x2="16.01" y2="14" strokeWidth="2.5"/>
+      <line x1="8" y1="18" x2="8.01" y2="18" strokeWidth="2.5"/>
+      <line x1="12" y1="18" x2="12.01" y2="18" strokeWidth="2.5"/>
     </svg>
   ),
   reportes: (
@@ -158,7 +167,6 @@ export default function Layout({ pagina, setPagina, children }) {
   const isTablet  = bp === 'tablet'
   const isDesktop = bp === 'desktop'
 
-  // Cerrar sidebar al cambiar de página en tablet
   function navegar(id) {
     setPagina(id)
     setSidebarOpen(false)
@@ -178,16 +186,20 @@ export default function Layout({ pagina, setPagina, children }) {
     { id: 'solicitudes',   label: 'Solicitudes',   icon: Icons.solicitudes },
     { id: 'reportes',      label: 'Reportes',      icon: Icons.reportes },
     { id: 'usuarios',      label: 'Usuarios',      icon: Icons.usuarios },
+    { id: 'horario',       label: 'Horario',       icon: Icons.horario },
     { id: 'calendario',    label: 'Calendario',    icon: Icons.calendario },
     { id: 'configuracion', label: 'Configuración', icon: Icons.configuracion },
   ]
+
   const menuRecepcion = [
     { id: 'dashboard',   label: 'Dashboard',   icon: Icons.dashboard },
     { id: 'estudiantes', label: 'Estudiantes', icon: Icons.estudiantes },
     { id: 'matricula',   label: 'Matrícula',   icon: Icons.matricula },
     { id: 'cobros',      label: 'Cobros',      icon: Icons.cobros },
     { id: 'reportes',    label: 'Reportes',    icon: Icons.reportes },
+    { id: 'calendario',  label: 'Calendario',  icon: Icons.calendario },
   ]
+
   const menuDireccion = [
     { id: 'dashboard',    label: 'Dashboard',    icon: Icons.dashboard },
     { id: 'estudiantes',  label: 'Estudiantes',  icon: Icons.estudiantes },
@@ -197,8 +209,10 @@ export default function Layout({ pagina, setPagina, children }) {
     { id: 'contabilidad', label: 'Contabilidad', icon: Icons.contabilidad },
     { id: 'solicitudes',  label: 'Solicitudes',  icon: Icons.solicitudes },
     { id: 'reportes',     label: 'Reportes',     icon: Icons.reportes },
+    { id: 'horario',      label: 'Horario',      icon: Icons.horario },
     { id: 'calendario',   label: 'Calendario',   icon: Icons.calendario },
   ]
+
   const menuRegistro = [
     { id: 'dashboard',    label: 'Dashboard',    icon: Icons.dashboard },
     { id: 'estudiantes',  label: 'Estudiantes',  icon: Icons.estudiantes },
@@ -209,65 +223,73 @@ export default function Layout({ pagina, setPagina, children }) {
     { id: 'cobros',       label: 'Cobros',       icon: Icons.cobros },
     { id: 'solicitudes',  label: 'Solicitudes',  icon: Icons.solicitudes },
     { id: 'reportes',     label: 'Reportes',     icon: Icons.reportes },
+    { id: 'horario',      label: 'Horario',      icon: Icons.horario },
     { id: 'calendario',   label: 'Calendario',   icon: Icons.calendario },
   ]
+
   const menuDocente = [
-    { id: 'dashboard',    label: 'Dashboard',   icon: Icons.dashboard },
-    { id: 'notas',        label: 'Notas',       icon: Icons.notas },
-    { id: 'asistencia',   label: 'Asistencia',  icon: Icons.asistencia },
-    { id: 'solicitudes',  label: 'Solicitudes', icon: Icons.solicitudes },
-    { id: 'reportes',     label: 'Reportes',    icon: Icons.reportes },
-    { id: 'calendario',   label: 'Calendario',  icon: Icons.calendario },
+    { id: 'dashboard',   label: 'Dashboard',   icon: Icons.dashboard },
+    { id: 'notas',       label: 'Notas',       icon: Icons.notas },
+    { id: 'asistencia',  label: 'Asistencia',  icon: Icons.asistencia },
+    { id: 'solicitudes', label: 'Solicitudes', icon: Icons.solicitudes },
+    { id: 'reportes',    label: 'Reportes',    icon: Icons.reportes },
+    { id: 'horario',     label: 'Horario',     icon: Icons.horario },
+    { id: 'calendario',  label: 'Calendario',  icon: Icons.calendario },
   ]
+
   const menuAlumno = [
-    { id: 'mi-perfil',  label: 'Mi Perfil',      icon: Icons.estudiantes },
-    { id: 'mis-notas',  label: 'Mis Notas',       icon: Icons.notas },
-    { id: 'mis-cobros', label: 'Mis Cobros',      icon: Icons.cobros },
-    { id: 'mis-docs',   label: 'Documentos',      icon: Icons.contabilidad },
-    { id: 'calendario', label: 'Calendario',     icon: Icons.calendario },
-    { id: 'mi-config',  label: 'Configuración',  icon: Icons.configuracion },
+    { id: 'mi-perfil',  label: 'Mi Perfil',     icon: Icons.estudiantes },
+    { id: 'mis-notas',  label: 'Mis Notas',     icon: Icons.notas },
+    { id: 'mis-cobros', label: 'Mis Cobros',    icon: Icons.cobros },
+    { id: 'mis-docs',   label: 'Documentos',    icon: Icons.contabilidad },
+    { id: 'horario',    label: 'Horario',       icon: Icons.horario },
+    { id: 'calendario', label: 'Calendario',    icon: Icons.calendario },
+    { id: 'mi-config',  label: 'Configuración', icon: Icons.configuracion },
   ]
 
   const menuTalentoHumano = [
     { id: 'dashboard',     label: 'Dashboard',     icon: Icons.dashboard },
     { id: 'estudiantes',   label: 'Estudiantes',   icon: Icons.estudiantes },
     { id: 'usuarios',      label: 'Usuarios',      icon: Icons.usuarios },
+    { id: 'horario',       label: 'Horario',       icon: Icons.horario },
     { id: 'calendario',    label: 'Calendario',    icon: Icons.calendario },
     { id: 'reportes',      label: 'Reportes',      icon: Icons.reportes },
     { id: 'configuracion', label: 'Configuración', icon: Icons.configuracion },
   ]
 
   const menuPorRol = {
-    admin: menuAdmin, direccion_academica: menuDireccion,
-    registro_academico: menuRegistro, recepcion: menuRecepcion,
-    docente: menuDocente, alumno: menuAlumno,
-    talento_humano: menuTalentoHumano,
+    admin:               menuAdmin,
+    direccion_academica: menuDireccion,
+    registro_academico:  menuRegistro,
+    recepcion:           menuRecepcion,
+    docente:             menuDocente,
+    alumno:              menuAlumno,
+    talento_humano:      menuTalentoHumano,
   }
 
   const menu = menuPorRol[perfil?.rol] || menuRecepcion
 
-  // ── Barra inferior móvil: máx 4 ítems prioritarios + "Más" ──
+  // ── Barra inferior móvil ──────────────────────────────────
   const PRIORIDAD_MOVIL = {
     admin:               ['dashboard', 'notas', 'asistencia', 'cobros'],
     direccion_academica: ['dashboard', 'notas', 'asistencia', 'reportes'],
     registro_academico:  ['dashboard', 'notas', 'boletas', 'cobros'],
     recepcion:           ['dashboard', 'estudiantes', 'cobros', 'reportes'],
-    docente:             ['dashboard', 'notas', 'asistencia', 'reportes'],
-    alumno:              ['mi-perfil', 'mis-notas', 'mis-cobros', 'mis-docs'],
+    docente:             ['dashboard', 'notas', 'asistencia', 'horario'],
+    alumno:              ['mi-perfil', 'mis-notas', 'horario', 'calendario'],
+    talento_humano:      ['dashboard', 'estudiantes', 'usuarios', 'reportes'],
   }
   const prioIds   = PRIORIDAD_MOVIL[perfil?.rol] || menu.slice(0, 4).map(m => m.id)
   const barraItems = menu.filter(m => prioIds.includes(m.id))
   const masItems   = menu.filter(m => !prioIds.includes(m.id))
 
-  // ── Sidebar content (shared desktop + tablet) ────────────────
+  // ── Sidebar content ───────────────────────────────────────
   const SidebarContent = () => (
     <>
-      {/* Blobs de color CBIS */}
       <div className="sb-blob-v" />
       <div className="sb-blob-o" />
       <div className="sb-blob-g" />
       <div className="sb-blob-d" />
-      {/* Noise overlay sutil */}
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.3,
         backgroundImage: 'linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)',
         backgroundSize: '32px 32px' }} />
@@ -283,7 +305,6 @@ export default function Layout({ pagina, setPagina, children }) {
             </div>
           </div>
         </div>
-        {/* Botón cerrar en tablet */}
         {isTablet && (
           <button onClick={() => setSidebarOpen(false)}
             style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, padding: 6, cursor: 'pointer', color: '#fff', display: 'flex' }}>
@@ -292,7 +313,7 @@ export default function Layout({ pagina, setPagina, children }) {
         )}
       </div>
 
-      {/* Navegación */}
+      {/* Nav */}
       <nav style={{ flex: 1, padding: '10px', overflowY: 'auto', position: 'relative', zIndex: 1 }}>
         {menu.map(item => {
           const activo = pagina === item.id
@@ -360,112 +381,78 @@ export default function Layout({ pagina, setPagina, children }) {
         .layout-root { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
         .nav-btn:hover { background: rgba(255,255,255,0.1) !important; color: #fff !important; }
         .bottom-btn:hover { background: rgba(91,45,142,0.08) !important; }
-
-        /* ── Safe area para notch y barra de navegación ── */
         :root {
           --sat: env(safe-area-inset-top, 0px);
           --sar: env(safe-area-inset-right, 0px);
           --sab: env(safe-area-inset-bottom, 0px);
           --sal: env(safe-area-inset-left, 0px);
         }
-
-        /* Blobs del sidebar — versión suave */
-        .sb-blob-v {
-          position: absolute; border-radius: 50%; pointer-events: none;
-          width: 280px; height: 280px;
-          background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 50%, transparent 100%);
-          filter: blur(50px);
-          top: -60px; left: -60px;
-        }
-        .sb-blob-o {
-          position: absolute; border-radius: 50%; pointer-events: none;
-          width: 180px; height: 180px;
-          background: radial-gradient(circle, rgba(212,160,23,0.12) 0%, transparent 70%);
-          filter: blur(40px);
-          top: 120px; right: -40px;
-        }
-        .sb-blob-g {
-          position: absolute; border-radius: 50%; pointer-events: none;
-          width: 200px; height: 200px;
-          background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
-          filter: blur(45px);
-          bottom: 120px; left: -30px;
-        }
-        .sb-blob-d {
-          position: absolute; border-radius: 50%; pointer-events: none;
-          width: 220px; height: 220px;
-          background: radial-gradient(circle, rgba(212,160,23,0.10) 0%, transparent 70%);
-          filter: blur(50px);
-          bottom: -40px; right: -40px;
-        }
+        .sb-blob-v { position: absolute; border-radius: 50%; pointer-events: none; width: 280px; height: 280px; background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 50%, transparent 100%); filter: blur(50px); top: -60px; left: -60px; }
+        .sb-blob-o { position: absolute; border-radius: 50%; pointer-events: none; width: 180px; height: 180px; background: radial-gradient(circle, rgba(212,160,23,0.12) 0%, transparent 70%); filter: blur(40px); top: 120px; right: -40px; }
+        .sb-blob-g { position: absolute; border-radius: 50%; pointer-events: none; width: 200px; height: 200px; background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%); filter: blur(45px); bottom: 120px; left: -30px; }
+        .sb-blob-d { position: absolute; border-radius: 50%; pointer-events: none; width: 220px; height: 220px; background: radial-gradient(circle, rgba(212,160,23,0.10) 0%, transparent 70%); filter: blur(50px); bottom: -40px; right: -40px; }
       `}</style>
 
       <div className="layout-root" style={{ display: 'flex', minHeight: '100vh', width: '100vw', background: '#F4F7FC' }}>
 
-        {/* ── DESKTOP: sidebar fijo ── */}
+        {/* Desktop sidebar */}
         {isDesktop && (
           <div style={sidebarStyle}>
             <SidebarContent />
           </div>
         )}
 
-        {/* ── TABLET: sidebar como drawer ── */}
+        {/* Tablet drawer */}
         {isTablet && (
           <>
-            {/* Overlay */}
             {sidebarOpen && (
               <div onClick={() => setSidebarOpen(false)}
                 style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 99 }} />
             )}
-            {/* Drawer */}
             <div style={{ ...sidebarStyle, position: 'fixed', top: 0, left: 0, height: '100vh', zIndex: 100, transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)', transition: 'transform 0.25s ease' }}>
               <SidebarContent />
             </div>
           </>
         )}
 
-        {/* ── Contenido principal ── */}
+        {/* Contenido principal */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, paddingBottom: isMobile ? 'calc(60px + env(safe-area-inset-bottom, 0px))' : 0 }}>
 
-          {/* Topbar + safe area — sticky juntos */}
+          {/* Topbar sticky */}
           <div style={{ position: 'sticky', top: 0, zIndex: 50 }}>
-            {/* Safe area top — cubre notch/dynamic island en iOS y barra en Android */}
             {isMobile && (
               <div style={{ height: 'env(safe-area-inset-top, 44px)', background: '#1a0d30', minHeight: 44 }} />
             )}
-            {/* Topbar */}
             <div style={{ background: '#fff', padding: '0 20px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 2px 12px rgba(91,45,142,0.07)', borderBottom: '3px solid transparent', backgroundImage: 'linear-gradient(#fff, #fff), linear-gradient(90deg, #7B3FE4, #EA580C, #D4A017, #16A34A)', backgroundOrigin: 'border-box', backgroundClip: 'padding-box, border-box' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              {/* Hamburguesa en tablet */}
-              {isTablet && (
-                <button onClick={() => setSidebarOpen(true)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: CBIS_COLORS.purpleDark, display: 'flex', padding: 4 }}>
-                  {Icons.menu}
-                </button>
-              )}
-              {/* Logo en móvil */}
-              {isMobile && <LogoCBIS size={28} />}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 4, height: 20, borderRadius: 2, background: `linear-gradient(180deg, ${CBIS_COLORS.purpleDark}, ${CBIS_COLORS.purple})`, flexShrink: 0 }} />
-                <span style={{ color: CBIS_COLORS.purpleDark, fontWeight: 800, fontSize: isMobile ? 14 : 15, letterSpacing: '-0.3px' }}>
-                  {paginaLabel}
-                </span>
-              </div>
-            </div>
-            {!isMobile && (
-              <span style={{ color: '#b0a8c0', fontSize: 12, fontWeight: 500 }}>
-                {new Date().toLocaleDateString('es-SV', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-              </span>
-            )}
-            {isMobile && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 30, height: 30, borderRadius: '50%', background: `linear-gradient(135deg, ${CBIS_COLORS.gold}, #b8860b)`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 11 }}>
-                  {perfil?.nombre?.charAt(0)}{perfil?.apellido?.charAt(0)}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                {isTablet && (
+                  <button onClick={() => setSidebarOpen(true)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: CBIS_COLORS.purpleDark, display: 'flex', padding: 4 }}>
+                    {Icons.menu}
+                  </button>
+                )}
+                {isMobile && <LogoCBIS size={28} />}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 4, height: 20, borderRadius: 2, background: `linear-gradient(180deg, ${CBIS_COLORS.purpleDark}, ${CBIS_COLORS.purple})`, flexShrink: 0 }} />
+                  <span style={{ color: CBIS_COLORS.purpleDark, fontWeight: 800, fontSize: isMobile ? 14 : 15, letterSpacing: '-0.3px' }}>
+                    {paginaLabel}
+                  </span>
                 </div>
               </div>
-            )}
+              {!isMobile && (
+                <span style={{ color: '#b0a8c0', fontSize: 12, fontWeight: 500 }}>
+                  {new Date().toLocaleDateString('es-SV', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                </span>
+              )}
+              {isMobile && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: '50%', background: `linear-gradient(135deg, ${CBIS_COLORS.gold}, #b8860b)`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 11 }}>
+                    {perfil?.nombre?.charAt(0)}{perfil?.apellido?.charAt(0)}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-          </div>{/* fin sticky wrapper */}
 
           {/* Página */}
           <div style={{ flex: 1, padding: isMobile ? 16 : 28, overflowY: 'auto', paddingBottom: isMobile ? 'calc(76px + env(safe-area-inset-bottom, 0px))' : 28 }}>
@@ -473,16 +460,13 @@ export default function Layout({ pagina, setPagina, children }) {
           </div>
         </div>
 
-        {/* ── MÓVIL: barra inferior ── */}
+        {/* Móvil: barra inferior */}
         {isMobile && (
           <>
-            {/* Overlay menú "Más" */}
             {masOpen && (
               <div onClick={() => setMasOpen(false)}
                 style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 199 }} />
             )}
-
-            {/* Panel "Más" */}
             {masOpen && masItems.length > 0 && (
               <div style={{ position: 'fixed', bottom: 'calc(60px + env(safe-area-inset-bottom, 0px))', left: 0, right: 0, background: '#fff', borderTop: '1px solid #e5e7eb', borderRadius: '16px 16px 0 0', zIndex: 200, padding: '16px 8px 8px', boxShadow: '0 -4px 24px rgba(61,31,97,0.12)' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4 }}>
@@ -496,7 +480,6 @@ export default function Layout({ pagina, setPagina, children }) {
                       </button>
                     )
                   })}
-                  {/* Cerrar sesión en "Más" */}
                   <button onClick={() => signOut()}
                     style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '10px 4px', borderRadius: 10, border: 'none', background: 'transparent', color: '#ef4444', fontFamily: 'inherit', cursor: 'pointer', fontSize: 10, fontWeight: 500 }}>
                     <span>{Icons.logout}</span>
@@ -505,31 +488,26 @@ export default function Layout({ pagina, setPagina, children }) {
                 </div>
               </div>
             )}
-
-            {/* Barra inferior */}
             <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff', borderTop: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', zIndex: 200, boxShadow: '0 -2px 16px rgba(61,31,97,0.1)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
               <div style={{ display: 'flex', width: '100%', height: 60 }}>
-              {barraItems.map(item => {
-                const activo = pagina === item.id
-                return (
-                  <button key={item.id} onClick={() => navegar(item.id)}
-                    className="bottom-btn"
-                    style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, height: '100%', border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', position: 'relative' }}>
-                    {activo && <span style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 32, height: 3, borderRadius: '0 0 4px 4px', background: CBIS_COLORS.purple }} />}
-                    <span style={{ color: activo ? CBIS_COLORS.purple : '#9ca3af', transition: 'color 0.15s' }}>{item.icon}</span>
-                    <span style={{ fontSize: 10, fontWeight: activo ? 700 : 500, color: activo ? CBIS_COLORS.purple : '#9ca3af', transition: 'color 0.15s' }}>{item.label}</span>
+                {barraItems.map(item => {
+                  const activo = pagina === item.id
+                  return (
+                    <button key={item.id} onClick={() => navegar(item.id)} className="bottom-btn"
+                      style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, height: '100%', border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', position: 'relative' }}>
+                      {activo && <span style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 32, height: 3, borderRadius: '0 0 4px 4px', background: CBIS_COLORS.purple }} />}
+                      <span style={{ color: activo ? CBIS_COLORS.purple : '#9ca3af', transition: 'color 0.15s' }}>{item.icon}</span>
+                      <span style={{ fontSize: 10, fontWeight: activo ? 700 : 500, color: activo ? CBIS_COLORS.purple : '#9ca3af', transition: 'color 0.15s' }}>{item.label}</span>
+                    </button>
+                  )
+                })}
+                {masItems.length > 0 && (
+                  <button onClick={() => setMasOpen(v => !v)} className="bottom-btn"
+                    style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, height: '100%', border: 'none', background: masOpen ? '#f3eeff' : 'transparent', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    <span style={{ color: masOpen ? CBIS_COLORS.purple : '#9ca3af' }}>{Icons.mas}</span>
+                    <span style={{ fontSize: 10, fontWeight: masOpen ? 700 : 500, color: masOpen ? CBIS_COLORS.purple : '#9ca3af' }}>Más</span>
                   </button>
-                )
-              })}
-              {/* Botón Más */}
-              {masItems.length > 0 && (
-                <button onClick={() => setMasOpen(v => !v)}
-                  className="bottom-btn"
-                  style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, height: '100%', border: 'none', background: masOpen ? '#f3eeff' : 'transparent', cursor: 'pointer', fontFamily: 'inherit' }}>
-                  <span style={{ color: masOpen ? CBIS_COLORS.purple : '#9ca3af' }}>{Icons.mas}</span>
-                  <span style={{ fontSize: 10, fontWeight: masOpen ? 700 : 500, color: masOpen ? CBIS_COLORS.purple : '#9ca3af' }}>Más</span>
-                </button>
-              )}
+                )}
               </div>
             </div>
           </>

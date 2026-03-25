@@ -17,6 +17,8 @@ const Asistencia    = lazy(() => import('./Asistencia'))
 const PerfilAlumno  = lazy(() => import('./PerfilAlumno'))
 const Solicitudes   = lazy(() => import('./Solicitudes'))
 const Calendario    = lazy(() => import('./Calendario'))
+const Horario       = lazy(() => import('./Horario'))
+
 
 
 const IcoEstudiantes = () => (
@@ -522,6 +524,7 @@ export default function Dashboard() {
       case 'cobros':        return <Cobros />
       case 'notas':         return <Notas onVerEstudiante={id => setPagina(`perfil-estudiante-${id}`)} />
       case 'calendario':    return <Calendario />
+      case 'horario':       return <Horario />
       case 'contabilidad':  return <Contabilidad />
       case 'usuarios':      return <Usuarios />
       case 'configuracion': return <Configuracion />
