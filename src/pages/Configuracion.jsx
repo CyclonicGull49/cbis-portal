@@ -2,6 +2,7 @@ import GruposIngles from '../components/GruposIngles'
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
+import { NIVEL_COLOR } from '../constants/colores'
 import toast from 'react-hot-toast'
 
 const IcoEdit = () => (
@@ -117,13 +118,7 @@ export default function Configuracion() {
     bachillerato:     'Bachillerato',
   }
 
-  const nivelColor = {
-    primera_infancia: { bg: '#e0f7f6', color: '#0e9490' },
-    inicial:          { bg: '#e0f7f6', color: '#0e9490' },
-    primaria:         { bg: '#fef9c3', color: '#a16207' },
-    secundaria:       { bg: '#fff0e6', color: '#c2410c' },
-    bachillerato:     { bg: '#f3eeff', color: '#5B2D8E' },
-  }
+  const nivelColor = NIVEL_COLOR
 
   useEffect(() => { cargarDatos() }, [])
 

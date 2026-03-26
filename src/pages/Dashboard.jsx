@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import Layout from '../components/Layout'
+import { NIVEL_COLOR } from '../constants/colores'
 
 import { lazy, Suspense } from 'react'
 const Estudiantes   = lazy(() => import('./Estudiantes'))
@@ -20,6 +21,7 @@ const Calendario    = lazy(() => import('./Calendario'))
 const Horario       = lazy(() => import('./Horario'))
 const Anecdotario   = lazy(() => import('./Anecdotario'))
 const Permisos      = lazy(() => import('./Permisos'))
+const MisNotas      = lazy(() => import('./MisNotas'))
 
 
 
@@ -72,12 +74,6 @@ const IcoDocente = () => (
   </svg>
 )
 
-const NIVEL_COLOR = {
-  primera_infancia: { bg: '#e0f7f6', color: '#0e9490', bar: '#0e9490', label: 'Primera Infancia' },
-  primaria:         { bg: '#fef9c3', color: '#a16207', bar: '#D4A017', label: 'Primaria' },
-  secundaria:       { bg: '#fff0e6', color: '#c2410c', bar: '#c2410c', label: 'Secundaria' },
-  bachillerato:     { bg: '#f3eeff', color: '#5B2D8E', bar: '#5B2D8E', label: 'Bachillerato' },
-}
 
 const TIPO_COLOR = { examen: '#dc2626', excursion: '#0e9490', feriado: '#d97706', actividad: '#5B2D8E', otro: '#6b7280' }
 const TIPO_BG    = { examen: '#fef2f2', excursion: '#e0f7f6', feriado: '#fffbeb', actividad: '#f3eeff', otro: '#f9fafb' }
@@ -542,6 +538,7 @@ export default function Dashboard() {
       case 'mi-config':     return <PerfilAlumno seccion="config" />
       case 'anecdotario':   return <Anecdotario />
       case 'permisos':      return <Permisos />
+      case 'mis-notas': return <MisNotas />
 
       default:              return esAlumno ? <PerfilAlumno seccion="perfil" /> : <DashboardHome />
     }

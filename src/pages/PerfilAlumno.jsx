@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { useYearEscolar } from '../hooks/useYearEscolar'
+import { NIVEL_COLOR as nivelColor } from '../constants/colores'
 import toast from 'react-hot-toast'
 
 const TIPOS_DOC = [
@@ -11,14 +12,6 @@ const TIPOS_DOC = [
   { key: 'constancia_medica',  label: 'Constancia médica' },
   { key: 'esquema_vacunacion', label: 'Esquema de vacunación', soloInicial: true },
 ]
-
-const nivelColor = {
-  primera_infancia: { bg: '#e0f7f6', color: '#0e9490' },
-  inicial:          { bg: '#e0f7f6', color: '#0e9490' },
-  primaria:         { bg: '#fef9c3', color: '#a16207' },
-  secundaria:       { bg: '#fff0e6', color: '#c2410c' },
-  bachillerato:     { bg: '#f3eeff', color: '#5B2D8E' },
-}
 
 export default function PerfilAlumno({ seccion = 'perfil' }) {
   const { perfil } = useAuth()

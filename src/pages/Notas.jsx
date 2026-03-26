@@ -3,17 +3,9 @@ import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { useYearEscolar } from '../hooks/useYearEscolar'
 import { usePeriodosNotas } from '../hooks/usePeriodosNotas'
+import { useBreakpoint } from '../hooks/useBreakpoint'
+import { NIVEL_COLOR as nivelColor } from '../constants/colores'
 import toast from 'react-hot-toast'
-
-function useBreakpoint() {
-  const [bp, setBp] = useState(() => window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop')
-  useEffect(() => {
-    const fn = () => setBp(window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop')
-    window.addEventListener('resize', fn)
-    return () => window.removeEventListener('resize', fn)
-  }, [])
-  return bp
-}
 
 const LABELS = { ac: 'AC', ai: 'AI', em: 'EM', ep: 'EP', ef: 'EF' }
 const FULL_LABELS = {
@@ -26,16 +18,6 @@ function calcNFT(componentes, notasMap) {
   const vals = componentes.map(c => notasMap[c])
   if (vals.some(v => v === null || v === undefined || v === '')) return null
   return componentes.reduce((sum, c) => sum + parseFloat(notasMap[c]) * PESOS[c], 0)
-}
-
-
-
-const nivelColor = {
-  primera_infancia: { bg: '#e0f7f6', color: '#0e9490' },
-  inicial:          { bg: '#e0f7f6', color: '#0e9490' },
-  primaria:         { bg: '#fef9c3', color: '#a16207' },
-  secundaria:       { bg: '#fff0e6', color: '#c2410c' },
-  bachillerato:     { bg: '#f3eeff', color: '#5B2D8E' },
 }
 
 function colorNota(n) {

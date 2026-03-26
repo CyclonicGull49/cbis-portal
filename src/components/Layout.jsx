@@ -1,29 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { useBreakpoint } from '../hooks/useBreakpoint'
 
 const CBIS_COLORS = {
   purple: '#5B2D8E', purpleDark: '#3d1f61', purpleLight: '#7B4DB8',
   gold: '#D4A017',
-}
-
-function useBreakpoint() {
-  const [bp, setBp] = useState(() => {
-    const w = window.innerWidth
-    if (w < 768)  return 'mobile'
-    if (w < 1024) return 'tablet'
-    return 'desktop'
-  })
-  useEffect(() => {
-    function onResize() {
-      const w = window.innerWidth
-      if (w < 768)  setBp('mobile')
-      else if (w < 1024) setBp('tablet')
-      else setBp('desktop')
-    }
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [])
-  return bp
 }
 
 const Icons = {

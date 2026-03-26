@@ -64,6 +64,63 @@ function formatTs(ts) {
 }
 function hoy() { return new Date().toISOString().split('T')[0] }
 
+function Tarjeta({ p, esRecepcion, procesando, onSelect, onAprobar, onRechazar }) {
+  const subtipo  = SUBTIPOS[p.subtipo] || SUBTIPOS.ausencia
+  const estado   = ESTADOS[p.estado]   || ESTADOS.pendiente
+  const esRetiro = p.subtipo === 'retiro_anticipado'
+
+  return (
+    <div onClick={() => onSelect(p)}
+      style={{ background: '#fff', borderRadius: 14, border: `1.5px solid ${p.estado === 'pendiente' ? subtipo.border : '#f0ecf8'}`, padding: '14px 18px', marginBottom: 10, cursor: 'pointer', transition: 'box-shadow 0.1s' }}
+      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(61,31,97,0.1)'}
+      onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: subtipo.color, background: subtipo.bg, padding: '2px 10px', borderRadius: 10 }}>
+              {subtipo.label}
+            </span>
+            <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 10, background: estado.bg, color: estado.color }}>
+              {estado.label}
+            </span>
+            {esRetiro && p.hora_retiro && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#6b7280', fontWeight: 600 }}>
+                <IcoClock /> {p.hora_retiro}
+              </span>
+            )}
+          </div>
+          <div style={{ fontSize: 14, fontWeight: 800, color: '#3d1f61', marginBottom: 2 }}>
+            {p.estudiantes?.apellido}, {p.estudiantes?.nombre}
+          </div>
+          <div style={{ fontSize: 11, color: '#b0a8c0', marginBottom: 6 }}>
+            {p.estudiantes?.grados?.nombre} · {formatFecha(p.fecha)}
+          </div>
+          <div style={{ fontSize: 12, color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 400 }}>
+            {p.motivo}
+          </div>
+          {esRetiro && p.quien_retira && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#5B2D8E', fontWeight: 600, marginTop: 4 }}>
+              <IcoUser /> Retira: {p.quien_retira}
+            </div>
+          )}
+        </div>
+        {esRecepcion && p.estado === 'pendiente' && (
+          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+            <button onClick={() => onAprobar(p)} disabled={procesando === p.id}
+              style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 8, border: 'none', background: '#dcfce7', color: '#16a34a', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
+              <IcoCheck /> {p.subtipo === 'retiro_anticipado' ? 'Autorizar retiro' : 'Aprobar'}
+            </button>
+            <button onClick={() => onRechazar(p)} disabled={procesando === p.id}
+              style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 8, border: 'none', background: '#fee2e2', color: '#dc2626', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
+              <IcoX />
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function Permisos() {
   const { perfil } = useAuth()
   const { yearEscolar } = useYearEscolar()
@@ -202,71 +259,6 @@ export default function Permisos() {
     { id: 'todos',     label: 'Todos' },
   ]
 
-  function Tarjeta({ p }) {
-    const subtipo = SUBTIPOS[p.subtipo] || SUBTIPOS.ausencia
-    const estado  = ESTADOS[p.estado]   || ESTADOS.pendiente
-    const esRetiro = p.subtipo === 'retiro_anticipado'
-
-    return (
-      <div onClick={() => setModalDetalle(p)}
-        style={{ background: '#fff', borderRadius: 14, border: `1.5px solid ${p.estado === 'pendiente' ? subtipo.border : '#f0ecf8'}`, padding: '14px 18px', marginBottom: 10, cursor: 'pointer', transition: 'box-shadow 0.1s' }}
-        onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(61,31,97,0.1)'}
-        onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ flex: 1 }}>
-            {/* Tipo + estado */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: subtipo.color, background: subtipo.bg, padding: '2px 10px', borderRadius: 10 }}>
-                {subtipo.label}
-              </span>
-              <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 10, background: estado.bg, color: estado.color }}>
-                {estado.label}
-              </span>
-              {esRetiro && p.hora_retiro && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#6b7280', fontWeight: 600 }}>
-                  <IcoClock /> {p.hora_retiro}
-                </span>
-              )}
-            </div>
-
-            {/* Estudiante */}
-            <div style={{ fontSize: 14, fontWeight: 800, color: '#3d1f61', marginBottom: 2 }}>
-              {p.estudiantes?.apellido}, {p.estudiantes?.nombre}
-            </div>
-            <div style={{ fontSize: 11, color: '#b0a8c0', marginBottom: 6 }}>
-              {p.estudiantes?.grados?.nombre} · {formatFecha(p.fecha)}
-            </div>
-
-            {/* Motivo */}
-            <div style={{ fontSize: 12, color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 400 }}>
-              {p.motivo}
-            </div>
-
-            {/* Quien retira */}
-            {esRetiro && p.quien_retira && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#5B2D8E', fontWeight: 600, marginTop: 4 }}>
-                <IcoUser /> Retira: {p.quien_retira}
-              </div>
-            )}
-          </div>
-
-          {/* Acciones rápidas */}
-          {esRecepcion && p.estado === 'pendiente' && (
-            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-              <button onClick={() => aprobar(p)} disabled={procesando === p.id}
-                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 8, border: 'none', background: '#dcfce7', color: '#16a34a', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
-                <IcoCheck /> {p.subtipo === 'retiro_anticipado' ? 'Autorizar retiro' : 'Aprobar'}
-              </button>
-              <button onClick={() => rechazar(p)} disabled={procesando === p.id}
-                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 8, border: 'none', background: '#fee2e2', color: '#dc2626', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
-                <IcoX />
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div style={{ fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
@@ -339,7 +331,7 @@ export default function Permisos() {
           <div style={{ fontSize: 12, color: '#b0a8c0', marginTop: 4 }}>No hay permisos para los filtros seleccionados</div>
         </div>
       ) : (
-        <div>{permisosFiltrados.map(p => <Tarjeta key={p.id} p={p} />)}</div>
+        <div>{permisosFiltrados.map(p => <Tarjeta key={p.id} p={p} esRecepcion={esRecepcion} procesando={procesando} onSelect={setModalDetalle} onAprobar={aprobar} onRechazar={rechazar} />)}</div>
       )}
 
       {/* Modal nuevo permiso */}

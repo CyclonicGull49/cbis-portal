@@ -28,23 +28,32 @@ export function AuthProvider({ children }) {
   }, [])
 
   async function cargarPerfil(userId) {
-  // Intentar hasta 3 veces por si hay delay
-  for (let i = 0; i < 3; i++) {
-    const { data } = await supabase
-      .from('perfiles')
-      .select('*')
-      .eq('id', userId)
-      .single()
-    if (data) {
-      setPerfil(data)
-      setLoading(false)
-      return
+    // Intentar hasta 3 veces por si hay delay post-registro
+    for (let i = 0; i < 3; i++) {
+      const { data, error } = await supabase
+        .from('perfiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
+      if (data) {
+        setPerfil(data)
+        setLoading(false)
+        return
+      }
+      if (error && error.code !== 'PGRST116') {
+        // Error real de base de datos (no es simplemente "sin resultados")
+        console.error('[AuthContext] Error al cargar perfil:', error.message)
+        break
+      }
+      // Sin perfil aún — esperar antes de reintentar
+      await new Promise(r => setTimeout(r, 1000))
     }
-    // Esperar 1 segundo antes de reintentar
-    await new Promise(r => setTimeout(r, 1000))
+    // Si llegamos aquí sin perfil, cerrar sesión para evitar estado inconsistente
+    console.warn('[AuthContext] No se encontró perfil para el usuario:', userId)
+    await supabase.auth.signOut()
+    setPerfil(null)
+    setLoading(false)
   }
-  setLoading(false)
-}
 
   async function login(email, password) {
     const { data, error } = await supabase.auth.signInWithPassword({

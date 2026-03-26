@@ -2,17 +2,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { useYearEscolar } from '../hooks/useYearEscolar'
+import { useBreakpoint } from '../hooks/useBreakpoint'
 import toast from 'react-hot-toast'
-
-function useBreakpoint() {
-  const [bp, setBp] = useState(() => window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop')
-  useEffect(() => {
-    const fn = () => setBp(window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop')
-    window.addEventListener('resize', fn)
-    return () => window.removeEventListener('resize', fn)
-  }, [])
-  return bp
-}
 
 // ── Iconos ────────────────────────────────────
 const IcoCalendar = () => (
