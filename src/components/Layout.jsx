@@ -1,10 +1,29 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { useBreakpoint } from '../hooks/useBreakpoint'
 
 const CBIS_COLORS = {
   purple: '#5B2D8E', purpleDark: '#3d1f61', purpleLight: '#7B4DB8',
   gold: '#D4A017',
+}
+
+function useBreakpoint() {
+  const [bp, setBp] = useState(() => {
+    const w = window.innerWidth
+    if (w < 768)  return 'mobile'
+    if (w < 1024) return 'tablet'
+    return 'desktop'
+  })
+  useEffect(() => {
+    function onResize() {
+      const w = window.innerWidth
+      if (w < 768)  setBp('mobile')
+      else if (w < 1024) setBp('tablet')
+      else setBp('desktop')
+    }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+  return bp
 }
 
 const Icons = {
@@ -95,21 +114,6 @@ const Icons = {
       <line x1="12" y1="18" x2="12.01" y2="18" strokeWidth="2.5"/>
     </svg>
   ),
-  anecdotario: (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-    <polyline points="14 2 14 8 20 8"/>
-    <line x1="12" y1="18" x2="12" y2="12"/>
-    <line x1="9" y1="15" x2="15" y2="15"/>
-  </svg>
-),
-permisos: (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-    <circle cx="9" cy="7" r="4"/>
-    <polyline points="16 11 18 13 22 9"/>
-  </svg>
-),
   reportes: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -185,8 +189,6 @@ export default function Layout({ pagina, setPagina, children }) {
     { id: 'horario',       label: 'Horario',       icon: Icons.horario },
     { id: 'calendario',    label: 'Calendario',    icon: Icons.calendario },
     { id: 'configuracion', label: 'Configuración', icon: Icons.configuracion },
-    { id: 'anecdotario', label: 'Anecdotario', icon: Icons.anecdotario },
-
   ]
 
   const menuRecepcion = [
@@ -196,7 +198,6 @@ export default function Layout({ pagina, setPagina, children }) {
     { id: 'cobros',      label: 'Cobros',      icon: Icons.cobros },
     { id: 'reportes',    label: 'Reportes',    icon: Icons.reportes },
     { id: 'calendario',  label: 'Calendario',  icon: Icons.calendario },
-    { id: 'permisos', label: 'Permisos', icon: Icons.permisos },
   ]
 
   const menuDireccion = [
@@ -210,8 +211,6 @@ export default function Layout({ pagina, setPagina, children }) {
     { id: 'reportes',     label: 'Reportes',     icon: Icons.reportes },
     { id: 'horario',      label: 'Horario',      icon: Icons.horario },
     { id: 'calendario',   label: 'Calendario',   icon: Icons.calendario },
-    { id: 'anecdotario', label: 'Anecdotario', icon: Icons.anecdotario },
-
   ]
 
   const menuRegistro = [
@@ -236,9 +235,6 @@ export default function Layout({ pagina, setPagina, children }) {
     { id: 'reportes',    label: 'Reportes',    icon: Icons.reportes },
     { id: 'horario',     label: 'Horario',     icon: Icons.horario },
     { id: 'calendario',  label: 'Calendario',  icon: Icons.calendario },
-    { id: 'anecdotario', label: 'Anecdotario', icon: Icons.anecdotario },
-    { id: 'permisos', label: 'Permisos', icon: Icons.permisos },
-
   ]
 
   const menuAlumno = [
@@ -287,6 +283,18 @@ export default function Layout({ pagina, setPagina, children }) {
   const barraItems = menu.filter(m => prioIds.includes(m.id))
   const masItems   = menu.filter(m => !prioIds.includes(m.id))
 
+  // ── Grupos de menú ────────────────────────────────────────
+  const GRUPOS = {
+    admin:               [{ label: 'Principal', ids: ['dashboard'] }, { label: 'Académico', ids: ['estudiantes','matricula','notas','asistencia','boletas','anecdotario','permisos'] }, { label: 'Administración', ids: ['cobros','contabilidad','solicitudes','reportes','usuarios'] }, { label: 'Planificación', ids: ['horario','calendario','configuracion'] }],
+    direccion_academica: [{ label: 'Principal', ids: ['dashboard'] }, { label: 'Académico', ids: ['estudiantes','notas','asistencia','anecdotario','permisos'] }, { label: 'Administración', ids: ['cobros','contabilidad','solicitudes','reportes'] }, { label: 'Planificación', ids: ['horario','calendario'] }],
+    registro_academico:  [{ label: 'Principal', ids: ['dashboard'] }, { label: 'Académico', ids: ['estudiantes','matricula','notas','asistencia','boletas'] }, { label: 'Administración', ids: ['cobros','solicitudes','reportes'] }, { label: 'Planificación', ids: ['horario','calendario'] }],
+    recepcion:           [{ label: 'Principal', ids: ['dashboard'] }, { label: 'Gestión', ids: ['estudiantes','matricula','cobros','reportes','permisos','calendario'] }],
+    docente:             [{ label: 'Principal', ids: ['dashboard'] }, { label: 'Mi trabajo', ids: ['notas','asistencia','anecdotario','permisos'] }, { label: 'Gestión', ids: ['solicitudes','reportes','horario','calendario'] }],
+    alumno:              [{ label: 'Mi espacio', ids: ['mi-perfil','mis-notas','mis-cobros','mis-docs'] }, { label: 'Colegio', ids: ['horario','calendario','mi-config'] }],
+    talento_humano:      [{ label: 'Principal', ids: ['dashboard'] }, { label: 'Gestión', ids: ['estudiantes','usuarios','reportes'] }, { label: 'Planificación', ids: ['horario','calendario','configuracion'] }],
+  }
+  const grupos = GRUPOS[perfil?.rol] || [{ label: '', ids: menu.map(m => m.id) }]
+
   // ── Sidebar content ───────────────────────────────────────
   const SidebarContent = () => (
     <>
@@ -294,71 +302,82 @@ export default function Layout({ pagina, setPagina, children }) {
       <div className="sb-blob-o" />
       <div className="sb-blob-g" />
       <div className="sb-blob-d" />
-      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.3,
-        backgroundImage: 'linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)',
-        backgroundSize: '32px 32px' }} />
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none',
+        backgroundImage: 'linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)',
+        backgroundSize: '28px 28px' }} />
 
       {/* Header */}
-      <div style={{ padding: '24px 18px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)', position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
-          <LogoCBIS size={40} />
+      <div style={{ padding: '20px 16px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)', position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 38, height: 38, borderRadius: 11, overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', flexShrink: 0 }}>
+            <LogoCBIS size={38} />
+          </div>
           <div>
-            <div style={{ color: '#fff', fontWeight: 800, fontSize: 16, letterSpacing: '-0.3px' }}>CBIS+</div>
-            <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 9.5, fontStyle: 'italic', letterSpacing: '0.1px', lineHeight: 1.4, maxWidth: 130 }}>
-              Fe, Innovación, Cultura y Disciplina
+            <div style={{ color: '#fff', fontWeight: 800, fontSize: 15, letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: 5 }}>
+              CBIS
+              <svg width="13" height="13" viewBox="0 0 28 28" fill="none"><rect x="11" y="2" width="6" height="24" rx="3" fill="#D4A017"/><rect x="2" y="11" width="24" height="6" rx="3" fill="#D4A017"/></svg>
             </div>
+            <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9, fontStyle: 'italic', lineHeight: 1.3 }}>Fe, Innovación, Cultura y Disciplina</div>
           </div>
         </div>
         {isTablet && (
           <button onClick={() => setSidebarOpen(false)}
-            style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, padding: 6, cursor: 'pointer', color: '#fff', display: 'flex' }}>
+            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: 6, cursor: 'pointer', color: 'rgba(255,255,255,0.6)', display: 'flex' }}>
             {Icons.close}
           </button>
         )}
       </div>
 
-      {/* Nav */}
-      <nav style={{ flex: 1, padding: '10px', overflowY: 'auto', position: 'relative', zIndex: 1 }}>
-        {menu.map(item => {
-          const activo = pagina === item.id
+      {/* Nav agrupado */}
+      <nav style={{ flex: 1, padding: '8px 8px 4px', overflowY: 'auto', position: 'relative', zIndex: 1 }}>
+        {grupos.map((grupo, gi) => {
+          const itemsGrupo = grupo.ids.map(id => menu.find(m => m.id === id)).filter(Boolean)
+          if (!itemsGrupo.length) return null
           return (
-            <button key={item.id} onClick={() => navegar(item.id)} className="nav-btn"
-              style={{
-                width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                padding: '10px 12px', borderRadius: 10, border: 'none',
-                background: activo ? 'rgba(255,255,255,0.12)' : 'transparent',
-                color: activo ? '#fff' : 'rgba(255,255,255,0.52)',
-                fontSize: 13, fontWeight: activo ? 700 : 500,
-                cursor: 'pointer', textAlign: 'left',
-                fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif',
-                transition: 'all 0.15s', marginBottom: 2,
-                borderLeft: activo ? '2px solid rgba(212,160,23,0.8)' : '2px solid transparent',
-              }}>
-              <span style={{ opacity: activo ? 1 : 0.7, flexShrink: 0 }}>{item.icon}</span>
-              {item.label}
-              {activo && <span style={{ marginLeft: 'auto', width: 6, height: 6, borderRadius: '50%', background: CBIS_COLORS.gold, flexShrink: 0 }} />}
-            </button>
+            <div key={gi} style={{ marginBottom: 4 }}>
+              {grupo.label && (
+                <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '1.2px', padding: '8px 10px 4px' }}>
+                  {grupo.label}
+                </div>
+              )}
+              {itemsGrupo.map(item => {
+                const activo = pagina === item.id
+                return (
+                  <button key={item.id} onClick={() => navegar(item.id)} className="nav-btn"
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 9, padding: '7px 8px', borderRadius: 10, border: 'none', background: activo ? 'rgba(255,255,255,0.11)' : 'transparent', color: activo ? '#fff' : 'rgba(255,255,255,0.48)', fontSize: 12.5, fontWeight: activo ? 700 : 500, cursor: 'pointer', textAlign: 'left', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', transition: 'all 0.15s', marginBottom: 1 }}>
+                    <div style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: activo ? 'rgba(212,160,23,0.18)' : 'rgba(255,255,255,0.06)', border: activo ? '1px solid rgba(212,160,23,0.28)' : '1px solid rgba(255,255,255,0.06)', color: activo ? '#D4A017' : 'rgba(255,255,255,0.4)', transition: 'all 0.15s' }}>
+                      {item.icon}
+                    </div>
+                    <span style={{ flex: 1, letterSpacing: '-0.1px' }}>{item.label}</span>
+                    {activo && <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#D4A017', flexShrink: 0 }} />}
+                  </button>
+                )
+              })}
+              {gi < grupos.length - 1 && (
+                <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '6px 10px' }} />
+              )}
+            </div>
           )
         })}
       </nav>
 
       {/* Footer */}
-      <div style={{ padding: '12px 10px', borderTop: '1px solid rgba(255,255,255,0.1)', position: 'relative', zIndex: 1 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', marginBottom: 8 }}>
-          <div style={{ width: 34, height: 34, borderRadius: '50%', background: `linear-gradient(135deg, ${CBIS_COLORS.gold}, #b8860b)`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 13, flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+      <div style={{ padding: '10px 8px', borderTop: '1px solid rgba(255,255,255,0.08)', position: 'relative', zIndex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.05)', marginBottom: 6, border: '1px solid rgba(255,255,255,0.07)' }}>
+          <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, #D4A017, #b8860b)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 11, flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.25)', border: '1.5px solid rgba(255,255,255,0.15)' }}>
             {perfil?.nombre?.charAt(0)}{perfil?.apellido?.charAt(0)}
           </div>
-          <div style={{ overflow: 'hidden' }}>
-            <div style={{ color: '#fff', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ overflow: 'hidden', flex: 1 }}>
+            <div style={{ color: '#fff', fontSize: 11.5, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.3 }}>
               {perfil?.nombre} {perfil?.apellido}
             </div>
-            <div style={{ color: CBIS_COLORS.gold, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            <div style={{ color: '#D4A017', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', marginTop: 1 }}>
               {ROL_LABEL[perfil?.rol] || perfil?.rol}
             </div>
           </div>
         </div>
-        <button onClick={() => signOut()}
-          style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'left', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <button onClick={() => signOut()} className="logout-btn"
+          style={{ width: '100%', padding: '7px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.4)', fontSize: 11.5, fontWeight: 600, cursor: 'pointer', textAlign: 'left', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', display: 'flex', alignItems: 'center', gap: 8 }}>
           {Icons.logout} Cerrar sesión
         </button>
       </div>
@@ -384,6 +403,8 @@ export default function Layout({ pagina, setPagina, children }) {
         * { box-sizing: border-box; margin: 0; padding: 0; }
         .layout-root { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
         .nav-btn:hover { background: rgba(255,255,255,0.1) !important; color: #fff !important; }
+        .nav-btn:hover > div:first-child { background: rgba(255,255,255,0.1) !important; }
+        .logout-btn:hover { background: rgba(239,68,68,0.12) !important; color: #fca5a5 !important; border-color: rgba(239,68,68,0.2) !important; }
         .bottom-btn:hover { background: rgba(91,45,142,0.08) !important; }
         :root {
           --sat: env(safe-area-inset-top, 0px);

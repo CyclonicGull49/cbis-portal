@@ -2,30 +2,24 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import Layout from '../components/Layout'
-import { NIVEL_COLOR } from '../constants/colores'
-
-import { lazy, Suspense } from 'react'
-const Estudiantes   = lazy(() => import('./Estudiantes'))
-const Cobros        = lazy(() => import('./Cobros'))
-const Contabilidad  = lazy(() => import('./Contabilidad'))
-const Usuarios      = lazy(() => import('./Usuarios'))
-const Configuracion = lazy(() => import('./Configuracion'))
-const Matricula     = lazy(() => import('./Matricula'))
-const Reportes      = lazy(() => import('./Reportes'))
-const Notas         = lazy(() => import('./Notas'))
-const Boletas       = lazy(() => import('./Boletas'))
-const Asistencia    = lazy(() => import('./Asistencia'))
-const PerfilAlumno  = lazy(() => import('./PerfilAlumno'))
-const Solicitudes   = lazy(() => import('./Solicitudes'))
-const Calendario    = lazy(() => import('./Calendario'))
-const Horario       = lazy(() => import('./Horario'))
-const Anecdotario   = lazy(() => import('./Anecdotario'))
-const Permisos      = lazy(() => import('./Permisos'))
-const MisNotas      = lazy(() => import('./MisNotas'))
-
-
-
-
+import Campanita from '../components/Campanita'
+import Estudiantes from './Estudiantes'
+import Cobros from './Cobros'
+import Contabilidad from './Contabilidad'
+import Usuarios from './Usuarios'
+import Configuracion from './Configuracion'
+import Matricula from './Matricula'
+import Reportes from './Reportes'
+import Notas from './Notas'
+import Boletas from './Boletas'
+import Asistencia from './Asistencia'
+import PerfilAlumno from './PerfilAlumno'
+import Solicitudes from './Solicitudes'
+import Calendario from './Calendario'
+import Anecdotario from './Anecdotario'
+import Permisos from './Permisos'
+import Horario from './Horario'
+import MisNotas from './MisNotas'
 
 const IcoEstudiantes = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -74,6 +68,12 @@ const IcoDocente = () => (
   </svg>
 )
 
+const NIVEL_COLOR = {
+  primera_infancia: { bg: '#e0f7f6', color: '#0e9490', bar: '#0e9490', label: 'Primera Infancia' },
+  primaria:         { bg: '#fef9c3', color: '#a16207', bar: '#D4A017', label: 'Primaria' },
+  secundaria:       { bg: '#fff0e6', color: '#c2410c', bar: '#c2410c', label: 'Secundaria' },
+  bachillerato:     { bg: '#f3eeff', color: '#5B2D8E', bar: '#5B2D8E', label: 'Bachillerato' },
+}
 
 const TIPO_COLOR = { examen: '#dc2626', excursion: '#0e9490', feriado: '#d97706', actividad: '#5B2D8E', otro: '#6b7280' }
 const TIPO_BG    = { examen: '#fef2f2', excursion: '#e0f7f6', feriado: '#fffbeb', actividad: '#f3eeff', otro: '#f9fafb' }
@@ -241,43 +241,52 @@ function DashboardHome() {
     <span style={{ display: 'inline-block', width: w, height: 28, borderRadius: 6, background: 'rgba(255,255,255,0.15)', animation: 'pulse 1.5s ease-in-out infinite' }} />
   )
 
-  function KpiCard({ icon, label, val, sub, color, acento = false }) {
+  function KpiCard({ icon, label, val, sub, color, acento = false, trend }) {
     return (
       <div style={{
-        background: acento ? 'linear-gradient(135deg, #1a0d30 0%, #3d1f61 100%)' : '#fff',
-        borderRadius: 16,
-        padding: isMobile ? '16px 20px' : '22px 24px',
-        boxShadow: acento ? '0 8px 32px rgba(61,31,97,0.45)' : '0 2px 20px rgba(61,31,97,0.09)',
-        display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+        background: acento ? 'linear-gradient(145deg, #1a0d30 0%, #2d1554 60%, #3d1f61 100%)' : '#fff',
+        borderRadius: 20,
+        padding: isMobile ? '18px 20px' : '24px 26px',
+        boxShadow: acento
+          ? '0 12px 40px rgba(26,13,48,0.5), 0 2px 8px rgba(0,0,0,0.2)'
+          : '0 2px 16px rgba(61,31,97,0.07), 0 0 0 1px rgba(61,31,97,0.04)',
+        display: 'flex', flexDirection: 'column', gap: 16,
         position: 'relative', overflow: 'hidden',
-        minHeight: isMobile ? (acento ? 100 : 90) : 130,
+        minHeight: 130,
+        transition: 'transform 0.15s, box-shadow 0.15s',
       }}>
         {acento && (<>
-          <div style={{ position: 'absolute', width: 180, height: 180, borderRadius: '50%', background: 'radial-gradient(circle, rgba(112,60,220,0.7) 0%, transparent 70%)', filter: 'blur(35px)', top: -60, left: -30, pointerEvents: 'none' }} />
-          <div style={{ position: 'absolute', width: 120, height: 120, borderRadius: '50%', background: 'radial-gradient(circle, rgba(234,88,12,0.45) 0%, transparent 70%)', filter: 'blur(28px)', bottom: -20, right: 20, pointerEvents: 'none' }} />
-          <div style={{ position: 'absolute', width: 100, height: 100, borderRadius: '50%', background: 'radial-gradient(circle, rgba(212,160,23,0.35) 0%, transparent 70%)', filter: 'blur(24px)', top: 20, right: -10, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(112,60,220,0.6) 0%, transparent 70%)', filter: 'blur(40px)', top: -60, left: -20, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', width: 140, height: 140, borderRadius: '50%', background: 'radial-gradient(circle, rgba(234,88,12,0.35) 0%, transparent 70%)', filter: 'blur(32px)', bottom: -20, right: 10, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', width: 100, height: 100, borderRadius: '50%', background: 'radial-gradient(circle, rgba(212,160,23,0.3) 0%, transparent 70%)', filter: 'blur(24px)', top: 10, right: 30, pointerEvents: 'none' }} />
         </>)}
-        {!acento && (
-          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, borderRadius: '16px 0 0 16px', background: color }} />
-        )}
+        {/* Icon bubble + label */}
         <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: acento ? 'rgba(255,255,255,0.55)' : '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
-            {label}
+          <div style={{
+            width: 40, height: 40, borderRadius: 12,
+            background: acento ? 'rgba(255,255,255,0.12)' : `${color}18`,
+            border: acento ? '1px solid rgba(255,255,255,0.15)' : `1px solid ${color}28`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: acento ? 'rgba(255,255,255,0.85)' : color,
+            flexShrink: 0,
+          }}>
+            {icon}
           </div>
-          {!isMobile && (
-            <div style={{ color: acento ? 'rgba(255,255,255,0.6)' : color }}>{icon}</div>
+          {trend && (
+            <span style={{ fontSize: 10, fontWeight: 700, color: trend > 0 ? '#16a34a' : '#dc2626', background: trend > 0 ? '#f0fdf4' : '#fef2f2', padding: '2px 8px', borderRadius: 100 }}>
+              {trend > 0 ? '+' : ''}{trend}%
+            </span>
           )}
         </div>
-        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: isMobile && acento ? 12 : 0 }}>
-          {isMobile && acento && (
-            <div style={{ color: 'rgba(255,255,255,0.6)', flexShrink: 0 }}>{icon}</div>
-          )}
-          <div>
-            <div style={{ fontSize: isMobile ? 26 : 30, fontWeight: 900, color: acento ? '#fff' : color, letterSpacing: '-1px', lineHeight: 1, marginBottom: 4 }}>
-              {loading ? <Skeleton /> : val}
-            </div>
-            <div style={{ fontSize: 11, fontWeight: 500, color: acento ? 'rgba(255,255,255,0.4)' : '#c4bad4' }}>{sub}</div>
+        {/* Value + label */}
+        <div style={{ position: 'relative' }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: acento ? 'rgba(255,255,255,0.45)' : '#b0a8c0', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 6 }}>
+            {label}
           </div>
+          <div style={{ fontSize: isMobile ? 24 : 28, fontWeight: 900, color: acento ? '#fff' : '#0f1d40', letterSpacing: '-1px', lineHeight: 1, marginBottom: 4 }}>
+            {loading ? <Skeleton /> : val}
+          </div>
+          <div style={{ fontSize: 11, fontWeight: 500, color: acento ? 'rgba(255,255,255,0.35)' : '#c4bad4' }}>{sub}</div>
         </div>
       </div>
     )
@@ -300,16 +309,38 @@ function DashboardHome() {
         <div style={{ position: 'absolute', width: 320, height: 320, borderRadius: '50%', background: 'radial-gradient(circle, rgba(112,60,220,0.45) 0%, transparent 70%)', filter: 'blur(55px)', top: -100, right: 180, pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(234,88,12,0.3) 0%, transparent 70%)', filter: 'blur(40px)', top: -30, right: 30, pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', width: 180, height: 180, borderRadius: '50%', background: 'radial-gradient(circle, rgba(212,160,23,0.22) 0%, transparent 70%)', filter: 'blur(40px)', bottom: -50, right: 350, pointerEvents: 'none' }} />
-        <div style={{ position: 'relative' }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginBottom: 6, letterSpacing: '0.5px' }}>
-            {new Date().toLocaleDateString('es-SV', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+        <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.5px' }}>
+                {new Date().toLocaleDateString('es-SV', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              </span>
+              <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'rgba(255,255,255,0.25)', display: 'inline-block' }} />
+              <span style={{
+                fontSize: 10, fontWeight: 700, color: '#D4A017',
+                background: 'rgba(212,160,23,0.12)',
+                border: '1px solid rgba(212,160,23,0.25)',
+                padding: '2px 8px', borderRadius: 100, textTransform: 'uppercase', letterSpacing: '0.8px',
+              }}>
+                {{
+                  admin: 'Administrador',
+                  direccion_academica: 'Dirección Académica',
+                  registro_academico: 'Registro',
+                  recepcion: 'Recepción',
+                  docente: 'Docente',
+                  alumno: 'Alumno',
+                  talento_humano: 'Talento Humano',
+                }[perfil?.rol] || perfil?.rol}
+              </span>
+            </div>
+            <h1 style={{ color: '#fff', fontSize: isMobile ? 22 : 26, fontWeight: 800, letterSpacing: '-0.8px', margin: 0, marginBottom: 4, lineHeight: 1.1 }}>
+              {saludo}, {perfil?.nombre}
+            </h1>
+            <p style={{ color: 'rgba(255,255,255,0.38)', fontSize: 12, margin: 0, fontWeight: 400 }}>
+              Colegio Bautista Internacional de Sonsonate
+            </p>
           </div>
-          <h1 style={{ color: '#fff', fontSize: isMobile ? 20 : 24, fontWeight: 800, letterSpacing: '-0.5px', margin: 0, marginBottom: 4 }}>
-            {saludo}, {perfil?.nombre}
-          </h1>
-          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, margin: 0 }}>
-            Colegio Bautista Internacional de Sonsonate
-          </p>
+          <Campanita onNavegar={pagina => setPagina(pagina)} />
         </div>
       </div>
 
@@ -378,13 +409,7 @@ function DashboardHome() {
         </div>
       )}
 
-      {/* Fila 3: KPIs académicos */}
-      {verAcademico && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 16 }}>
-          <KpiCard icon={<IcoNotas />}    label="Notas registradas"           val={stats.notasRegistradas.toLocaleString()} sub={`año escolar ${new Date().getFullYear()}`} color="#0e9490" />
-          <KpiCard icon={<IcoMaterias />} label="Combinaciones materia-grado" val={stats.totalMaterias}                     sub="en el sistema"                            color="#a16207" />
-        </div>
-      )}
+
 
       {/* Tabla pagos recientes */}
       {verFinanzas && (
@@ -484,19 +509,41 @@ function DashboardHome() {
 
       {/* Próximos eventos — todos los roles */}
       {stats.proximosEventos.length > 0 && (
-        <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 20px rgba(61,31,97,0.09)', padding: '18px 24px', marginTop: 4 }}>
-          <h2 style={{ color: '#3d1f61', fontSize: 14, fontWeight: 800, margin: '0 0 14px 0' }}>Próximos eventos</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {stats.proximosEventos.map(ev => (
-              <div key={ev.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 12px', background: TIPO_BG[ev.tipo] || '#f9fafb', borderRadius: 10, borderLeft: `3px solid ${TIPO_COLOR[ev.tipo] || '#6b7280'}` }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#3d1f61' }}>{ev.titulo}</div>
+        <div style={{ background: '#fff', borderRadius: 20, boxShadow: '0 2px 16px rgba(61,31,97,0.07), 0 0 0 1px rgba(61,31,97,0.04)', overflow: 'hidden', marginTop: 4 }}>
+          <div style={{ padding: '18px 24px', borderBottom: '1px solid #f3eeff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h2 style={{ color: '#0f1d40', fontSize: 14, fontWeight: 800, margin: 0, letterSpacing: '-0.3px' }}>Próximos eventos</h2>
+              <p style={{ fontSize: 11, color: '#b0a8c0', margin: '2px 0 0', fontWeight: 500 }}>Calendario escolar {new Date().getFullYear()}</p>
+            </div>
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#5B2D8E', background: '#f3eeff', padding: '4px 10px', borderRadius: 100, letterSpacing: '0.3px' }}>
+              {stats.proximosEventos.length} próximos
+            </span>
+          </div>
+          <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {stats.proximosEventos.map((ev, i) => {
+              const color = TIPO_COLOR[ev.tipo] || '#6b7280'
+              const bg    = TIPO_BG[ev.tipo]   || '#f9fafb'
+              const fecha = new Date(ev.fecha_inicio + 'T12:00:00')
+              const dia   = fecha.toLocaleDateString('es-SV', { day: 'numeric' })
+              const mes   = fecha.toLocaleDateString('es-SV', { month: 'short' })
+              return (
+                <div key={ev.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 12px', background: i % 2 === 0 ? '#fdfcff' : '#fff', borderRadius: 12, transition: 'background 0.1s' }}>
+                  {/* Date bubble */}
+                  <div style={{ width: 44, height: 44, borderRadius: 12, background: bg, border: `1.5px solid ${color}28`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <span style={{ fontSize: 14, fontWeight: 900, color, lineHeight: 1 }}>{dia}</span>
+                    <span style={{ fontSize: 8, fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{mes}</span>
+                  </div>
+                  {/* Info */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#0f1d40', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.titulo}</div>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 3 }}>
+                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: color, display: 'inline-block' }} />
+                      <span style={{ fontSize: 10, fontWeight: 600, color, textTransform: 'capitalize' }}>{ev.tipo}</span>
+                    </div>
+                  </div>
                 </div>
-                <div style={{ fontSize: 11, color: '#b0a8c0', fontWeight: 600, flexShrink: 0 }}>
-                  {new Date(ev.fecha_inicio + 'T12:00:00').toLocaleDateString('es-SV', { day: 'numeric', month: 'short' })}
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}
@@ -511,8 +558,6 @@ export default function Dashboard() {
 
   function renderPagina() {
     if (pagina.startsWith('perfil-estudiante-')) {
-      const puedeVerPerfil = ['admin', 'direccion_academica', 'recepcion', 'registro_academico'].includes(perfil?.rol)
-      if (!puedeVerPerfil) return <Notas onVerEstudiante={id => setPagina(`perfil-estudiante-${id}`)} />
       const id = parseInt(pagina.replace('perfil-estudiante-', ''))
       return <Estudiantes estudianteIdInicial={id} onVolver={() => setPagina('notas')} />
     }
@@ -526,7 +571,6 @@ export default function Dashboard() {
       case 'cobros':        return <Cobros />
       case 'notas':         return <Notas onVerEstudiante={id => setPagina(`perfil-estudiante-${id}`)} />
       case 'calendario':    return <Calendario />
-      case 'horario':       return <Horario />
       case 'contabilidad':  return <Contabilidad />
       case 'usuarios':      return <Usuarios />
       case 'configuracion': return <Configuracion />
@@ -536,23 +580,13 @@ export default function Dashboard() {
       case 'mis-docs':      return <PerfilAlumno seccion="docs" />
       case 'mis-notas':     return <PerfilAlumno seccion="notas" />
       case 'mi-config':     return <PerfilAlumno seccion="config" />
-      case 'anecdotario':   return <Anecdotario />
-      case 'permisos':      return <Permisos />
-      case 'mis-notas': return <MisNotas />
-
       default:              return esAlumno ? <PerfilAlumno seccion="perfil" /> : <DashboardHome />
     }
   }
 
   return (
     <Layout pagina={pagina} setPagina={setPagina}>
-      <Suspense fallback={
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300, color: '#b0a8c0', fontSize: 14, fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
-          Cargando...
-        </div>
-      }>
-        {renderPagina()}
-      </Suspense>
+      {renderPagina()}
     </Layout>
   )
 }
