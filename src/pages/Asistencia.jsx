@@ -2,8 +2,17 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { useYearEscolar } from '../hooks/useYearEscolar'
-import { useBreakpoint } from '../hooks/useBreakpoint'
 import toast from 'react-hot-toast'
+
+function useBreakpoint() {
+  const [bp, setBp] = useState(() => window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop')
+  useEffect(() => {
+    const fn = () => setBp(window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop')
+    window.addEventListener('resize', fn)
+    return () => window.removeEventListener('resize', fn)
+  }, [])
+  return bp
+}
 
 // ── Iconos ────────────────────────────────────
 const IcoCalendar = () => (
@@ -353,7 +362,14 @@ export default function Asistencia() {
                     <tr style={{ background: '#1a2d5a' }}>
                       <th style={{ ...s.th, width: 36 }}>#</th>
                       <th style={{ ...s.th, textAlign: 'left' }}>Estudiante</th>
-                      {ESTADOS.map(e => <th key={e.value} style={{ ...s.th, width: 90 }}>{e.label}</th>)}
+                      {ESTADOS.map(e => (
+                        <th key={e.value} style={{ ...s.th, width: 90 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: e.dot, display: 'inline-block', flexShrink: 0 }} />
+                            {e.label}
+                          </div>
+                        </th>
+                      ))}
                       <th style={{ ...s.th, textAlign: 'left' }}>Observación</th>
                     </tr>
                   </thead>
@@ -364,7 +380,7 @@ export default function Asistencia() {
                       const permiso      = permisosMap[est.id]
                       const tieneAlerta  = alertas.some(a => a.estudiante.id === est.id)
                       return (
-                        <tr key={est.id} style={{ background: tieneAlerta ? '#fffbeb' : idx % 2 === 0 ? '#fff' : '#f4f7fc', borderBottom: '1px solid #eee' }}>
+                        <tr key={est.id} style={{ background: tieneAlerta ? '#fffbeb' : idx % 2 === 0 ? '#fff' : '#fdfcff', borderBottom: '1px solid #f3eeff', transition: 'background 0.1s' }}>
                           <td style={{ ...s.td, color: '#b0a8c0', fontSize: 12 }}>{idx + 1}</td>
                           <td style={s.td}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -382,15 +398,29 @@ export default function Asistencia() {
                               </div>
                             </div>
                           </td>
-                          {ESTADOS.map(e => (
-                            <td key={e.value} style={{ ...s.td, textAlign: 'center' }}>
-                              <input type="radio" name={`est-${est.id}`} value={e.value}
-                                checked={estadoActual === e.value}
-                                onChange={() => puedeEditar && setAsistencia(prev => ({ ...prev, [est.id]: e.value }))}
-                                disabled={!puedeEditar}
-                                style={{ accentColor: e.dot, width: 16, height: 16, cursor: puedeEditar ? 'pointer' : 'not-allowed' }} />
-                            </td>
-                          ))}
+                          {ESTADOS.map(e => {
+                            const activo = estadoActual === e.value
+                            return (
+                              <td key={e.value} style={{ ...s.td, textAlign: 'center', padding: '8px 6px' }}>
+                                <button
+                                  onClick={() => puedeEditar && setAsistencia(prev => ({ ...prev, [est.id]: e.value }))}
+                                  disabled={!puedeEditar}
+                                  style={{
+                                    width: 32, height: 32, borderRadius: '50%',
+                                    border: `2px solid ${activo ? e.dot : '#e5e7eb'}`,
+                                    background: activo ? e.bg : 'transparent',
+                                    cursor: puedeEditar ? 'pointer' : 'not-allowed',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    transition: 'all 0.15s',
+                                    flexShrink: 0, margin: '0 auto',
+                                  }}>
+                                  {activo && (
+                                    <span style={{ width: 12, height: 12, borderRadius: '50%', background: e.dot, display: 'block' }} />
+                                  )}
+                                </button>
+                              </td>
+                            )
+                          })}
                           <td style={s.td}>
                             <input type="text"
                               placeholder={estadoActual !== 'presente' ? 'Motivo...' : ''}

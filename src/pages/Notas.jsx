@@ -3,9 +3,17 @@ import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { useYearEscolar } from '../hooks/useYearEscolar'
 import { usePeriodosNotas } from '../hooks/usePeriodosNotas'
-import { useBreakpoint } from '../hooks/useBreakpoint'
-import { NIVEL_COLOR as nivelColor } from '../constants/colores'
 import toast from 'react-hot-toast'
+
+function useBreakpoint() {
+  const [bp, setBp] = useState(() => window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop')
+  useEffect(() => {
+    const fn = () => setBp(window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop')
+    window.addEventListener('resize', fn)
+    return () => window.removeEventListener('resize', fn)
+  }, [])
+  return bp
+}
 
 const LABELS = { ac: 'AC', ai: 'AI', em: 'EM', ep: 'EP', ef: 'EF' }
 const FULL_LABELS = {
@@ -18,6 +26,16 @@ function calcNFT(componentes, notasMap) {
   const vals = componentes.map(c => notasMap[c])
   if (vals.some(v => v === null || v === undefined || v === '')) return null
   return componentes.reduce((sum, c) => sum + parseFloat(notasMap[c]) * PESOS[c], 0)
+}
+
+
+
+const nivelColor = {
+  primera_infancia: { bg: '#e0f7f6', color: '#0e9490' },
+  inicial:          { bg: '#e0f7f6', color: '#0e9490' },
+  primaria:         { bg: '#fef9c3', color: '#a16207' },
+  secundaria:       { bg: '#fff0e6', color: '#c2410c' },
+  bachillerato:     { bg: '#f3eeff', color: '#5B2D8E' },
 }
 
 function colorNota(n) {
@@ -71,14 +89,15 @@ function NotaInput({ value, onChange, onPreview, disabled }) {
       value={local} disabled={disabled}
       onChange={handleChange} onBlur={handleBlur}
       style={{
-        width: 52, padding: '5px 4px', borderRadius: 7, textAlign: 'center',
-        border: '1.5px solid #e5e7eb',
-        fontSize: 16, fontWeight: 600,
-        transform: 'scale(0.75)', transformOrigin: 'center',
-        background: disabled ? '#f9fafb' : '#fff',
-        color: local === '' ? '#ccc' : parseFloat(local) < 5 ? '#dc2626' : '#3d1f61',
+        width: 46, padding: '5px 2px', borderRadius: 8, textAlign: 'center',
+        border: `1.5px solid ${disabled ? '#f0f0f0' : local !== '' && parseFloat(local) < 5 ? '#fca5a5' : local !== '' && parseFloat(local) < 7 ? '#fcd34d' : '#e5e7eb'}`,
+        fontSize: 13, fontWeight: 700,
+        background: disabled ? '#fafafa' : local !== '' && parseFloat(local) < 5 ? '#fef2f2' : local !== '' && parseFloat(local) < 7 ? '#fffbeb' : '#fff',
+        color: local === '' ? '#d1d5db' : parseFloat(local) < 5 ? '#dc2626' : parseFloat(local) < 7 ? '#a16207' : '#16a34a',
         fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', outline: 'none',
         WebkitAppearance: 'none', MozAppearance: 'textfield',
+        transition: 'border-color 0.15s, background 0.15s',
+        cursor: disabled ? 'not-allowed' : 'text',
       }}
     />
   )
@@ -209,17 +228,11 @@ export default function Notas({ onVerEstudiante }) {
   const compIngles   = grupoInfo ? ['ac','ai','ep','ef'] : ['ac','ai','em','ef']
   const numPerIngles = 4
 
-  const [paginaNota, setPaginaNota] = useState(1)
-  const POR_PAGINA_NOTA = 10
-
   const estudiantesFiltrados = estudiantes.filter(e =>
     busqueda === '' ||
     `${e.nombre} ${e.apellido}`.toLowerCase().includes(busqueda.toLowerCase()) ||
     `${e.apellido} ${e.nombre}`.toLowerCase().includes(busqueda.toLowerCase())
   )
-
-  const totalPaginasNota = Math.ceil(estudiantesFiltrados.length / POR_PAGINA_NOTA)
-  const estudiantesPaginados = estudiantesFiltrados.slice((paginaNota - 1) * POR_PAGINA_NOTA, paginaNota * POR_PAGINA_NOTA)
 
   function puedeEditarMateria(matId) {
     if (!esDocenteTambien) return ['admin','registro_academico','direccion_academica','recepcion'].includes(perfil?.rol)
@@ -515,10 +528,7 @@ export default function Notas({ onVerEstudiante }) {
     return (
       <td style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, color: canClick ? '#5B2D8E' : '#3d1f61', whiteSpace: 'nowrap' }}>
         <span
-          onClick={() => {
-  const puedeVerPerfil = ['admin', 'direccion_academica', 'recepcion', 'registro_academico'].includes(perfil?.rol)
-  if (canClick && puedeVerPerfil && onVerEstudiante) onVerEstudiante(est.id)
-}}
+          onClick={() => canClick && onVerEstudiante(est.id)}
           style={{ cursor: canClick ? 'pointer' : 'default', borderBottom: canClick ? '1px dashed #c9b8e8' : 'none', paddingBottom: canClick ? 1 : 0, transition: 'color 0.15s' }}
           onMouseEnter={e => { if (canClick) e.target.style.color = '#3d1f61' }}
           onMouseLeave={e => { if (canClick) e.target.style.color = '#5B2D8E' }}
@@ -568,7 +578,7 @@ export default function Notas({ onVerEstudiante }) {
             </tr>
           </thead>
           <tbody>
-            {estudiantesPaginados.map((est, idx) => {
+            {estudiantesFiltrados.map((est, idx) => {
               const nftsPorMateria = materias.map(m => {
                 const vals = Array.from({ length: numPeriodos }, (_, i) => calcNFT(componentes, getNotasMap(est.id, m.id, i + 1))).filter(v => v !== null)
                 return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
@@ -596,33 +606,6 @@ export default function Notas({ onVerEstudiante }) {
             )}
           </tbody>
         </table>
-        {totalPaginasNota > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px 0', borderTop: '1px solid #f3eeff' }}>
-            <button onClick={() => setPaginaNota(p => Math.max(1, p - 1))} disabled={paginaNota === 1}
-              style={{ padding: '5px 12px', borderRadius: 8, border: '1.5px solid #e5e7eb', background: paginaNota === 1 ? '#f9fafb' : '#fff', color: paginaNota === 1 ? '#d1d5db' : '#5B2D8E', fontWeight: 700, fontSize: 12, cursor: paginaNota === 1 ? 'default' : 'pointer', fontFamily: 'inherit' }}>
-              ‹ Ant
-            </button>
-            {Array.from({ length: totalPaginasNota }, (_, i) => i + 1)
-              .filter(p => p === 1 || p === totalPaginasNota || Math.abs(p - paginaNota) <= 1)
-              .reduce((acc, p, i, arr) => {
-                if (i > 0 && p - arr[i-1] > 1) acc.push('...')
-                acc.push(p)
-                return acc
-              }, [])
-              .map((p, i) => p === '...'
-                ? <span key={`e${i}`} style={{ fontSize: 12, color: '#b0a8c0' }}>...</span>
-                : <button key={p} onClick={() => setPaginaNota(p)}
-                    style={{ width: 30, height: 30, borderRadius: 8, border: '1.5px solid', borderColor: paginaNota === p ? '#5B2D8E' : '#e5e7eb', background: paginaNota === p ? '#5B2D8E' : '#fff', color: paginaNota === p ? '#fff' : '#3d1f61', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
-                    {p}
-                  </button>
-              )
-            }
-            <button onClick={() => setPaginaNota(p => Math.min(totalPaginasNota, p + 1))} disabled={paginaNota === totalPaginasNota}
-              style={{ padding: '5px 12px', borderRadius: 8, border: '1.5px solid #e5e7eb', background: paginaNota === totalPaginasNota ? '#f9fafb' : '#fff', color: paginaNota === totalPaginasNota ? '#d1d5db' : '#5B2D8E', fontWeight: 700, fontSize: 12, cursor: paginaNota === totalPaginasNota ? 'default' : 'pointer', fontFamily: 'inherit' }}>
-              Sig ›
-            </button>
-          </div>
-        )}
       </div>
     )
   }
@@ -708,10 +691,7 @@ export default function Notas({ onVerEstudiante }) {
                   <td style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, color: '#3d1f61', whiteSpace: 'nowrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       {tienePendientes && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b', flexShrink: 0 }} title="Cambios sin guardar" />}
-                      <span onClick={() => {
-  const puedeVerPerfil = ['admin', 'direccion_academica', 'recepcion', 'registro_academico'].includes(perfil?.rol)
-  if (onVerEstudiante && puedeVerPerfil) onVerEstudiante(est.id)
-}} style={{ cursor: (onVerEstudiante && ['admin', 'direccion_academica', 'recepcion', 'registro_academico'].includes(perfil?.rol)) ? 'pointer' : 'default', borderBottom: (onVerEstudiante && ['admin', 'direccion_academica', 'recepcion', 'registro_academico'].includes(perfil?.rol)) ? '1px dashed #c9b8e8' : 'none' }}>
+                      <span onClick={() => onVerEstudiante && onVerEstudiante(est.id)} style={{ cursor: onVerEstudiante ? 'pointer' : 'default', borderBottom: onVerEstudiante ? '1px dashed #c9b8e8' : 'none' }}>
                         {est.apellido}, {est.nombre}
                       </span>
                     </div>
@@ -1030,6 +1010,14 @@ export default function Notas({ onVerEstudiante }) {
   return (
     <div style={{ fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
 
+      {/* Header */}
+      <div style={{ marginBottom: 20 }}>
+        <h1 style={{ color: '#0f1d40', fontSize: 22, fontWeight: 800, marginBottom: 4, letterSpacing: '-0.5px' }}>Notas</h1>
+        <p style={{ color: '#b0a8c0', fontSize: 13, fontWeight: 500 }}>
+          {gradoInfo ? `${gradoInfo.nombre} · Año ${year}` : `Año escolar ${year}`}
+        </p>
+      </div>
+
       {esDocenteTambien && grupos.length > 0 && (
         <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '2px solid #f0f0f0' }}>
           <button onClick={() => setModo('grados')}
@@ -1075,13 +1063,13 @@ export default function Notas({ onVerEstudiante }) {
 
       {modo === 'grados' && (
         <>
-          <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'flex-end', background: '#fff', borderRadius: 16, padding: '16px 20px', boxShadow: '0 2px 16px rgba(61,31,97,0.07)' }}>
             {(!esDocenteTambien || grados.length > 1) && (
               <div style={{ flex: 1, minWidth: 160 }}>
                 <label style={s.label}>Grado</label>
                 <select style={s.select} value={gradoId || ''} onChange={e => {
                   const id = parseInt(e.target.value)
-                  setGradoId(id); setGradoInfo(grados.find(g => g.id === id)); setBusqueda(''); setPaginaNota(1)
+                  setGradoId(id); setGradoInfo(grados.find(g => g.id === id)); setBusqueda('')
                 }}>
                   <option value="">Selecciona un grado</option>
                   {grados.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
@@ -1090,11 +1078,11 @@ export default function Notas({ onVerEstudiante }) {
             )}
             <div style={{ flex: 1, minWidth: 160 }}>
               <label style={s.label}>Materia</label>
-              <select style={s.select} value={materiaId} onChange={e => { setMateriaId(e.target.value); setBusqueda(''); setPaginaNota(1)  }} disabled={!gradoId}>
+              <select style={s.select} value={materiaId} onChange={e => { setMateriaId(e.target.value); setBusqueda('') }} disabled={!gradoId}>
                 {!isMobile && <option value="todas">Ver todas las materias</option>}
                 {materias.map(m => (
                   <option key={m.id} value={m.id}>
-                    {m.nombre}{esDocenteTambien && esEncargado && !misMateriasIds.has(m.id) ? ' 👁' : ''}
+                    {m.nombre}{esDocenteTambien && esEncargado && !misMateriasIds.has(m.id) ? ' ●' : ''}
                   </option>
                 ))}
               </select>
@@ -1109,7 +1097,7 @@ export default function Notas({ onVerEstudiante }) {
 
           {esEncargado && (
             <div style={{ marginBottom: 12, padding: '10px 16px', background: '#fffbeb', borderRadius: 10, fontSize: 12, color: '#92400e', fontWeight: 600, border: '1px solid #fde68a' }}>
-              👁 Eres encargado de este grado — ves todas las materias. Las marcadas con 👁 son de solo lectura.
+              Eres encargado de este grado — ves todas las materias. Las marcadas con ● son de solo lectura.
             </div>
           )}
 
@@ -1178,6 +1166,6 @@ export default function Notas({ onVerEstudiante }) {
 const s = {
   label:  { display: 'block', fontSize: 10, fontWeight: 700, color: '#5B2D8E', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' },
   select: { width: '100%', padding: '10px 14px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: 14, background: '#fff', color: '#222', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', cursor: 'pointer' },
-  th:     { padding: '10px 10px', fontSize: 10, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: '0.6px', textAlign: 'center' },
+  th:     { padding: '10px 10px', fontSize: 10, fontWeight: 700, color: '#F5EDD0', textTransform: 'uppercase', letterSpacing: '0.6px', textAlign: 'center' },
   th2:    { padding: '6px 6px', fontSize: 10, fontWeight: 600, color: '#b0a8c0', textTransform: 'uppercase', letterSpacing: '0.4px', textAlign: 'center' },
 }
