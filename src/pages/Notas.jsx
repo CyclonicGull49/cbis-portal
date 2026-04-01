@@ -593,8 +593,16 @@ export default function Notas({ onVerEstudiante }) {
                       <span style={{ fontSize: 13, fontWeight: 700, color: colorNota(n) }}>{n !== null ? n.toFixed(2) : '—'}</span>
                     </td>
                   ))}
-                  <td style={{ padding: '10px 12px', textAlign: 'center', borderLeft: '2px solid #c9b8e8' }}>
-                    <span style={{ fontSize: 14, fontWeight: 900, color: colorNota(prom) }}>{prom !== null ? prom.toFixed(2) : '—'}</span>
+                  <td style={{ padding: '6px 10px', textAlign: 'center', borderLeft: '2px solid #c9b8e8', background: '#fdfcff' }}>
+                    <span style={{
+                      display: 'inline-block', padding: '3px 10px', borderRadius: 8,
+                      fontSize: 13, fontWeight: 900,
+                      background: prom === null ? 'transparent' : prom < 5 ? '#fee2e2' : prom < 7 ? '#fef9c3' : '#f0fdf4',
+                      color: prom === null ? '#d1d5db' : prom < 5 ? '#dc2626' : prom < 7 ? '#a16207' : '#16a34a',
+                      border: prom === null ? 'none' : `1.5px solid ${prom < 5 ? '#fca5a5' : prom < 7 ? '#fcd34d' : '#86efac'}`,
+                    }}>
+                      {prom !== null ? prom.toFixed(2) : '—'}
+                    </span>
                   </td>
                 </tr>
               )
@@ -613,197 +621,280 @@ export default function Notas({ onVerEstudiante }) {
   // ── Tabla materia ─────────────────────────────────────────
   function TablaMateria() {
     const materia = materias.find(m => m.id === materiaId)
+    const [periodoTab, setPeriodoTab] = React.useState(1)
+    const abierto = isPeriodoAbierto(gradoInfo?.nivel, periodoTab)
+    const hayPendientesPeriodo = Object.keys(pendingNotas).some(k => k.includes(`|${periodoTab}|`)) ||
+                                 Object.keys(pendingActs).some(k => k.includes(`|${periodoTab}|`))
+
     return (
-      <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', overflow: 'auto' }}>
-        <div style={{ padding: '14px 20px', borderBottom: '1px solid #f3eeff', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <span style={{ ...nivel, padding: '3px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>{gradoInfo?.nombre}</span>
-          <span style={{ fontSize: 14, fontWeight: 700, color: '#3d1f61' }}>{materia?.nombre}</span>
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
-            {componentes.map(c => (
-              <span key={c} style={{ fontSize: 10, fontWeight: 700, color: '#b0a8c0', background: '#f3eeff', padding: '2px 8px', borderRadius: 10 }}>
-                {c === 'ac' ? `AC (${numActividades})` : LABELS[c]} {PESOS[c] * 100}%
-              </span>
-            ))}
-            {hayPendientes && (
-              <button onClick={guardarTodo} disabled={guardando}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', borderRadius: 10, border: 'none', background: guardando ? '#c4bad4' : 'linear-gradient(135deg, #3d1f61, #5B2D8E)', color: '#fff', fontWeight: 700, fontSize: 12, cursor: guardando ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                  <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
-                </svg>
-                {guardando ? 'Guardando...' : 'Guardar todo'}
-              </button>
-            )}
+      <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', overflow: 'hidden' }}>
+
+        {/* Header */}
+        <div style={{ padding: '16px 24px', borderBottom: '1px solid #f3eeff', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <span style={{ ...nivel, padding: '3px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>{gradoInfo?.nombre}</span>
+              <span style={{ fontSize: 15, fontWeight: 800, color: '#0f1d40' }}>{materia?.nombre}</span>
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {componentes.map(c => (
+                <span key={c} style={{ fontSize: 10, fontWeight: 600, color: '#b0a8c0', background: '#f9fafb', padding: '2px 8px', borderRadius: 8, border: '1px solid #f0f0f0' }}>
+                  {c === 'ac' ? `AC (${numActividades} act.)` : FULL_LABELS[c]} · {PESOS[c] * 100}%
+                </span>
+              ))}
+            </div>
           </div>
+          {hayPendientes && (
+            <button onClick={guardarTodo} disabled={guardando}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 18px', borderRadius: 10, border: 'none', background: guardando ? '#c4bad4' : 'linear-gradient(135deg, #3d1f61, #5B2D8E)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: guardando ? 'not-allowed' : 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 12px rgba(91,45,142,0.25)' }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+              </svg>
+              {guardando ? 'Guardando...' : 'Guardar cambios'}
+            </button>
+          )}
         </div>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
-          <thead>
-            <tr style={{ background: '#faf8ff' }}>
-              <th style={{ ...s.th, textAlign: 'left', width: 200 }}>
-                Estudiante
-                {busqueda && <span style={{ fontWeight: 400, color: '#b0a8c0', marginLeft: 6, fontSize: 10 }}>{estudiantesFiltrados.length} resultado{estudiantesFiltrados.length !== 1 ? 's' : ''}</span>}
-              </th>
-              {Array.from({ length: numPeriodos }, (_, i) => {
-                const p = i + 1
-                const abierto = isPeriodoAbierto(gradoInfo?.nivel, p)
-                const desbloqueado = esDocenteTambien && isMateriaDesbloqueada(materiaId, gradoId, p)
-                return (
-                  <th key={i} colSpan={componentes.length + 1} style={{ ...s.th, borderLeft: '2px solid #e9e3f5' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                      {!abierto && (
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={desbloqueado ? '#16a34a' : '#dc2626'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="3" y="11" width="18" height="11" rx="2"/>
-                          {desbloqueado ? <path d="M7 11V7a5 5 0 0 1 9.9-1"/> : <path d="M7 11V7a5 5 0 0 1 10 0v4"/>}
-                        </svg>
-                      )}
-                      {periodoLabel} {p}
-                    </div>
+
+        {/* Tabs de período */}
+        <div style={{ display: 'flex', gap: 0, borderBottom: '2px solid #f3eeff', padding: '0 16px', background: '#fdfcff' }}>
+          {Array.from({ length: numPeriodos }, (_, i) => {
+            const p = i + 1
+            const ab = isPeriodoAbierto(gradoInfo?.nivel, p)
+            const activo = periodoTab === p
+            const hayPend = Object.keys(pendingNotas).some(k => k.includes(`|${p}|`)) ||
+                            Object.keys(pendingActs).some(k => k.includes(`|${p}|`))
+            return (
+              <button key={p} onClick={() => setPeriodoTab(p)}
+                style={{
+                  padding: '12px 20px', border: 'none', background: 'none',
+                  borderBottom: activo ? '2px solid #5B2D8E' : '2px solid transparent',
+                  marginBottom: -2,
+                  color: activo ? '#3d1f61' : '#b0a8c0',
+                  fontWeight: activo ? 800 : 500,
+                  fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  transition: 'all 0.15s',
+                }}>
+                {!ab && (
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={activo ? '#5B2D8E' : '#d1d5db'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                )}
+                {periodoLabel} {p}
+                {hayPend && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }} />}
+              </button>
+            )
+          })}
+          {/* ACU tab */}
+          <button onClick={() => setPeriodoTab(0)}
+            style={{ marginLeft: 'auto', padding: '12px 20px', border: 'none', background: 'none', borderBottom: periodoTab === 0 ? '2px solid #D4A017' : '2px solid transparent', marginBottom: -2, color: periodoTab === 0 ? '#a16207' : '#b0a8c0', fontWeight: periodoTab === 0 ? 800 : 500, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+            ACU Final
+          </button>
+        </div>
+
+        {/* Vista ACU Final — todos los trimestres resumidos */}
+        {periodoTab === 0 && (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 500 }}>
+              <thead>
+                <tr style={{ background: '#1a0d30' }}>
+                  <th style={{ ...s.th, textAlign: 'left', padding: '12px 20px', minWidth: 200 }}>Estudiante</th>
+                  {Array.from({ length: numPeriodos }, (_, i) => (
+                    <th key={i} style={{ ...s.th, minWidth: 80 }}>{periodoLabel} {i+1}</th>
+                  ))}
+                  <th style={{ ...s.th, background: '#2d1554', color: '#D4A017', minWidth: 90 }}>ACU Final</th>
+                </tr>
+              </thead>
+              <tbody>
+                {estudiantesFiltrados.map((est, idx) => {
+                  const nfts = Array.from({ length: numPeriodos }, (_, i) => calcNFT(componentes, getNotasMap(est.id, materiaId, i + 1)))
+                  const validos = nfts.filter(v => v !== null)
+                  const notaFinal = validos.length ? validos.reduce((a,b) => a+b, 0) / validos.length : null
+                  return (
+                    <tr key={est.id} style={{ borderBottom: '1px solid #f3eeff', background: idx % 2 === 0 ? '#fff' : '#fdfcff' }}>
+                      <td style={{ padding: '11px 20px', fontSize: 13, fontWeight: 600, color: '#0f1d40' }}>
+                        {est.apellido}, {est.nombre}
+                      </td>
+                      {nfts.map((nft, i) => (
+                        <td key={i} style={{ padding: '8px 12px', textAlign: 'center' }}>
+                          <span style={{
+                            display: 'inline-block', padding: '3px 10px', borderRadius: 8,
+                            fontSize: 13, fontWeight: 700,
+                            background: nft === null ? 'transparent' : nft < 5 ? '#fee2e2' : nft < 7 ? '#fef9c3' : '#f0fdf4',
+                            color: nft === null ? '#d1d5db' : colorNota(nft),
+                          }}>
+                            {nft !== null ? nft.toFixed(2) : '—'}
+                          </span>
+                        </td>
+                      ))}
+                      <td style={{ padding: '8px 12px', textAlign: 'center', background: '#fdfcff' }}>
+                        <span style={{
+                          display: 'inline-block', padding: '4px 12px', borderRadius: 8,
+                          fontSize: 14, fontWeight: 900,
+                          background: notaFinal === null ? 'transparent' : notaFinal < 5 ? '#fee2e2' : notaFinal < 7 ? '#fef9c3' : '#f0fdf4',
+                          color: notaFinal === null ? '#d1d5db' : colorNota(notaFinal),
+                          border: notaFinal === null ? 'none' : `1.5px solid ${notaFinal < 5 ? '#fca5a5' : notaFinal < 7 ? '#fcd34d' : '#86efac'}`,
+                        }}>
+                          {notaFinal !== null ? notaFinal.toFixed(2) : '—'}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Vista período individual */}
+        {periodoTab > 0 && (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: '#1a0d30' }}>
+                  <th style={{ ...s.th, textAlign: 'left', padding: '13px 20px', minWidth: 220 }}>
+                    Estudiante
+                    {busqueda && <span style={{ fontWeight: 400, color: 'rgba(255,255,255,0.4)', marginLeft: 8, fontSize: 10 }}>{estudiantesFiltrados.length} resultados</span>}
                   </th>
-                )
-              })}
-              <th rowSpan={2} style={{ ...s.th, borderLeft: '2px solid #c9b8e8', verticalAlign: 'middle' }}>
-                ACU<br/><span style={{ fontWeight: 900, color: '#5B2D8E' }}>Final</span>
-              </th>
-            </tr>
-            <tr style={{ background: '#f5f3ff' }}>
-              <th style={s.th2} />
-              {Array.from({ length: numPeriodos }, (_, i) => (
-                <React.Fragment key={i}>
                   {componentes.map(c => (
-                    <th key={`${i}-${c}`} style={{ ...s.th2, borderLeft: c === componentes[0] ? '2px solid #e9e3f5' : undefined }} title={FULL_LABELS[c]}>
+                    <th key={c} style={{ ...s.th, minWidth: c === 'ac' ? 90 : 72 }} title={FULL_LABELS[c]}>
                       {c === 'ac' ? `AC (${numActividades})` : LABELS[c]}
+                      <div style={{ fontSize: 9, opacity: 0.5, fontWeight: 400, marginTop: 2 }}>{PESOS[c]*100}%</div>
                     </th>
                   ))}
-                  <th key={`${i}-nft`} style={{ ...s.th2, color: '#5B2D8E', fontWeight: 800 }}>NFT</th>
-                </React.Fragment>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {estudiantesFiltrados.map((est, idx) => {
-              const nfts = Array.from({ length: numPeriodos }, (_, i) => calcNFT(componentes, getNotasMap(est.id, materiaId, i + 1)))
-              const validos = nfts.filter(v => v !== null)
-              const notaFinal = validos.length ? validos.reduce((a, b) => a + b, 0) / validos.length : null
-              const tienePendientes = Object.keys(pendingNotas).some(k => k.startsWith(`${est.id}|`)) ||
-                                     Object.keys(pendingActs).some(k => k.startsWith(`${est.id}|`))
-              return (
-                <tr key={est.id} style={{ borderTop: '1px solid #f3eeff', background: tienePendientes ? '#fffbeb' : idx % 2 === 0 ? '#fff' : '#fdfcff' }}>
-                  <td style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, color: '#3d1f61', whiteSpace: 'nowrap' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      {tienePendientes && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b', flexShrink: 0 }} title="Cambios sin guardar" />}
-                      <span onClick={() => onVerEstudiante && onVerEstudiante(est.id)} style={{ cursor: onVerEstudiante ? 'pointer' : 'default', borderBottom: onVerEstudiante ? '1px dashed #c9b8e8' : 'none' }}>
-                        {est.apellido}, {est.nombre}
-                      </span>
-                    </div>
-                  </td>
-                  {Array.from({ length: numPeriodos }, (_, i) => {
-                    const periodo = i + 1
-                    const map = getNotasMap(est.id, materiaId, periodo)
-                    const nft = calcNFT(componentes, map)
-                    const puedeEdit = puedeEditarPeriodo(materiaId, periodo, est.id)
-                    const periodoCerrado = esDocenteTambien && !isPeriodoAbierto(gradoInfo?.nivel, periodo)
-                    const solicitudEst = esDocenteTambien ? getSolicitudEstudiante(materiaId, periodo, est.id) : null
-                    const desbloqueado = isMateriaDesbloqueada(materiaId, gradoId, periodo, est.id)
-                    const enRevision = solicitudEst && !desbloqueado && !['rechazado','cerrado'].includes(solicitudEst.estado)
-                    const sinSolicitud = !solicitudEst || ['rechazado','cerrado'].includes(solicitudEst.estado)
-                    return (
-                      <React.Fragment key={periodo}>
-                        {componentes.map(c => {
-                          if (c === 'ac') {
-                            const acVal = getAC(est.id, materiaId, periodo)
-                            const expanded = expandAC[`${est.id}-${periodo}`]
-                            return (
-                              <td key={`${est.id}-${periodo}-ac`} style={{ padding: '4px', borderLeft: '2px solid #e9e3f5', textAlign: 'center', background: expanded ? '#faf8ff' : 'transparent' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                                  <span style={{ fontSize: 13, fontWeight: 700, color: colorNota(acVal), minWidth: 36 }}>
-                                    {acVal !== null ? acVal.toFixed(1) : '—'}
-                                  </span>
-                                  {puedeEdit && (
-                                    <button onClick={() => toggleExpandAC(est.id, periodo)}
-                                      style={{ width: 20, height: 20, borderRadius: 4, border: '1px solid #d8c8f0', background: expanded ? '#5B2D8E' : '#f3eeff', color: expanded ? '#fff' : '#5B2D8E', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                        {expanded ? <polyline points="18 15 12 9 6 15"/> : <polyline points="6 9 12 15 18 9"/>}
-                                      </svg>
-                                    </button>
-                                  )}
-                                </div>
-                                {expanded && puedeEdit && (
-                                  <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                                    {Array.from({ length: numActividades }, (_, j) => {
-                                      const num = j + 1
-                                      const actKey = `${est.id}|${materiaId}|${periodo}|${num}`
-                                      const dbKey  = `${est.id}-${materiaId}-${periodo}-${num}`
-                                      const actVal = pendingActs[actKey] !== undefined ? pendingActs[actKey] : (actividades[dbKey] ?? null)
-                                      return (
-                                        <div key={num} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                          <span style={{ fontSize: 9, color: '#b0a8c0', fontWeight: 700, minWidth: 14 }}>A{num}</span>
-                                          <NotaInput value={actVal} disabled={false} onPreview={() => {}}
-                                            onChange={v => setPendingActs(p => ({ ...p, [actKey]: v }))} />
-                                        </div>
-                                      )
-                                    })}
-                                  </div>
-                                )}
-                              </td>
-                            )
-                          }
+                  <th style={{ ...s.th, background: '#2d1554', minWidth: 80 }}>
+                    NFT
+                    <div style={{ fontSize: 9, opacity: 0.6, fontWeight: 400, marginTop: 2 }}>Este período</div>
+                  </th>
+                  {!abierto && <th style={{ ...s.th, minWidth: 100 }}>Solicitud</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {estudiantesFiltrados.map((est, idx) => {
+                  const map = getNotasMap(est.id, materiaId, periodoTab)
+                  const nft = calcNFT(componentes, map)
+                  const puedeEdit = puedeEditarPeriodo(materiaId, periodoTab, est.id)
+                  const periodoCerrado = esDocenteTambien && !abierto
+                  const solicitudEst = esDocenteTambien ? getSolicitudEstudiante(materiaId, periodoTab, est.id) : null
+                  const desbloqueado = isMateriaDesbloqueada(materiaId, gradoId, periodoTab, est.id)
+                  const enRevision = solicitudEst && !desbloqueado && !['rechazado','cerrado'].includes(solicitudEst.estado)
+                  const sinSolicitud = !solicitudEst || ['rechazado','cerrado'].includes(solicitudEst.estado)
+                  const tienePend = Object.keys(pendingNotas).some(k => k.startsWith(`${est.id}|`) && k.includes(`|${periodoTab}|`)) ||
+                                    Object.keys(pendingActs).some(k => k.startsWith(`${est.id}|`) && k.includes(`|${periodoTab}|`))
+                  return (
+                    <tr key={est.id} style={{ borderBottom: '1px solid #f3eeff', background: tienePend ? '#fffbeb' : idx % 2 === 0 ? '#fff' : '#fdfcff', transition: 'background 0.1s' }}>
+                      <td style={{ padding: '10px 20px', fontSize: 13, fontWeight: 600, color: '#0f1d40' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {tienePend && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b', flexShrink: 0 }} title="Cambios sin guardar" />}
+                          <span
+                            onClick={() => { const ok = ['admin','direccion_academica','recepcion','registro_academico'].includes(perfil?.rol); if (ok && onVerEstudiante) onVerEstudiante(est.id) }}
+                            style={{ cursor: onVerEstudiante ? 'pointer' : 'default' }}>
+                            {est.apellido}, {est.nombre}
+                          </span>
+                        </div>
+                      </td>
+                      {componentes.map(c => {
+                        if (c === 'ac') {
+                          const acVal = getAC(est.id, materiaId, periodoTab)
+                          const expanded = expandAC[`${est.id}-${periodoTab}`]
                           return (
-                            <td key={`${est.id}-${periodo}-${c}`} style={{ padding: '6px 4px', borderLeft: c === componentes[0] ? '2px solid #e9e3f5' : undefined, textAlign: 'center' }}>
-                              <NotaInput
-                                value={getVal(est.id, materiaId, periodo, c)}
-                                disabled={!puedeEdit}
-                                onPreview={() => {}}
-                                onChange={v => setPreviewVal(est.id, materiaId, periodo, c, v)}
-                              />
+                            <td key={c} style={{ padding: '6px 8px', textAlign: 'center', background: expanded ? '#faf8ff' : 'transparent' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: colorNota(acVal), minWidth: 32 }}>
+                                  {acVal !== null ? acVal.toFixed(1) : '—'}
+                                </span>
+                                {puedeEdit && (
+                                  <button onClick={() => toggleExpandAC(est.id, periodoTab)}
+                                    style={{ width: 20, height: 20, borderRadius: 5, border: '1px solid #d8c8f0', background: expanded ? '#5B2D8E' : '#f3eeff', color: expanded ? '#fff' : '#5B2D8E', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                      {expanded ? <polyline points="18 15 12 9 6 15"/> : <polyline points="6 9 12 15 18 9"/>}
+                                    </svg>
+                                  </button>
+                                )}
+                              </div>
+                              {expanded && puedeEdit && (
+                                <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4, paddingBottom: 4 }}>
+                                  {Array.from({ length: numActividades }, (_, j) => {
+                                    const num = j + 1
+                                    const actKey = `${est.id}|${materiaId}|${periodoTab}|${num}`
+                                    const dbKey  = `${est.id}-${materiaId}-${periodoTab}-${num}`
+                                    const actVal = pendingActs[actKey] !== undefined ? pendingActs[actKey] : (actividades[dbKey] ?? null)
+                                    return (
+                                      <div key={num} style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}>
+                                        <span style={{ fontSize: 9, color: '#b0a8c0', fontWeight: 700, minWidth: 16, textAlign: 'right' }}>A{num}</span>
+                                        <NotaInput value={actVal} disabled={false} onPreview={() => {}}
+                                          onChange={v => setPendingActs(p => ({ ...p, [actKey]: v }))} />
+                                      </div>
+                                    )
+                                  })}
+                                </div>
+                              )}
                             </td>
                           )
-                        })}
-                        <td style={{ padding: '6px 10px', textAlign: 'center', minWidth: 52, background: nft !== null ? 'rgba(91,45,142,0.04)' : 'transparent' }}>
-                          <span style={{ fontSize: 13, fontWeight: 800, color: colorNota(nft) }}>{nft !== null ? nft.toFixed(2) : '—'}</span>
-                        </td>
-                        {periodoCerrado && sinSolicitud && !desbloqueado && puedeEditarMateria(materiaId) && (
-                          <td style={{ padding: '4px 6px', textAlign: 'center', borderLeft: '1px solid #f3eeff' }}>
-                            <button onClick={() => { setModalSolicitud({ matId: materiaId, periodo, estId: est.id, estNombre: `${est.apellido}, ${est.nombre}` }); setMotivoSolicitud('') }}
-                              style={{ padding: '3px 8px', borderRadius: 6, border: '1px solid #c9b8e8', background: '#f3eeff', color: '#5B2D8E', fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 3 }}>
-                              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        }
+                        return (
+                          <td key={c} style={{ padding: '8px 6px', textAlign: 'center' }}>
+                            <NotaInput
+                              value={getVal(est.id, materiaId, periodoTab, c)}
+                              disabled={!puedeEdit}
+                              onPreview={() => {}}
+                              onChange={v => setPreviewVal(est.id, materiaId, periodoTab, c, v)}
+                            />
+                          </td>
+                        )
+                      })}
+                      {/* NFT */}
+                      <td style={{ padding: '8px 10px', textAlign: 'center', background: '#fdfcff' }}>
+                        <span style={{
+                          display: 'inline-block', padding: '4px 10px', borderRadius: 8,
+                          fontSize: 13, fontWeight: 800,
+                          background: nft === null ? 'transparent' : nft < 5 ? '#fee2e2' : nft < 7 ? '#fef9c3' : '#f0fdf4',
+                          color: nft === null ? '#e5e7eb' : colorNota(nft),
+                          border: nft === null ? '1px dashed #e5e7eb' : 'none',
+                          minWidth: 52,
+                        }}>
+                          {nft !== null ? nft.toFixed(2) : '—'}
+                        </span>
+                      </td>
+                      {/* Solicitud desbloqueo */}
+                      {!abierto && (
+                        <td style={{ padding: '6px 10px', textAlign: 'center' }}>
+                          {sinSolicitud && puedeEditarMateria(materiaId) && (
+                            <button onClick={() => { setModalSolicitud({ matId: materiaId, periodo: periodoTab, estId: est.id, estNombre: `${est.apellido}, ${est.nombre}` }); setMotivoSolicitud('') }}
+                              style={{ padding: '4px 10px', borderRadius: 7, border: '1px solid #c9b8e8', background: '#f3eeff', color: '#5B2D8E', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                 <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>
                               </svg>
                               Solicitar
                             </button>
-                          </td>
-                        )}
-                        {periodoCerrado && enRevision && (
-                          <td style={{ padding: '4px 6px', textAlign: 'center', borderLeft: '1px solid #f3eeff' }}>
-                            <span style={{ fontSize: 10, fontWeight: 700, color: solicitudEst?.estado === 'aprobado' ? '#16a34a' : '#92400e', background: solicitudEst?.estado === 'aprobado' ? '#dcfce7' : '#fef9c3', padding: '3px 8px', borderRadius: 6, whiteSpace: 'nowrap' }}>
+                          )}
+                          {enRevision && (
+                            <span style={{ fontSize: 11, fontWeight: 700, color: solicitudEst?.estado === 'aprobado' ? '#16a34a' : '#92400e', background: solicitudEst?.estado === 'aprobado' ? '#dcfce7' : '#fef9c3', padding: '4px 10px', borderRadius: 7 }}>
                               {solicitudEst?.estado === 'aprobado' ? 'Aprobada' : 'En revisión'}
                             </span>
-                          </td>
-                        )}
-                        {periodoCerrado && desbloqueado && (
-                          <td style={{ padding: '4px 6px', textAlign: 'center', borderLeft: '1px solid #f3eeff' }}>
-                            <span style={{ fontSize: 10, fontWeight: 700, color: '#16a34a', background: '#dcfce7', padding: '3px 8px', borderRadius: 6, whiteSpace: 'nowrap' }}>Abierto</span>
-                          </td>
-                        )}
-                        {!periodoCerrado && <td style={{ borderLeft: '1px solid #f3eeff' }} />}
-                      </React.Fragment>
-                    )
-                  })}
-                  <td style={{ padding: '6px 12px', borderLeft: '2px solid #c9b8e8', textAlign: 'center', background: notaFinal !== null ? 'rgba(91,45,142,0.06)' : 'transparent' }}>
-                    <span style={{ fontSize: 14, fontWeight: 900, color: colorNota(notaFinal) }}>{notaFinal !== null ? notaFinal.toFixed(2) : '—'}</span>
-                  </td>
-                </tr>
-              )
-            })}
-            {estudiantesFiltrados.length === 0 && (
-              <tr><td colSpan={99} style={{ textAlign: 'center', padding: 40, color: '#b0a8c0', fontSize: 13 }}>
-                {busqueda ? `No se encontró ningún estudiante con "${busqueda}"` : 'No hay estudiantes en este grado'}
-              </td></tr>
-            )}
-          </tbody>
-        </table>
+                          )}
+                          {desbloqueado && (
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', background: '#dcfce7', padding: '4px 10px', borderRadius: 7 }}>Abierto</span>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  )
+                })}
+                {estudiantesFiltrados.length === 0 && (
+                  <tr><td colSpan={99} style={{ textAlign: 'center', padding: 48, color: '#b0a8c0', fontSize: 13 }}>
+                    {busqueda ? `Sin resultados para "${busqueda}"` : 'No hay estudiantes en este grado'}
+                  </td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     )
   }
+
 
   // ── Vista móvil ───────────────────────────────────────────
   function VistaMóvil() {
@@ -994,8 +1085,17 @@ export default function Notas({ onVerEstudiante }) {
                       </React.Fragment>
                     )
                   })}
-                  <td style={{ padding: '6px 12px', borderLeft: '2px solid #c9b8e8', textAlign: 'center', background: notaFinal !== null ? 'rgba(91,45,142,0.06)' : 'transparent' }}>
-                    <span style={{ fontSize: 14, fontWeight: 900, color: colorNota(notaFinal) }}>{notaFinal !== null ? notaFinal.toFixed(2) : '—'}</span>
+                  <td style={{ padding: '6px 10px', borderLeft: '2px solid #c9b8e8', textAlign: 'center', background: '#fdfcff' }}>
+                    <span style={{
+                      display: 'inline-block',
+                      padding: '3px 10px', borderRadius: 8,
+                      fontSize: 13, fontWeight: 900,
+                      background: notaFinal === null ? 'transparent' : notaFinal < 5 ? '#fee2e2' : notaFinal < 7 ? '#fef9c3' : '#f0fdf4',
+                      color: notaFinal === null ? '#d1d5db' : notaFinal < 5 ? '#dc2626' : notaFinal < 7 ? '#a16207' : '#16a34a',
+                      border: notaFinal === null ? 'none' : `1.5px solid ${notaFinal < 5 ? '#fca5a5' : notaFinal < 7 ? '#fcd34d' : '#86efac'}`,
+                    }}>
+                      {notaFinal !== null ? notaFinal.toFixed(2) : '—'}
+                    </span>
                   </td>
                 </tr>
               )
@@ -1096,8 +1196,9 @@ export default function Notas({ onVerEstudiante }) {
           </div>
 
           {esEncargado && (
-            <div style={{ marginBottom: 12, padding: '10px 16px', background: '#fffbeb', borderRadius: 10, fontSize: 12, color: '#92400e', fontWeight: 600, border: '1px solid #fde68a' }}>
-              Eres encargado de este grado — ves todas las materias. Las marcadas con ● son de solo lectura.
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 10 }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#b0a8c0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <span style={{ fontSize: 11, color: '#b0a8c0', fontWeight: 500 }}>Ves todas las materias del grado — las marcadas con ● son de solo lectura</span>
             </div>
           )}
 
@@ -1167,5 +1268,5 @@ const s = {
   label:  { display: 'block', fontSize: 10, fontWeight: 700, color: '#5B2D8E', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' },
   select: { width: '100%', padding: '10px 14px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: 14, background: '#fff', color: '#222', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', cursor: 'pointer' },
   th:     { padding: '10px 10px', fontSize: 10, fontWeight: 700, color: '#F5EDD0', textTransform: 'uppercase', letterSpacing: '0.6px', textAlign: 'center' },
-  th2:    { padding: '6px 6px', fontSize: 10, fontWeight: 600, color: '#b0a8c0', textTransform: 'uppercase', letterSpacing: '0.4px', textAlign: 'center' },
+  th2:    { padding: '6px 6px', fontSize: 10, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.4px', textAlign: 'center', background: '#f5f3ff' },
 }
