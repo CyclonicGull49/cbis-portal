@@ -101,6 +101,14 @@ function formatHoras(ts) {
   return `${h}h ${m}m restantes`
 }
 
+// ── Notificaciones ───────────────────────────────────────
+async function notificar(usuarioIds, tipo, titulo, mensaje, link) {
+  if (!usuarioIds?.length) return
+  const lote = usuarioIds.map(id => ({ usuario_id: id, tipo, titulo, mensaje, link }))
+  for (let i = 0; i < lote.length; i += 50)
+    await supabase.from('notificaciones').insert(lote.slice(i, i + 50))
+}
+
 export default function Solicitudes() {
   const { perfil } = useAuth()
   const { yearEscolar } = useYearEscolar()
@@ -176,7 +184,19 @@ export default function Solicitudes() {
       fecha_asistencia: form.fecha_asistencia || null,
     })
     if (error) { toast.error('Error al crear solicitud'); setGuardando(false); return }
-    toast.success('Solicitud enviada')
+
+    // Notificar a dirección y registro
+    const { data: gestores } = await supabase.from('perfiles')
+      .select('id').in('rol', ['admin', 'direccion_academica', 'registro_academico'])
+    const idsGestores = (gestores || []).map(p => p.id).filter(id => id !== perfil.id)
+    const tipoLabel = TIPOS[form.tipo]?.label || form.tipo
+    await notificar(idsGestores, 'solicitud',
+      'Nueva solicitud recibida',
+      `${perfil.nombre} ${perfil.apellido} solicitó: ${tipoLabel}`,
+      'solicitudes'
+    )
+
+    toast.success('Solicitud enviada — dirección notificada')
     setModalNueva(false); resetForm(); cargar()
     setGuardando(false)
   }
@@ -190,8 +210,22 @@ export default function Solicitudes() {
       estado: accion === 'aprobar' ? 'aprobado' : 'rechazado',
       respuesta: respuesta.trim() || null, respondido_por: perfil.id, respondido_en: new Date().toISOString(),
     }).eq('id', s.id)
-    if (error) toast.error('Error')
-    else { toast.success(accion === 'aprobar' ? 'Solicitud aprobada' : 'Solicitud rechazada'); setModalRespuesta(null); setRespuesta(''); setModalDetalle(null); cargar() }
+    if (error) { toast.error('Error'); setProcesando(null); return }
+
+    // Notificar al docente solicitante
+    if (s.solicitante_id) {
+      const tipoLabel = TIPOS[s.tipo]?.label || s.tipo
+      await notificar(
+        [s.solicitante_id],
+        accion === 'aprobar' ? 'solicitud_aprobada' : 'solicitud_rechazada',
+        accion === 'aprobar' ? 'Solicitud aprobada' : 'Solicitud rechazada',
+        `Tu solicitud de ${tipoLabel} fue ${accion === 'aprobar' ? 'aprobada' : 'rechazada'}${respuesta.trim() ? ': ' + respuesta.trim() : ''}`,
+        'solicitudes'
+      )
+    }
+
+    toast.success(accion === 'aprobar' ? 'Solicitud aprobada — docente notificado' : 'Solicitud rechazada — docente notificado')
+    setModalRespuesta(null); setRespuesta(''); setModalDetalle(null); cargar()
     setProcesando(null)
   }
 

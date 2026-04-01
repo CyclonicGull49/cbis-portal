@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { useYearEscolar } from '../hooks/useYearEscolar'
@@ -59,67 +59,166 @@ function calcNFT(notas, comps, nivel) {
 
 // ── Vista previa boleta parcial ───────────────
 function VistaPreviaBoleta({ est, grado, materias, comps, periodo, periodoLabel, year }) {
-  const isBach   = grado.nivel === 'bachillerato'
-  const numPer   = isBach ? 4 : 3
-  const pTerm    = isBach ? 'Per.' : 'Trim.'
-  const compLabels = { ac: 'AC', ai: 'AI', em: 'EM', ep: 'EP', ef: 'EF' }
+  const [tabPer, setTabPer] = React.useState(parseInt(periodo) || 1)
+  const isBach  = grado.nivel === 'bachillerato'
+  const numPer  = isBach ? 4 : 3
+  const pTerm   = isBach ? 'Período' : 'Trimestre'
+  const COMP_LABELS = { ac: 'AC', ai: 'AI', em: 'EM', ep: 'EP', ef: 'EF' }
+  const PESOS = { ac: 0.35, ai: 0.35, em: 0.10, ep: 0.10, ef: 0.20 }
+
+  function notaColor(n) {
+    if (n === null || n === undefined) return '#d1d5db'
+    const v = parseFloat(n)
+    if (v < 5) return '#dc2626'
+    if (v < 7) return '#a16207'
+    return '#16a34a'
+  }
+  function notaBg(n) {
+    if (n === null || n === undefined) return 'transparent'
+    const v = parseFloat(n)
+    if (v < 5) return '#fef2f2'
+    if (v < 7) return '#fef9c3'
+    return '#f0fdf4'
+  }
 
   return (
-    <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', overflow: 'hidden', marginTop: 20 }}>
-      {/* Header boleta */}
-      <div style={{ background: 'linear-gradient(135deg, #1a0d30, #3d1f61)', padding: '20px 24px', color: '#fff' }}>
-        <div style={{ fontSize: 11, fontWeight: 700, opacity: 0.6, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 4 }}>Vista previa — solo lectura</div>
-        <div style={{ fontSize: 16, fontWeight: 800 }}>Colegio Bautista Internacional de Sonsonate</div>
-        <div style={{ fontSize: 13, opacity: 0.8, marginTop: 2 }}>Boleta de Calificaciones {year} · {periodoLabel}</div>
-        <div style={{ marginTop: 12, display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-          <div><div style={{ fontSize: 10, opacity: 0.5, textTransform: 'uppercase' }}>Estudiante</div><div style={{ fontSize: 13, fontWeight: 700 }}>{est.apellido}, {est.nombre}</div></div>
-          <div><div style={{ fontSize: 10, opacity: 0.5, textTransform: 'uppercase' }}>Grado</div><div style={{ fontSize: 13, fontWeight: 700 }}>{grado.nombre}</div></div>
-          <div><div style={{ fontSize: 10, opacity: 0.5, textTransform: 'uppercase' }}>Docente encargado</div><div style={{ fontSize: 13, fontWeight: 700 }}>{grado.encargado_nombre || '—'}</div></div>
+    <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', overflow: 'hidden' }}>
+      {/* Header */}
+      <div style={{ background: 'linear-gradient(145deg, #1a0d30, #2d1554)', padding: '20px 24px', color: '#fff' }}>
+        <div style={{ fontSize: 10, fontWeight: 700, opacity: 0.5, letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: 6 }}>Vista previa · Solo lectura</div>
+        <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 2 }}>Colegio Bautista Internacional de Sonsonate</div>
+        <div style={{ fontSize: 12, opacity: 0.6 }}>Boleta de Calificaciones · {year}</div>
+        <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 12 }}>
+          {[['Estudiante', `${est.apellido}, ${est.nombre}`], ['Grado', grado.nombre], ['Docente encargado', grado.encargado_nombre || '—']].map(([lbl, val]) => (
+            <div key={lbl}>
+              <div style={{ fontSize: 9, opacity: 0.45, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 2 }}>{lbl}</div>
+              <div style={{ fontSize: 12, fontWeight: 700 }}>{val}</div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Aviso parcial */}
-      <div style={{ background: '#fffbeb', borderBottom: '1px solid #fcd34d', padding: '10px 24px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#92400e', fontWeight: 600 }}>
-        <IcoLock /> Esta es una boleta parcial — para obtener el documento físico acércate a Registro Académico
+      {/* Tabs período */}
+      <div style={{ display: 'flex', borderBottom: '2px solid #f3eeff', background: '#fdfcff', padding: '0 16px' }}>
+        {Array.from({ length: numPer }, (_, i) => {
+          const p = i + 1
+          const activo = tabPer === p
+          return (
+            <button key={p} onClick={() => setTabPer(p)}
+              style={{ padding: '11px 16px', border: 'none', background: 'none', borderBottom: activo ? '2px solid #5B2D8E' : '2px solid transparent', marginBottom: -2, color: activo ? '#3d1f61' : '#b0a8c0', fontWeight: activo ? 800 : 500, fontSize: 12, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', transition: 'all 0.15s' }}>
+              {pTerm} {p}
+            </button>
+          )
+        })}
+        <button onClick={() => setTabPer(0)}
+          style={{ marginLeft: 'auto', padding: '11px 16px', border: 'none', background: 'none', borderBottom: tabPer === 0 ? '2px solid #D4A017' : '2px solid transparent', marginBottom: -2, color: tabPer === 0 ? '#a16207' : '#b0a8c0', fontWeight: tabPer === 0 ? 800 : 500, fontSize: 12, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
+          Resumen
+        </button>
       </div>
 
-      {/* Tabla de notas */}
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-          <thead>
-            <tr style={{ background: '#f9fafb' }}>
-              <th style={{ ...s.th, textAlign: 'left', minWidth: 180 }}>Materia</th>
-              {Array.from({ length: numPer }, (_, i) => (
-                comps.map(c => (
-                  <th key={`${i}-${c}`} style={s.th}>{pTerm}{i+1}<br/>{compLabels[c]}</th>
-                ))
-              ))}
-              {Array.from({ length: numPer }, (_, i) => (
-                <th key={`nft${i}`} style={{ ...s.th, background: '#f3eeff', color: '#5B2D8E' }}>NFT{i+1}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {materias.map((mat, mi) => (
-              <tr key={mat.id} style={{ background: mi % 2 === 0 ? '#fff' : '#fdfcff', borderBottom: '1px solid #f3eeff' }}>
-                <td style={{ ...s.td, fontWeight: 600, color: '#3d1f61' }}>{mat.nombre}</td>
-                {Array.from({ length: numPer }, (_, pi) => (
-                  comps.map(c => {
-                    const val = mat.notas[pi + 1]?.[c]
-                    return <td key={`${pi}-${c}`} style={{ ...s.td, textAlign: 'center', color: val !== null && val !== undefined ? '#374151' : '#e5e7eb' }}>{val !== null && val !== undefined ? val : '—'}</td>
-                  })
-                ))}
-                {Array.from({ length: numPer }, (_, pi) => {
-                  const nft = calcNFT(mat.notas[pi + 1] || {}, comps, grado.nivel)
-                  return <td key={`nft${pi}`} style={{ ...s.td, textAlign: 'center', fontWeight: 800, color: '#5B2D8E', background: '#f9f7ff' }}>{nft || '—'}</td>
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* Aviso */}
+      <div style={{ padding: '8px 20px', background: '#fffbeb', borderBottom: '1px solid #fde68a', display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#92400e', fontWeight: 600 }}>
+        <IcoLock /> Boleta de consulta — para el documento físico acércate a Registro Académico
       </div>
+
+      {/* Vista período individual */}
+      {tabPer > 0 && (
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: '#1a0d30' }}>
+                <th style={{ ...s.th, textAlign: 'left', color: '#F5EDD0', padding: '11px 20px', minWidth: 180 }}>Materia</th>
+                {comps.map(c => (
+                  <th key={c} style={{ ...s.th, color: '#F5EDD0', minWidth: 60 }}>
+                    {COMP_LABELS[c]}
+                    <div style={{ fontSize: 9, opacity: 0.5, fontWeight: 400, marginTop: 1 }}>{PESOS[c]*100}%</div>
+                  </th>
+                ))}
+                <th style={{ ...s.th, color: '#D4A017', background: '#2d1554', minWidth: 70 }}>NFT</th>
+              </tr>
+            </thead>
+            <tbody>
+              {materias.map((mat, mi) => {
+                const nft = calcNFT(mat.notas[tabPer] || {}, comps, grado.nivel)
+                return (
+                  <tr key={mat.id} style={{ background: mi % 2 === 0 ? '#fff' : '#fdfcff', borderBottom: '1px solid #f3eeff' }}>
+                    <td style={{ ...s.td, fontWeight: 600, color: '#0f1d40', padding: '10px 20px' }}>{mat.nombre}</td>
+                    {comps.map(c => {
+                      const val = mat.notas[tabPer]?.[c]
+                      return (
+                        <td key={c} style={{ ...s.td, textAlign: 'center' }}>
+                          <span style={{ fontWeight: 700, color: notaColor(val !== null && val !== undefined ? parseFloat(val) : null) }}>
+                            {val !== null && val !== undefined ? val : '—'}
+                          </span>
+                        </td>
+                      )
+                    })}
+                    <td style={{ ...s.td, textAlign: 'center', background: '#fdfcff' }}>
+                      <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 8, fontSize: 13, fontWeight: 800, background: notaBg(nft ? parseFloat(nft) : null), color: notaColor(nft ? parseFloat(nft) : null) }}>
+                        {nft || '—'}
+                      </span>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Vista resumen — todos los períodos */}
+      {tabPer === 0 && (
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: '#1a0d30' }}>
+                <th style={{ ...s.th, textAlign: 'left', color: '#F5EDD0', padding: '11px 20px', minWidth: 180 }}>Materia</th>
+                {Array.from({ length: numPer }, (_, i) => (
+                  <th key={i} style={{ ...s.th, color: '#F5EDD0', minWidth: 70 }}>{pTerm} {i+1}</th>
+                ))}
+                <th style={{ ...s.th, color: '#D4A017', background: '#2d1554', minWidth: 80 }}>Promedio</th>
+              </tr>
+            </thead>
+            <tbody>
+              {materias.map((mat, mi) => {
+                const nfts = Array.from({ length: numPer }, (_, i) => {
+                  const n = calcNFT(mat.notas[i+1] || {}, comps, grado.nivel)
+                  return n ? parseFloat(n) : null
+                })
+                const validos = nfts.filter(n => n !== null)
+                const prom = validos.length ? (validos.reduce((a,b) => a+b,0) / validos.length) : null
+                return (
+                  <tr key={mat.id} style={{ background: mi % 2 === 0 ? '#fff' : '#fdfcff', borderBottom: '1px solid #f3eeff' }}>
+                    <td style={{ ...s.td, fontWeight: 600, color: '#0f1d40', padding: '10px 20px' }}>{mat.nombre}</td>
+                    {nfts.map((nft, i) => (
+                      <td key={i} style={{ ...s.td, textAlign: 'center' }}>
+                        <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 7, fontSize: 12, fontWeight: 700, background: notaBg(nft), color: notaColor(nft) }}>
+                          {nft !== null ? nft.toFixed(2) : '—'}
+                        </span>
+                      </td>
+                    ))}
+                    <td style={{ ...s.td, textAlign: 'center', background: '#fdfcff' }}>
+                      <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 8, fontSize: 13, fontWeight: 900, background: notaBg(prom), color: notaColor(prom), border: prom !== null ? `1.5px solid ${prom < 5 ? '#fca5a5' : prom < 7 ? '#fcd34d' : '#86efac'}` : 'none' }}>
+                        {prom !== null ? prom.toFixed(2) : '—'}
+                      </span>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
+}
+
+// ── Notificaciones ───────────────────────────────────────
+async function notificar(usuarioIds, tipo, titulo, mensaje, link) {
+  if (!usuarioIds?.length) return
+  const lote = usuarioIds.map(id => ({ usuario_id: id, tipo, titulo, mensaje, link }))
+  for (let i = 0; i < lote.length; i += 50)
+    await supabase.from('notificaciones').insert(lote.slice(i, i + 50))
 }
 
 export default function Boletas() {
@@ -377,7 +476,21 @@ export default function Boletas() {
       setPublicando(true)
       await supabase.from('boletas_publicadas')
         .upsert({ grado_id: parseInt(gradoId), año_escolar: year, periodo, publicado_por: perfil.id, activo: true }, { onConflict: 'grado_id,año_escolar,periodo' })
-      toast.success('Boleta publicada — alumnos elegibles ya pueden verla')
+
+      // Notificar a los alumnos del grado
+      const { data: alumnos } = await supabase.from('perfiles')
+        .select('id').eq('rol', 'alumno')
+        .in('estudiante_id',
+          (await supabase.from('estudiantes').select('id').eq('grado_id', parseInt(gradoId)).eq('estado', 'activo')).data?.map(e => e.id) || []
+        )
+      const idsAlumnos = (alumnos || []).map(a => a.id)
+      await notificar(idsAlumnos, 'boleta',
+        'Tu boleta está disponible',
+        `Ya puedes consultar tu boleta de ${periodoLabel} en el portal`,
+        'mis-notas'
+      )
+
+      toast.success(`Boleta publicada — ${idsAlumnos.length || 'los'} alumno${idsAlumnos.length !== 1 ? 's' : ''} notificado${idsAlumnos.length !== 1 ? 's' : ''}`)
     }
     const { data } = await supabase.from('boletas_publicadas').select('id, periodo, activo')
       .eq('grado_id', parseInt(gradoId)).eq('año_escolar', year).eq('activo', true)
@@ -466,7 +579,9 @@ export default function Boletas() {
               <div style={{ marginBottom: 16 }}>
                 <button onClick={publicarBoleta} disabled={publicando}
                   style={{ width: '100%', padding: '10px 0', borderRadius: 10, border: `1.5px solid ${yaPublicada ? '#86efac' : '#e5e7eb'}`, background: yaPublicada ? '#f0fdf4' : '#f9fafb', color: yaPublicada ? '#166534' : '#6b7280', fontWeight: 700, fontSize: 12, cursor: publicando ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                  {publicando ? 'Procesando...' : yaPublicada ? '✓ Publicada — clic para despublicar' : 'Publicar boleta para alumnos'}
+                  {publicando ? 'Procesando...' : yaPublicada ? (
+                    <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Publicada — clic para despublicar</>
+                  ) : 'Publicar boleta para alumnos'}
                 </button>
               </div>
             )

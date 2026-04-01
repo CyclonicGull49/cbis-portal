@@ -68,6 +68,14 @@ const ESTADO_CONFIG = {
 
 function tmpId() { return `tmp_${Date.now()}_${Math.random().toString(36).slice(2)}` }
 
+// ── Notificaciones ───────────────────────────────────────
+async function notificar(usuarioIds, tipo, titulo, mensaje, link) {
+  if (!usuarioIds?.length) return
+  const lote = usuarioIds.map(id => ({ usuario_id: id, tipo, titulo, mensaje, link }))
+  for (let i = 0; i < lote.length; i += 50)
+    await supabase.from('notificaciones').insert(lote.slice(i, i + 50))
+}
+
 export default function Horario() {
   const { perfil } = useAuth()
   const { yearEscolar } = useYearEscolar()
@@ -389,7 +397,39 @@ export default function Horario() {
       .upsert(payload, { onConflict: 'grado_id,año_escolar' }).select().single()
     if (error) { toast.error('Error al cambiar estado'); return }
     setEstadoHorario(data)
-    const msgs = { en_revision: 'Enviado a dirección', aprobado: 'Horario aprobado', devuelto: 'Horario devuelto', borrador: 'Regresado a borrador' }
+
+    const nombreGrado = gradoInfo?.nombre || 'un grado'
+
+    // Notificar según el nuevo estado
+    if (nuevoEstado === 'en_revision') {
+      // Docente envía a revisión → notificar a dirección
+      const { data: dirs } = await supabase.from('perfiles')
+        .select('id').in('rol', ['admin', 'direccion_academica'])
+      const ids = (dirs || []).map(p => p.id).filter(id => id !== perfil.id)
+      await notificar(ids, 'horario',
+        'Horario enviado a revisión',
+        `${perfil.nombre} ${perfil.apellido} envió el horario de ${nombreGrado} para revisión`,
+        'horario'
+      )
+    }
+
+    if (nuevoEstado === 'aprobado' || nuevoEstado === 'devuelto') {
+      // Dirección aprueba/devuelve → notificar al encargado del grado
+      const gInfo = grados.find(g => g.id === parseInt(gradoId))
+      if (gInfo?.encargado_id) {
+        await notificar(
+          [gInfo.encargado_id],
+          nuevoEstado === 'aprobado' ? 'horario_aprobado' : 'horario_devuelto',
+          nuevoEstado === 'aprobado' ? 'Horario aprobado' : 'Horario devuelto para correcciones',
+          nuevoEstado === 'aprobado'
+            ? `Tu horario de ${nombreGrado} fue aprobado por dirección`
+            : `Tu horario de ${nombreGrado} fue devuelto${comentarioTexto ? ': ' + comentarioTexto : ''}`,
+          'horario'
+        )
+      }
+    }
+
+    const msgs = { en_revision: 'Enviado a dirección', aprobado: 'Horario aprobado — docente notificado', devuelto: 'Horario devuelto — docente notificado', borrador: 'Regresado a borrador' }
     toast.success(msgs[nuevoEstado] || 'Estado actualizado')
     setModalEstado(false); setComentario('')
   }
