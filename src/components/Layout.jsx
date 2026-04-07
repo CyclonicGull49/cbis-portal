@@ -290,7 +290,7 @@ export default function Layout({ pagina, setPagina, children }) {
     registro_academico:  [{ label: 'Principal', ids: ['dashboard'] }, { label: 'Académico', ids: ['estudiantes','matricula','notas','asistencia','boletas'] }, { label: 'Administración', ids: ['cobros','solicitudes','reportes'] }, { label: 'Planificación', ids: ['horario','calendario'] }],
     recepcion:           [{ label: 'Principal', ids: ['dashboard'] }, { label: 'Gestión', ids: ['estudiantes','matricula','cobros','reportes','permisos','calendario'] }],
     docente:             [{ label: 'Principal', ids: ['dashboard'] }, { label: 'Mi trabajo', ids: ['notas','asistencia','anecdotario','permisos'] }, { label: 'Gestión', ids: ['solicitudes','reportes','horario','calendario'] }],
-    alumno:              [{ label: 'Mi espacio', ids: ['mi-perfil','mis-notas','mis-cobros','mis-docs'] }, { label: 'Colegio', ids: ['horario','calendario','mi-config'] }],
+    alumno:              [{ label: 'Mi espacio', ids: ['mi-perfil','mis-notas'] }, { label: 'Colegio', ids: ['horario','calendario'] }],
     talento_humano:      [{ label: 'Principal', ids: ['dashboard'] }, { label: 'Gestión', ids: ['estudiantes','usuarios','reportes'] }, { label: 'Planificación', ids: ['horario','calendario','configuracion'] }],
   }
   const grupos = GRUPOS[perfil?.rol] || [{ label: '', ids: menu.map(m => m.id) }]
