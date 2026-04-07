@@ -22,11 +22,12 @@ export default function PadreCalendario() {
 
   async function cargar() {
     setLoading(true)
-    const { data } = await supabase.from('eventos_calendario')
+    const year = yearEscolar || hoy.getFullYear()
+    const { data, error } = await supabase.from('eventos_calendario')
       .select('titulo, descripcion, fecha_inicio, fecha_fin, tipo, color')
-      .eq('año_escolar', yearEscolar || hoy.getFullYear())
+      .eq('año_escolar', year)
       .order('fecha_inicio')
-    setEventos(data || [])
+    if (!error) setEventos(data || [])
     setLoading(false)
   }
 
