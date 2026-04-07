@@ -181,6 +181,7 @@ export default function Notas({ onVerEstudiante }) {
   // ── Competencias Ciudadanas ───────────────────────────────
   const [compCiudadanas, setCompCiudadanas] = useState({})
   const [pendingComp, setPendingComp]       = useState({})
+  const [periodoTabComp, setPeriodoTabComp] = useState(1)
   const hayPendientesComp = Object.keys(pendingComp).length > 0
   const gruposComp = getCompetenciasPorNivel(gradoInfo?.nivel)
   const tieneCompetencias = !!gruposComp
@@ -376,7 +377,7 @@ export default function Notas({ onVerEstudiante }) {
   useEffect(() => { if (gradoId) cargarDatos() }, [gradoId, year])
 
   async function cargarDatos() {
-    setLoading(true); setPendingNotas({}); setPendingActs({}); setPendingComp({})
+    setLoading(true); setPendingNotas({}); setPendingActs({}); setPendingComp({}); setPeriodoTabComp(1)
     const [{ data: ests }, { data: ns }, { data: acs }, { data: comps }] = await Promise.all([
       supabase.from('estudiantes').select('id, nombre, apellido').eq('grado_id', gradoId).eq('estado', 'activo').order('apellido'),
       supabase.from('notas').select('*').eq('grado_id', gradoId).eq('año_escolar', year),
@@ -511,7 +512,7 @@ export default function Notas({ onVerEstudiante }) {
       const existe = compCiudadanas[dbKey]
       const payload = { estudiante_id: parseInt(estId), grado_id: gradoId, año_escolar: year, periodo: parseInt(periodo), competencia, valor, docente_id: perfil.id }
       return existe
-        ? supabase.from('competencias_ciudadanas').update({ valor, docente_id: perfil.id, updated_at: new Date() }).eq('id', existe.id).select().single()
+        ? supabase.from('competencias_ciudadanas').update({ valor, docente_id: perfil.id }).eq('id', existe.id).select().single()
         : supabase.from('competencias_ciudadanas').insert(payload).select().single()
     })
     const results = await Promise.all(ops)
@@ -932,7 +933,8 @@ export default function Notas({ onVerEstudiante }) {
   // ── Vista móvil ───────────────────────────────────────────
   // ── Tabla Competencias Ciudadanas ─────────────────────────
   function TablaCompetencias() {
-    const [periodoTab, setPeriodoTab] = React.useState(1)
+    const periodoTab = periodoTabComp
+    const setPeriodoTab = setPeriodoTabComp
     const puedeEdit = esEncargado || ['admin','registro_academico','direccion_academica'].includes(perfil?.rol)
 
     function getComp(estId, periodo, compId) {
