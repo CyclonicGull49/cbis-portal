@@ -1,32 +1,44 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
-import RegistroPadre from './pages/RegistroPadre'
 
-function RutaProtegida({ children, soloRoles }) {
-  const { perfil, loading } = useAuth()
-  if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f4f0fa' }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 40, marginBottom: 12 }}>🎓</div>
-        <p style={{ color: '#5B2D8E', fontWeight: 700 }}>Cargando CBIS+...</p>
+const RegistroPadre   = lazy(() => import('./pages/RegistroPadre'))
+const PadreLayout     = lazy(() => import('./pages/padre/PadreLayout'))
+const PadreInicio     = lazy(() => import('./pages/padre/PadreInicio'))
+const PadreNotas      = lazy(() => import('./pages/padre/PadreNotas'))
+const PadreCobros     = lazy(() => import('./pages/padre/PadreCobros'))
+const PadreDocumentos = lazy(() => import('./pages/padre/PadreDocumentos'))
+const PadreSolicitudes= lazy(() => import('./pages/padre/PadreSolicitudes'))
+const PadreCalendario = lazy(() => import('./pages/padre/PadreCalendario'))
+
+function Spinner() {
+  return (
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh', background:'#f4f0fa' }}>
+      <div style={{ textAlign:'center' }}>
+        <div style={{ fontSize:40, marginBottom:12 }}>🎓</div>
+        <p style={{ color:'#5B2D8E', fontWeight:700 }}>Cargando CBIS+...</p>
       </div>
     </div>
   )
+}
+
+function RutaProtegida({ children, soloRoles }) {
+  const { perfil, loading } = useAuth()
+  if (loading) return <Spinner />
   if (!perfil) return <Navigate to="/login" />
-  if (soloRoles && !soloRoles.includes(perfil.rol)) return <Navigate to="/dashboard" />
+  if (soloRoles && !soloRoles.includes(perfil.rol)) {
+    return <Navigate to={perfil.rol === 'padres' ? '/padre/inicio' : '/dashboard'} />
+  }
   return children
 }
 
 function PublicRoute({ children }) {
   const { perfil, loading } = useAuth()
   if (loading) return null
-  if (perfil) {
-    // Redirigir padres a su portal, resto al dashboard
-    return <Navigate to={perfil.rol === 'padres' ? '/padre' : '/dashboard'} />
-  }
+  if (perfil) return <Navigate to={perfil.rol === 'padres' ? '/padre/inicio' : '/dashboard'} />
   return children
 }
 
@@ -35,35 +47,39 @@ function App() {
     <AuthProvider>
       <Toaster position="top-right" toastOptions={{
         duration: 3000,
-        style: { borderRadius: 12, padding: '12px 16px', fontSize: 14, fontWeight: 600 },
-        success: { iconTheme: { primary: '#16a34a', secondary: '#fff' } },
-        error: { iconTheme: { primary: '#dc2626', secondary: '#fff' }, duration: 4000 },
+        style: { borderRadius:12, padding:'12px 16px', fontSize:14, fontWeight:600 },
+        success: { iconTheme: { primary:'#16a34a', secondary:'#fff' } },
+        error:   { iconTheme: { primary:'#dc2626', secondary:'#fff' }, duration:4000 },
       }} />
       <BrowserRouter>
-        <Routes>
-          {/* Públicas */}
-          <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-          <Route path="/registro-padre" element={<PublicRoute><RegistroPadre /></PublicRoute>} />
+        <Suspense fallback={<Spinner />}>
+          <Routes>
+            <Route path="/login"          element={<PublicRoute><Login /></PublicRoute>} />
+            <Route path="/registro-padre" element={<PublicRoute><RegistroPadre /></PublicRoute>} />
 
-          {/* Portal staff/alumnos */}
-          <Route path="/dashboard" element={
-            <RutaProtegida>
-              <Dashboard />
-            </RutaProtegida>
-          } />
+            <Route path="/dashboard" element={
+              <RutaProtegida>
+                <Dashboard />
+              </RutaProtegida>
+            } />
 
-          {/* Portal padres — rutas pendientes de implementar */}
-          <Route path="/padre/*" element={
-            <RutaProtegida soloRoles={['padres']}>
-              {/* PadreLayout se agregará en el siguiente paso */}
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh', background:'#f4f0fa' }}>
-                <p style={{ color:'#5B2D8E', fontWeight:700 }}>Portal de padres — próximamente</p>
-              </div>
-            </RutaProtegida>
-          } />
+            <Route path="/padre" element={
+              <RutaProtegida soloRoles={['padres']}>
+                <PadreLayout />
+              </RutaProtegida>
+            }>
+              <Route index              element={<Navigate to="inicio" replace />} />
+              <Route path="inicio"      element={<PadreInicio />} />
+              <Route path="notas"       element={<PadreNotas />} />
+              <Route path="cobros"      element={<PadreCobros />} />
+              <Route path="documentos"  element={<PadreDocumentos />} />
+              <Route path="solicitudes" element={<PadreSolicitudes />} />
+              <Route path="calendario"  element={<PadreCalendario />} />
+            </Route>
 
-          <Route path="*" element={<Navigate to="/login" />} />
-        </Routes>
+            <Route path="*" element={<Navigate to="/login" />} />
+          </Routes>
+        </Suspense>
       </BrowserRouter>
     </AuthProvider>
   )
