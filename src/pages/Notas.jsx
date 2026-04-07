@@ -22,6 +22,28 @@ const FULL_LABELS = {
 }
 const PESOS = { ac: 0.35, ai: 0.35, em: 0.10, ep: 0.10, ef: 0.20 }
 
+// ── Competencias Ciudadanas ───────────────────────────────
+const ESCALA_COMP = [
+  { valor: 'E',  label: 'E',  full: 'Excelente', rango: '9-10', color: '#16a34a', bg: '#f0fdf4', border: '#86efac' },
+  { valor: 'MB', label: 'MB', full: 'Muy Bueno',  rango: '7-8',  color: '#a16207', bg: '#fef9c3', border: '#fcd34d' },
+  { valor: 'B',  label: 'B',  full: 'Bueno',      rango: '5-6',  color: '#5B2D8E', bg: '#f3eeff', border: '#c9b8e8' },
+]
+const COMP_EC = [
+  { id: 'ec_apertura',      label: 'Apertura al plan de formación Cristiana' },
+  { id: 'ec_participacion', label: 'Participación en el plan de formación Cristiana' },
+]
+const COMP_DO = [
+  { id: 'do_respeto',       label: 'Atiende con respeto las temáticas abordadas' },
+  { id: 'do_participacion', label: 'Participación activa en el plan de Diseño Original' },
+]
+function getCompetenciasPorNivel(nivel) {
+  if (!nivel || nivel === 'bachillerato') return null
+  if (nivel === 'primera_infancia') return [{ titulo: 'Educación Cristiana', items: COMP_EC }]
+  if (nivel === 'primaria')         return [{ titulo: 'Educación Cristiana', items: COMP_EC }, { titulo: 'Diseño Original', items: COMP_DO }]
+  if (nivel === 'secundaria')       return [{ titulo: 'Educación Cristiana', items: COMP_EC }]
+  return null
+}
+
 function calcNFT(componentes, notasMap) {
   const vals = componentes.map(c => notasMap[c])
   if (vals.some(v => v === null || v === undefined || v === '')) return null
@@ -152,9 +174,16 @@ export default function Notas({ onVerEstudiante }) {
   const [pendingIngles, setPendingIngles] = useState({})
   const [loadingIngles, setLoadingIngles] = useState(false)
 
-  // ── Actividades + competencias ────────────────────────────
+  // ── Actividades ──────────────────────────────────────────
   const [actividades, setActividades]       = useState({})
   const [expandAC, setExpandAC]             = useState({})
+
+  // ── Competencias Ciudadanas ───────────────────────────────
+  const [compCiudadanas, setCompCiudadanas] = useState({})
+  const [pendingComp, setPendingComp]       = useState({})
+  const hayPendientesComp = Object.keys(pendingComp).length > 0
+  const gruposComp = getCompetenciasPorNivel(gradoInfo?.nivel)
+  const tieneCompetencias = !!gruposComp
 
   const year = yearEscolar || new Date().getFullYear()
   const { isPeriodoAbierto } = usePeriodosNotas(year)
@@ -347,11 +376,12 @@ export default function Notas({ onVerEstudiante }) {
   useEffect(() => { if (gradoId) cargarDatos() }, [gradoId, year])
 
   async function cargarDatos() {
-    setLoading(true); setPendingNotas({}); setPendingActs({})
-    const [{ data: ests }, { data: ns }, { data: acs }] = await Promise.all([
+    setLoading(true); setPendingNotas({}); setPendingActs({}); setPendingComp({})
+    const [{ data: ests }, { data: ns }, { data: acs }, { data: comps }] = await Promise.all([
       supabase.from('estudiantes').select('id, nombre, apellido').eq('grado_id', gradoId).eq('estado', 'activo').order('apellido'),
       supabase.from('notas').select('*').eq('grado_id', gradoId).eq('año_escolar', year),
       supabase.from('actividades_cotidianas').select('*').eq('grado_id', gradoId).eq('año_escolar', year),
+      supabase.from('competencias_ciudadanas').select('*').eq('grado_id', gradoId).eq('año_escolar', year),
     ])
     setEstudiantes(ests || [])
     const mapa = {}
@@ -360,6 +390,9 @@ export default function Notas({ onVerEstudiante }) {
     const acMapa = {}
     for (const a of (acs || [])) acMapa[`${a.estudiante_id}-${a.materia_id}-${a.periodo}-${a.numero}`] = a.nota
     setActividades(acMapa)
+    const compMapa = {}
+    for (const c of (comps || [])) compMapa[`${c.estudiante_id}-${c.periodo}-${c.competencia}`] = c
+    setCompCiudadanas(compMapa)
     setLoading(false)
   }
 
@@ -897,7 +930,150 @@ export default function Notas({ onVerEstudiante }) {
 
 
   // ── Vista móvil ───────────────────────────────────────────
-  function VistaMóvil() {
+  // ── Tabla Competencias Ciudadanas ─────────────────────────
+  function TablaCompetencias() {
+    const [periodoTab, setPeriodoTab] = React.useState(1)
+    const puedeEdit = esEncargado || ['admin','registro_academico','direccion_academica'].includes(perfil?.rol)
+
+    function getComp(estId, periodo, compId) {
+      const key = `${estId}-${periodo}-${compId}`
+      if (pendingComp[key] !== undefined) return pendingComp[key]
+      return compCiudadanas[`${estId}-${periodo}-${compId}`]?.valor ?? ''
+    }
+
+    function setComp(estId, periodo, compId, valor) {
+      const key = `${estId}|${periodo}|${compId}`
+      setPendingComp(prev => ({ ...prev, [key]: valor }))
+    }
+
+    const todosLosIds = gruposComp?.flatMap(g => g.items.map(i => i.id)) || []
+    const hayPendPeriodo = Object.keys(pendingComp).some(k => k.split('|')[1] === String(periodoTab))
+
+    return (
+      <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', overflow: 'hidden' }}>
+        {/* Header */}
+        <div style={{ padding: '16px 24px', borderBottom: '1px solid #f3eeff', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <span style={{ ...nivel, padding: '3px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>{gradoInfo?.nombre}</span>
+              <span style={{ fontSize: 15, fontWeight: 800, color: '#0f1d40' }}>Competencias Ciudadanas</span>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {ESCALA_COMP.map(e => (
+                <span key={e.valor} style={{ fontSize: 11, fontWeight: 700, color: e.color, background: e.bg, border: `1px solid ${e.border}`, padding: '2px 10px', borderRadius: 8 }}>
+                  {e.label} — {e.full} ({e.rango})
+                </span>
+              ))}
+            </div>
+          </div>
+          {hayPendientesComp && (
+            <button onClick={guardarCompetencias} disabled={guardando}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 18px', borderRadius: 10, border: 'none', background: guardando ? '#c4bad4' : 'linear-gradient(135deg, #3d1f61, #5B2D8E)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: guardando ? 'not-allowed' : 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 12px rgba(91,45,142,0.25)' }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+              </svg>
+              {guardando ? 'Guardando...' : 'Guardar competencias'}
+            </button>
+          )}
+        </div>
+
+        {/* Tabs período */}
+        <div style={{ display: 'flex', gap: 0, borderBottom: '2px solid #f3eeff', padding: '0 16px', background: '#fdfcff' }}>
+          {Array.from({ length: numPeriodos }, (_, i) => {
+            const p = i + 1
+            const activo = periodoTab === p
+            const hayPend = Object.keys(pendingComp).some(k => k.split('|')[1] === String(p))
+            return (
+              <button key={p} onClick={() => setPeriodoTab(p)}
+                style={{ padding: '12px 20px', border: 'none', background: 'none', borderBottom: activo ? '2px solid #5B2D8E' : '2px solid transparent', marginBottom: -2, color: activo ? '#3d1f61' : '#b0a8c0', fontWeight: activo ? 800 : 500, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s' }}>
+                {periodoLabel} {p}
+                {hayPend && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }} />}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Tabla */}
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 600 }}>
+            <thead>
+              <tr style={{ background: '#1a0d30' }}>
+                <th style={{ ...s.th, textAlign: 'left', padding: '12px 20px', minWidth: 200 }}>Estudiante</th>
+                {gruposComp.map(grupo => (
+                  grupo.items.map(comp => (
+                    <th key={comp.id} style={{ ...s.th, minWidth: 100, fontSize: 10, padding: '8px 6px', lineHeight: 1.3 }}>
+                      <div style={{ fontSize: 9, opacity: 0.55, fontWeight: 400, marginBottom: 2 }}>{grupo.titulo}</div>
+                      {comp.label}
+                    </th>
+                  ))
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {estudiantesFiltrados.map((est, idx) => {
+                const tienePend = Object.keys(pendingComp).some(k => k.startsWith(`${est.id}|${periodoTab}|`))
+                return (
+                  <tr key={est.id} style={{ borderBottom: '1px solid #f3eeff', background: tienePend ? '#fffbeb' : idx % 2 === 0 ? '#fff' : '#fdfcff', transition: 'background 0.1s' }}>
+                    <td style={{ padding: '10px 20px', fontSize: 13, fontWeight: 600, color: '#0f1d40' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {tienePend && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b', flexShrink: 0 }} />}
+                        {est.apellido}, {est.nombre}
+                      </div>
+                    </td>
+                    {gruposComp.map(grupo => (
+                      grupo.items.map(comp => {
+                        const val = getComp(est.id, periodoTab, comp.id)
+                        const escalaActiva = ESCALA_COMP.find(e => e.valor === val)
+                        return (
+                          <td key={comp.id} style={{ padding: '8px 6px', textAlign: 'center' }}>
+                            {puedeEdit ? (
+                              <select
+                                value={val}
+                                onChange={e => setComp(est.id, periodoTab, comp.id, e.target.value)}
+                                style={{
+                                  fontSize: 12, fontWeight: 700, fontFamily: 'inherit',
+                                  border: `1.5px solid ${escalaActiva ? escalaActiva.border : '#e5e7eb'}`,
+                                  borderRadius: 8, padding: '4px 6px', cursor: 'pointer',
+                                  background: escalaActiva ? escalaActiva.bg : '#f9fafb',
+                                  color: escalaActiva ? escalaActiva.color : '#b0a8c0',
+                                  outline: 'none', minWidth: 62,
+                                }}>
+                                <option value="">—</option>
+                                {ESCALA_COMP.map(e => (
+                                  <option key={e.valor} value={e.valor}>{e.label}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <span style={{
+                                display: 'inline-block', padding: '4px 10px', borderRadius: 8, fontSize: 13, fontWeight: 800,
+                                background: escalaActiva ? escalaActiva.bg : 'transparent',
+                                color: escalaActiva ? escalaActiva.color : '#d1d5db',
+                                border: escalaActiva ? `1.5px solid ${escalaActiva.border}` : 'none',
+                              }}>
+                                {val || '—'}
+                              </span>
+                            )}
+                          </td>
+                        )
+                      })
+                    ))}
+                  </tr>
+                )
+              })}
+              {estudiantesFiltrados.length === 0 && (
+                <tr><td colSpan={99} style={{ textAlign: 'center', padding: 40, color: '#b0a8c0', fontSize: 13 }}>
+                  {busqueda ? `No se encontró ningún estudiante con "${busqueda}"` : 'No hay estudiantes en este grado'}
+                </td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )
+  }
+
+    function VistaMóvil() {
     const mat = materias.find(m => m.id === materiaId)
     if (!mat) return (
       <div style={{ textAlign: 'center', padding: 32, color: '#b0a8c0', fontSize: 13 }}>
@@ -1180,6 +1356,7 @@ export default function Notas({ onVerEstudiante }) {
               <label style={s.label}>Materia</label>
               <select style={s.select} value={materiaId} onChange={e => { setMateriaId(e.target.value); setBusqueda('') }} disabled={!gradoId}>
                 {!isMobile && <option value="todas">Ver todas las materias</option>}
+                {!isMobile && tieneCompetencias && <option value="competencias">⊕ Competencias Ciudadanas</option>}
                 {materias.map(m => (
                   <option key={m.id} value={m.id}>
                     {m.nombre}{esDocenteTambien && esEncargado && !misMateriasIds.has(m.id) ? ' ●' : ''}
@@ -1220,7 +1397,7 @@ export default function Notas({ onVerEstudiante }) {
           )}
           {loading && <div style={{ textAlign: 'center', padding: 40, color: '#b0a8c0', fontSize: 13 }}>Cargando...</div>}
           {gradoId && !loading && !!materias.length && (
-            isMobile ? <VistaMóvil /> : (materiaId === 'todas' ? <TablaResumen /> : <TablaMateria />)
+            isMobile ? <VistaMóvil /> : (materiaId === 'competencias' ? <TablaCompetencias /> : materiaId === 'todas' ? <TablaResumen /> : <TablaMateria />)
           )}
         </>
       )}

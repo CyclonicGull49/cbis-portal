@@ -1,25 +1,26 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import Layout from '../components/Layout'
 import Campanita from '../components/Campanita'
-import Estudiantes from './Estudiantes'
-import Cobros from './Cobros'
-import Contabilidad from './Contabilidad'
-import Usuarios from './Usuarios'
-import Configuracion from './Configuracion'
-import Matricula from './Matricula'
-import Reportes from './Reportes'
-import Notas from './Notas'
-import Boletas from './Boletas'
-import Asistencia from './Asistencia'
-import PerfilAlumno from './PerfilAlumno'
-import Solicitudes from './Solicitudes'
-import Calendario from './Calendario'
-import Anecdotario from './Anecdotario'
-import Permisos from './Permisos'
-import Horario from './Horario'
-import MisNotas from './MisNotas'
+
+const Estudiantes  = lazy(() => import('./Estudiantes'))
+const Cobros       = lazy(() => import('./Cobros'))
+const Contabilidad = lazy(() => import('./Contabilidad'))
+const Usuarios     = lazy(() => import('./Usuarios'))
+const Configuracion = lazy(() => import('./Configuracion'))
+const Matricula    = lazy(() => import('./Matricula'))
+const Reportes     = lazy(() => import('./Reportes'))
+const Notas        = lazy(() => import('./Notas'))
+const Boletas      = lazy(() => import('./Boletas'))
+const Asistencia   = lazy(() => import('./Asistencia'))
+const PerfilAlumno = lazy(() => import('./PerfilAlumno'))
+const Solicitudes  = lazy(() => import('./Solicitudes'))
+const Calendario   = lazy(() => import('./Calendario'))
+const Anecdotario  = lazy(() => import('./Anecdotario'))
+const Permisos     = lazy(() => import('./Permisos'))
+const Horario      = lazy(() => import('./Horario'))
+const MisNotas     = lazy(() => import('./MisNotas'))
 
 const IcoEstudiantes = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -586,7 +587,9 @@ export default function Dashboard() {
 
   return (
     <Layout pagina={pagina} setPagina={setPagina}>
-      {renderPagina()}
+      <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh', color: '#5B2D8E', fontSize: 15, fontFamily: 'Plus Jakarta Sans, sans-serif' }}>Cargando...</div>}>
+        {renderPagina()}
+      </Suspense>
     </Layout>
   )
 }
