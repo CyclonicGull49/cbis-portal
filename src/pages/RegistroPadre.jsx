@@ -172,10 +172,18 @@ export default function RegistroPadre() {
     const nombreCompleto = `${nombre.trim()} ${apellido.trim()}`
     const password = `${apellido.trim().toLowerCase().replace(/\s+/g, '')}2026`
 
-    // 1. Crear usuario en Supabase Auth
+    // 1. Crear usuario en Supabase Auth con metadatos
+    // El trigger handle_new_user() leerá estos datos y creará el perfil correcto
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: email.trim().toLowerCase(),
       password,
+      options: {
+        data: {
+          nombre:   nombreCompleto,
+          apellido: apellido.trim(),
+          rol:      'padres',
+        }
+      }
     })
 
     if (authError) {
@@ -191,7 +199,7 @@ export default function RegistroPadre() {
     const userId = authData.user?.id
     if (!userId) { setError('Error inesperado. Intenta de nuevo.'); setLoading(false); return }
 
-    // 2. Crear perfil + vínculo via RPC
+    // 2. Vincular padre con estudiante via RPC
     const { error: rpcError } = await supabase.rpc('crear_perfil_padre', {
       p_user_id:    userId,
       p_nombre:     nombreCompleto,
@@ -201,7 +209,6 @@ export default function RegistroPadre() {
     })
 
     if (rpcError) {
-      // Limpiar usuario auth huérfano si la RPC falla
       setError(
         rpcError.message.includes('ya tiene un padre')
           ? 'Este estudiante ya tiene un padre o tutor vinculado en el sistema.'
