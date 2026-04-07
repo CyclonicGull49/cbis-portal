@@ -571,6 +571,7 @@ export default function Dashboard() {
       case 'estudiantes':   return <Estudiantes />
       case 'cobros':        return <Cobros />
       case 'notas':         return <Notas onVerEstudiante={id => setPagina(`perfil-estudiante-${id}`)} />
+      case 'horario':       return <Horario />
       case 'calendario':    return <Calendario />
       case 'contabilidad':  return <Contabilidad />
       case 'usuarios':      return <Usuarios />

@@ -936,7 +936,7 @@ export default function Notas({ onVerEstudiante }) {
     const puedeEdit = esEncargado || ['admin','registro_academico','direccion_academica'].includes(perfil?.rol)
 
     function getComp(estId, periodo, compId) {
-      const key = `${estId}-${periodo}-${compId}`
+      const key = `${estId}|${periodo}|${compId}`
       if (pendingComp[key] !== undefined) return pendingComp[key]
       return compCiudadanas[`${estId}-${periodo}-${compId}`]?.valor ?? ''
     }
