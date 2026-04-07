@@ -379,7 +379,20 @@ export default function Boletas() {
       componentes: comps,
       materias: materiasPayload,
       ingles: inglesPayload,
-      competencias_valores: {},
+      competencias_valores: await (async () => {
+        const { data: comps } = await supabase
+          .from('competencias_ciudadanas')
+          .select('competencia, periodo, valor')
+          .eq('estudiante_id', est.id)
+          .eq('grado_id', parseInt(gradoId))
+          .eq('año_escolar', year)
+        const cv = {}
+        for (const c of (comps || [])) {
+          if (!cv[c.competencia]) cv[c.competencia] = {}
+          cv[c.competencia][String(c.periodo)] = c.valor
+        }
+        return cv
+      })(),
     }
   }
 
