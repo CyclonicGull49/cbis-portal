@@ -512,7 +512,7 @@ export default function Notas({ onVerEstudiante }) {
       const existe = compCiudadanas[dbKey]
       const payload = { estudiante_id: parseInt(estId), grado_id: gradoId, año_escolar: year, periodo: parseInt(periodo), competencia, valor, docente_id: perfil.id }
       return existe
-        ? supabase.from('competencias_ciudadanas').update({ valor, docente_id: perfil.id }).eq('id', existe.id).select().single()
+        ? supabase.from('competencias_ciudadanas').update({ valor, docente_id: perfil.id, updated_at: new Date().toISOString() }).eq('id', existe.id).select().single()
         : supabase.from('competencias_ciudadanas').insert(payload).select().single()
     })
     const results = await Promise.all(ops)
