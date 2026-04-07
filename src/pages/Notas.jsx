@@ -29,12 +29,12 @@ const ESCALA_COMP = [
   { valor: 'B',  label: 'B',  full: 'Bueno',      rango: '5-6',  color: '#5B2D8E', bg: '#f3eeff', border: '#c9b8e8' },
 ]
 const COMP_EC = [
-  { id: 'ec_apertura',      label: 'Apertura al plan de formación Cristiana' },
-  { id: 'ec_participacion', label: 'Participación en el plan de formación Cristiana' },
+  { id: 'ed_cristiana_1', label: 'Apertura al plan de formación Cristiana' },
+  { id: 'ed_cristiana_2', label: 'Participación en el plan de formación Cristiana' },
 ]
 const COMP_DO = [
-  { id: 'do_respeto',       label: 'Atiende con respeto las temáticas abordadas' },
-  { id: 'do_participacion', label: 'Participación activa en el plan de Diseño Original' },
+  { id: 'diseño_original_1', label: 'Atiende con respeto las temáticas abordadas' },
+  { id: 'diseño_original_2', label: 'Participación activa en el plan de Diseño Original' },
 ]
 function getCompetenciasPorNivel(nivel) {
   if (!nivel || nivel === 'bachillerato') return null
