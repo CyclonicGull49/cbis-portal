@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { PadreHijoProvider, usePadreHijo } from '../../hooks/usePadreHijo'
+import { PadreHijoProvider, usePadreHijo } from '../../hooks/usePadreHijo.jsx'
+import { supabase } from '../../supabase'
 
 // ── Breakpoint ─────────────────────────────────
 function useBreakpoint() {
@@ -56,53 +57,67 @@ const nivelColor = {
 
 // ── HijoSelector ──────────────────────────────
 function HijoSelector({ compact = false }) {
-  const { hijos, hijoActual, setHijoActual } = usePadreHijo()
-  const [open, setOpen] = useState(false)
+  const { hijos, hijoActual, setHijoActual, agregarHijo } = usePadreHijo()
+  const [open,       setOpen]       = useState(false)
+  const [modoAgreg,  setModoAgreg]  = useState(false)
+  const [query,      setQuery]      = useState('')
+  const [resultados, setResultados] = useState([])
+  const [buscando,   setBuscando]   = useState(false)
+  const [agregando,  setAgregando]  = useState(false)
+  const debounceRef = useRef(null)
+
+  useEffect(() => {
+    if (query.trim().length < 2) { setResultados([]); return }
+    clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(async () => {
+      setBuscando(true)
+      const { data } = await supabase.rpc('buscar_estudiantes_publico', { p_query: query.trim() })
+      setBuscando(false)
+      setResultados((data || []).map(r => ({
+        id: r.id, nombre: r.nombre, apellido: r.apellido,
+        grados: { nombre: r.grado_nombre, nivel: r.grado_nivel },
+      })))
+    }, 350)
+    return () => clearTimeout(debounceRef.current)
+  }, [query])
+
+  async function handleAgregar(est) {
+    setAgregando(true)
+    try {
+      await agregarHijo(est.id, 'Padre')
+      setModoAgreg(false)
+      setOpen(false)
+      setQuery('')
+      setResultados([])
+    } catch (e) {
+      alert(e.message?.includes('ya tiene') ? 'Este estudiante ya tiene un encargado vinculado.' : e.message)
+    }
+    setAgregando(false)
+  }
 
   if (!hijoActual) return null
-  const color = nivelColor[hijoActual.grados?.nivel] || '#5B2D8E'
+  const color    = nivelColor[hijoActual.grados?.nivel] || '#5B2D8E'
   const initials = `${hijoActual.nombre?.[0] || ''}${hijoActual.apellido?.[0] || ''}`
-
-  if (hijos.length === 1) return (
-    <div style={{ display:'flex', alignItems:'center', gap: compact ? 8 : 10,
-      padding: compact ? '6px 10px' : '10px 12px',
-      background:'rgba(255,255,255,0.07)', borderRadius:11,
-      border:'1px solid rgba(255,255,255,0.1)' }}>
-      <div style={{ width: compact ? 28 : 34, height: compact ? 28 : 34, borderRadius: compact ? 8 : 10,
-        background: color, display:'flex', alignItems:'center', justifyContent:'center',
-        fontWeight:800, fontSize: compact ? 11 : 13, color:'#fff', flexShrink:0 }}>
-        {initials}
-      </div>
-      <div>
-        <div style={{ color:'#fff', fontWeight:700, fontSize: compact ? 12 : 13, lineHeight:1.2 }}>
-          {hijoActual.nombre} {hijoActual.apellido}
-        </div>
-        <div style={{ color:'rgba(255,255,255,0.45)', fontSize: compact ? 9 : 10, fontWeight:600 }}>
-          {hijoActual.grados?.nombre || '—'}
-        </div>
-      </div>
-    </div>
-  )
 
   return (
     <div style={{ position:'relative' }}>
-      <button onClick={() => setOpen(v => !v)}
-        style={{ display:'flex', alignItems:'center', gap: compact ? 8 : 10, width:'100%',
-          padding: compact ? '6px 10px' : '10px 12px',
+      <button onClick={() => { setOpen(v => !v); setModoAgreg(false) }}
+        style={{ display:'flex', alignItems:'center', gap:10, width:'100%',
+          padding:'10px 12px',
           background: open ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.07)',
           borderRadius:11, border:'1px solid rgba(255,255,255,0.1)',
           cursor:'pointer', fontFamily:'inherit' }}>
-        <div style={{ width: compact ? 28 : 34, height: compact ? 28 : 34, borderRadius: compact ? 8 : 10,
-          background: color, display:'flex', alignItems:'center', justifyContent:'center',
-          fontWeight:800, fontSize: compact ? 11 : 13, color:'#fff', flexShrink:0 }}>
+        <div style={{ width:34, height:34, borderRadius:10, background:color,
+          display:'flex', alignItems:'center', justifyContent:'center',
+          fontWeight:800, fontSize:13, color:'#fff', flexShrink:0 }}>
           {initials}
         </div>
         <div style={{ flex:1, textAlign:'left' }}>
-          <div style={{ color:'#fff', fontWeight:700, fontSize: compact ? 12 : 13, lineHeight:1.2 }}>
+          <div style={{ color:'#fff', fontWeight:700, fontSize:13, lineHeight:1.2 }}>
             {hijoActual.nombre} {hijoActual.apellido}
           </div>
-          <div style={{ color:'rgba(255,255,255,0.45)', fontSize: compact ? 9 : 10, fontWeight:600 }}>
-            {hijoActual.grados?.nombre || '—'} · {hijos.length} vinculados
+          <div style={{ color:'rgba(255,255,255,0.45)', fontSize:10, fontWeight:600 }}>
+            {hijoActual.grados?.nombre || '—'}{hijos.length > 1 ? ` · ${hijos.length} vinculados` : ''}
           </div>
         </div>
         <span style={{ color:'rgba(255,255,255,0.4)', display:'flex', transition:'transform 0.2s', transform: open ? 'rotate(180deg)' : 'none' }}>{Icons.chevron}</span>
@@ -113,8 +128,10 @@ function HijoSelector({ compact = false }) {
           background:'linear-gradient(160deg,#2d1554,#5B2D8E)',
           borderRadius:12, border:'1px solid rgba(255,255,255,0.15)',
           boxShadow:'0 8px 24px rgba(0,0,0,0.3)', overflow:'hidden' }}>
-          {hijos.map(h => {
-            const c = nivelColor[h.grados?.nivel] || '#5B2D8E'
+
+          {/* Lista de hijos */}
+          {!modoAgreg && hijos.map(h => {
+            const c   = nivelColor[h.grados?.nivel] || '#5B2D8E'
             const ini = `${h.nombre?.[0] || ''}${h.apellido?.[0] || ''}`
             const activo = h.id === hijoActual.id
             return (
@@ -126,19 +143,68 @@ function HijoSelector({ compact = false }) {
                 <div style={{ width:30, height:30, borderRadius:9, background:c,
                   display:'flex', alignItems:'center', justifyContent:'center',
                   fontWeight:800, fontSize:11, color:'#fff', flexShrink:0 }}>{ini}</div>
-                <div style={{ textAlign:'left' }}>
+                <div style={{ textAlign:'left', flex:1 }}>
                   <div style={{ color:'#fff', fontWeight:700, fontSize:12 }}>{h.nombre} {h.apellido}</div>
                   <div style={{ color:'rgba(255,255,255,0.45)', fontSize:10 }}>{h.grados?.nombre}</div>
                 </div>
-                {activo && <span style={{ marginLeft:'auto', width:7, height:7, borderRadius:'50%', background:'#D4A017', flexShrink:0 }} />}
+                {activo && <span style={{ width:7, height:7, borderRadius:'50%', background:'#D4A017', flexShrink:0 }} />}
               </button>
             )
           })}
+
+          {/* Botón agregar / búsqueda */}
+          {!modoAgreg ? (
+            <button onClick={() => setModoAgreg(true)}
+              style={{ display:'flex', alignItems:'center', gap:8, width:'100%',
+                padding:'10px 12px', border:'none', cursor:'pointer', fontFamily:'inherit',
+                background:'rgba(255,255,255,0.06)', color:'rgba(255,255,255,0.55)',
+                fontSize:12, fontWeight:600 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Vincular otro hijo/a
+            </button>
+          ) : (
+            <div style={{ padding:'12px' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 10px',
+                background:'rgba(255,255,255,0.1)', borderRadius:9, marginBottom:8,
+                border:'1px solid rgba(255,255,255,0.15)' }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input autoFocus value={query} onChange={e => setQuery(e.target.value)}
+                  placeholder="Nombre o apellido…"
+                  style={{ flex:1, background:'transparent', border:'none', outline:'none',
+                    color:'#fff', fontSize:12, fontFamily:'inherit' }} />
+              </div>
+              {buscando && <div style={{ fontSize:11, color:'rgba(255,255,255,0.4)', textAlign:'center', padding:'6px 0' }}>Buscando…</div>}
+              {resultados.map(r => (
+                <button key={r.id} onClick={() => handleAgregar(r)} disabled={agregando}
+                  style={{ display:'flex', alignItems:'center', gap:8, width:'100%',
+                    padding:'8px 10px', borderRadius:8, border:'none', cursor:'pointer',
+                    fontFamily:'inherit', background:'rgba(255,255,255,0.07)',
+                    marginBottom:4, opacity: agregando ? 0.5 : 1 }}>
+                  <div style={{ width:26, height:26, borderRadius:7,
+                    background: nivelColor[r.grados?.nivel] || '#5B2D8E',
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    fontWeight:800, fontSize:10, color:'#fff', flexShrink:0 }}>
+                    {r.nombre?.[0]}{r.apellido?.[0]}
+                  </div>
+                  <div style={{ textAlign:'left' }}>
+                    <div style={{ color:'#fff', fontWeight:700, fontSize:12 }}>{r.apellido}, {r.nombre}</div>
+                    <div style={{ color:'rgba(255,255,255,0.45)', fontSize:10 }}>{r.grados?.nombre}</div>
+                  </div>
+                </button>
+              ))}
+              <button onClick={() => { setModoAgreg(false); setQuery(''); setResultados([]) }}
+                style={{ width:'100%', marginTop:4, padding:'6px', background:'none', border:'none',
+                  color:'rgba(255,255,255,0.35)', fontSize:11, cursor:'pointer', fontFamily:'inherit' }}>
+                Cancelar
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
   )
 }
+
 
 // ── SidebarContent ─────────────────────────────
 function SidebarContent({ onNav, sidebarOpen, setSidebarOpen, isTablet }) {
