@@ -8,7 +8,7 @@ function FloatingOrb({ style }) {
   return <div style={{ position: 'absolute', borderRadius: '50%', pointerEvents: 'none', ...style }} />
 }
 
-const PARENTESCOS = ['Padre', 'Madre', 'Tutor/a', 'Abuelo/a', 'Tío/a', 'Hermano/a mayor', 'Otro']
+const PARENTESCOS = ['Padre', 'Madre', 'Tutor']
 
 // ── Icons ──────────────────────────────────────────
 const IconUser = () => (
@@ -135,26 +135,16 @@ export default function RegistroPadre() {
 
   async function buscarEstudiante(q) {
     setBuscando(true)
-    const terms = q.split(' ').filter(Boolean)
-    let req = supabase
-      .from('estudiantes')
-      .select('id, nombre, apellido, grados(nombre, nivel)')
-      .neq('anulado', true)
-      .order('apellido')
-      .limit(8)
-
-    if (terms.length === 1) {
-      req = req.or(`nombre.ilike.%${terms[0]}%,apellido.ilike.%${terms[0]}%`)
-    } else {
-      // Buscar con múltiples términos — primero apellido luego nombre
-      req = req.or(
-        `apellido.ilike.%${terms[0]}%,nombre.ilike.%${terms[terms.length - 1]}%`
-      )
-    }
-
-    const { data, error } = await req
+    const { data, error } = await supabase.rpc('buscar_estudiantes_publico', { p_query: q.trim() })
     setBuscando(false)
-    if (!error) setResultados(data || [])
+    if (!error) {
+      setResultados((data || []).map(r => ({
+        id: r.id,
+        nombre: r.nombre,
+        apellido: r.apellido,
+        grados: { nombre: r.grado_nombre, nivel: r.grado_nivel },
+      })))
+    }
   }
 
   // ── Nivel → color ──────────────────────────────
@@ -596,15 +586,15 @@ export default function RegistroPadre() {
               <span className="rp-title-gold">hijo/a.</span>
             </h1>
             <p className="rp-desc">
-              Accede a notas, asistencia, cobros y documentos
-              de tu hijo/a en tiempo real desde cualquier dispositivo.
+              Accede a notas, cobros y documentos
+              en tiempo real desde cualquier dispositivo.
             </p>
 
             <div className="rp-info-cards">
               {[
                 { title: 'Solo 3 pasos', text: 'Ingresa tus datos, busca a tu hijo/a y confirma el vínculo.' },
-                { title: 'Contraseña automática', text: 'Tu contraseña inicial será tu apellido seguido de "2026". Puedes pedirle al administrador que la cambie.' },
-                { title: 'Un padre por alumno', text: 'El sistema permite un padre o tutor principal por estudiante.' },
+                { title: 'Contraseña automática', text: 'Tu contraseña inicial será tu apellido seguido de "2026".' },
+                { title: 'Un encargado por alumno', text: 'El sistema permite un padre, madre o tutor principal por estudiante.' },
               ].map(c => (
                 <div className="rp-info-card" key={c.title}>
                   <div className="rp-info-card-icon">
