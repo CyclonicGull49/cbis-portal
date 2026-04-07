@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../supabase'
 
@@ -8,6 +9,7 @@ function FloatingOrb({ style }) {
 }
 
 export default function Login() {
+  const navigate = useNavigate()
   const [email,        setEmail]        = useState('')
   const [password,     setPassword]     = useState('')
   const [loading,      setLoading]      = useState(false)
@@ -475,6 +477,17 @@ export default function Login() {
               )}
 
             </form>
+
+            <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid #f3eeff', textAlign: 'center', fontSize: 13, color: '#9ca3af' }}>
+              ¿Eres padre de familia?{' '}
+              <button type="button" onClick={() => navigate('/registro-padre')} style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: '#5B2D8E', fontWeight: 700, fontSize: 13,
+                fontFamily: 'inherit', textDecoration: 'underline', textUnderlineOffset: 2,
+              }}>
+                Crear cuenta aquí
+              </button>
+            </div>
 
           </div>
         </div>

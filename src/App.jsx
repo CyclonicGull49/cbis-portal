@@ -3,8 +3,9 @@ import { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
+import RegistroPadre from './pages/RegistroPadre'
 
-function RutaProtegida({ children }) {
+function RutaProtegida({ children, soloRoles }) {
   const { perfil, loading } = useAuth()
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f4f0fa' }}>
@@ -15,13 +16,17 @@ function RutaProtegida({ children }) {
     </div>
   )
   if (!perfil) return <Navigate to="/login" />
+  if (soloRoles && !soloRoles.includes(perfil.rol)) return <Navigate to="/dashboard" />
   return children
 }
 
 function PublicRoute({ children }) {
   const { perfil, loading } = useAuth()
   if (loading) return null
-  if (perfil) return <Navigate to="/dashboard" />
+  if (perfil) {
+    // Redirigir padres a su portal, resto al dashboard
+    return <Navigate to={perfil.rol === 'padres' ? '/padre' : '/dashboard'} />
+  }
   return children
 }
 
@@ -36,12 +41,27 @@ function App() {
       }} />
       <BrowserRouter>
         <Routes>
+          {/* Públicas */}
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+          <Route path="/registro-padre" element={<PublicRoute><RegistroPadre /></PublicRoute>} />
+
+          {/* Portal staff/alumnos */}
           <Route path="/dashboard" element={
             <RutaProtegida>
               <Dashboard />
             </RutaProtegida>
           } />
+
+          {/* Portal padres — rutas pendientes de implementar */}
+          <Route path="/padre/*" element={
+            <RutaProtegida soloRoles={['padres']}>
+              {/* PadreLayout se agregará en el siguiente paso */}
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh', background:'#f4f0fa' }}>
+                <p style={{ color:'#5B2D8E', fontWeight:700 }}>Portal de padres — próximamente</p>
+              </div>
+            </RutaProtegida>
+          } />
+
           <Route path="*" element={<Navigate to="/login" />} />
         </Routes>
       </BrowserRouter>
