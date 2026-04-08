@@ -577,6 +577,8 @@ export default function Dashboard() {
       case 'usuarios':      return <Usuarios />
       case 'configuracion': return <Configuracion />
       case 'matricula':     return <Matricula />
+      case 'anecdotario':   return <Anecdotario />
+      case 'permisos':      return <Permisos />
       case 'mi-perfil':     return <PerfilAlumno seccion="perfil" />
       case 'mis-cobros':    return <PerfilAlumno seccion="cobros" />
       case 'mis-docs':      return <PerfilAlumno seccion="docs" />

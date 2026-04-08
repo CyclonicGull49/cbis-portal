@@ -693,12 +693,30 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion, perfil }) {
   }
 
   async function ejecutarEliminar() {
+    // 1. Buscar perfil del alumno (si tiene cuenta en el portal)
+    const { data: perfilAlumno } = await supabase.from('perfiles')
+      .select('id').eq('estudiante_id', estudiante.id).single()
+
+    // 2. Borrar cobros y pagos
     const { data: cobrosEst } = await supabase.from('cobros').select('id').eq('estudiante_id', estudiante.id)
     const cobrosIds = cobrosEst?.map(c => c.id) || []
     if (cobrosIds.length > 0) {
       await supabase.from('pagos').delete().in('cobro_id', cobrosIds)
       await supabase.from('cobros').delete().eq('estudiante_id', estudiante.id)
     }
+
+    // 3. Borrar vínculo padre_estudiante y notas
+    await supabase.from('padre_estudiante').delete().eq('estudiante_id', estudiante.id)
+    await supabase.from('notas').delete().eq('estudiante_id', estudiante.id)
+    await supabase.from('asistencia').delete().eq('estudiante_id', estudiante.id)
+
+    // 4. Borrar perfil del portal + cuenta Auth del alumno
+    if (perfilAlumno?.id) {
+      await supabase.from('perfiles').delete().eq('id', perfilAlumno.id)
+      await supabase.rpc('eliminar_usuario_auth', { p_perfil_id: perfilAlumno.id })
+    }
+
+    // 5. Borrar el estudiante
     await supabase.from('estudiantes').delete().eq('id', estudiante.id)
     toast.success('Estudiante eliminado')
     onDelete()
