@@ -101,7 +101,7 @@ export default function RegistroPadre() {
 
     setPreview({
       nombre:       rows[0].nombre || '',
-      apellido_est: hijo.apellido || '',
+      apellido_est: (hijo.apellido || '').split(' ')[0],
       email,
       existe,
       hijos:        rows,
