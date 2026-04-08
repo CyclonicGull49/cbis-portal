@@ -52,27 +52,19 @@ export default function RegistroPadre() {
     if (!password.trim())      { setError('Ingresa tu contraseña'); return }
     setError(''); setLoading(true)
 
-    // Buscar estudiantes donde el DUI coincide en padre, madre o tutor
-    // Tres queries separadas para evitar problemas con .or() en Supabase
+    // Buscar estudiantes via función SECURITY DEFINER (bypasea RLS para usuario anon)
+    // Busca en dui_padre, dui_madre y dui_tutor simultáneamente
     const duiConGuion = duiClean.slice(0,8) + '-' + duiClean.slice(8)
-    const [q1, q2, q3] = await Promise.all([
-      supabase.from('estudiantes').select('id, nombre, apellido, grado_id').eq('estado', 'activo').eq('dui_padre', duiClean),
-      supabase.from('estudiantes').select('id, nombre, apellido, grado_id').eq('estado', 'activo').eq('dui_madre', duiClean),
-      supabase.from('estudiantes').select('id, nombre, apellido, grado_id').eq('estado', 'activo').eq('dui_tutor', duiClean),
-    ])
-    // También buscar con guión por si se guardó así
-    const [q4, q5, q6] = await Promise.all([
-      supabase.from('estudiantes').select('id, nombre, apellido, grado_id').eq('estado', 'activo').eq('dui_padre', duiConGuion),
-      supabase.from('estudiantes').select('id, nombre, apellido, grado_id').eq('estado', 'activo').eq('dui_madre', duiConGuion),
-      supabase.from('estudiantes').select('id, nombre, apellido, grado_id').eq('estado', 'activo').eq('dui_tutor', duiConGuion),
-    ])
 
-    const allRows = [...(q1.data||[]), ...(q2.data||[]), ...(q3.data||[]), ...(q4.data||[]), ...(q5.data||[]), ...(q6.data||[])]
-    // Deduplicar por id
+    // Intentar con dui sin guión primero, luego con guión (por si se guardó así)
+    const { data: rows1, error: searchErr } = await supabase
+      .rpc('buscar_estudiantes_por_dui', { p_dui: duiClean })
+    const { data: rows2 } = await supabase
+      .rpc('buscar_estudiantes_por_dui', { p_dui: duiConGuion })
+
+    const allRows = [...(rows1 || []), ...(rows2 || [])]
     const seen = new Set()
     const rows = allRows.filter(r => { if (seen.has(r.id)) return false; seen.add(r.id); return true })
-
-    const searchErr = q1.error || q2.error || q3.error
 
     setLoading(false)
 
