@@ -52,27 +52,54 @@ export default function RegistroPadre() {
     if (!password.trim())      { setError('Ingresa tu contraseña'); return }
     setError(''); setLoading(true)
 
-    const { data, error: rpcErr } = await supabase.rpc('activar_cuenta_padre', {
-      p_dui:      duiClean,
-      p_password: password.trim(),
-    })
+    // Buscar estudiantes donde el DUI coincide en padre, madre o tutor
+    // Normalizamos: quitamos guiones antes de comparar
+    const { data: rows, error: searchErr } = await supabase
+      .from('estudiantes')
+      .select('id, nombre, apellido, grado_id')
+      .eq('estado', 'activo')
+      .or(`dui_padre.eq.${duiClean},dui_padre.eq.${dui},dui_madre.eq.${duiClean},dui_madre.eq.${dui},dui_tutor.eq.${duiClean},dui_tutor.eq.${dui}`)
 
     setLoading(false)
-    if (rpcErr) {
-      setError(
-        rpcErr.message.includes('no encontrado') ? 'DUI no registrado en el sistema. Comunícate con el colegio.' :
-        rpcErr.message.includes('incorrecta')    ? 'Contraseña incorrecta. Usa el apellido de tu hijo/a seguido de "2026".' :
-        'Error al verificar: ' + rpcErr.message
-      )
+
+    if (searchErr) { setError('Error al verificar: ' + searchErr.message); return }
+
+    if (!rows || rows.length === 0) {
+      setError('DUI no registrado en el sistema. Comunícate con el colegio.')
       return
     }
 
-    // Buscar hijos del DUI para mostrar en preview
-    const { data: estudiantes } = await supabase.rpc('buscar_estudiantes_publico', {
-      p_query: duiClean // no aplica, usamos otra búsqueda
+    // Verificar contraseña: debe ser apellidoAlumno + 2026 (sin importar mayúsculas)
+    const passLower = password.trim().toLowerCase()
+    const hijo = rows.find(r => {
+      const expected = (r.apellido || '').trim().toLowerCase() + '2026'
+      return passLower === expected
     })
 
-    setPreview(data)
+    if (!hijo) {
+      setError('Contraseña incorrecta. Usa el apellido de tu hijo/a seguido de "2026". Ej: García2026')
+      return
+    }
+
+    // Intentar signup para saber si el email ya existe
+    // Supabase devuelve error "User already registered" si ya existe
+    const email = `${duiClean}@cbis.padre.sv`
+    const { error: signupCheck } = await supabase.auth.signUp({
+      email,
+      password: '__check_only_' + duiClean,
+      options: { data: { _check: true } }
+    })
+    const existe = signupCheck?.message?.toLowerCase().includes('already registered') ||
+                   signupCheck?.message?.toLowerCase().includes('already exists') ||
+                   signupCheck?.code === 'user_already_exists'
+
+    setPreview({
+      nombre:       rows[0].nombre || '',
+      apellido_est: hijo.apellido || '',
+      email,
+      existe,
+      hijos:        rows,
+    })
     setStep(2)
   }
 
@@ -80,7 +107,7 @@ export default function RegistroPadre() {
   async function handleActivar() {
     setLoading(true); setError('')
     const duiClean = duiSinGuion(dui)
-    const email    = `${duiClean}@cbis.padre.sv`
+    const email    = preview.email
 
     if (preview.existe) {
       // Cuenta ya existe → directo a login
@@ -109,17 +136,26 @@ export default function RegistroPadre() {
     const userId = authData.user?.id
     if (!userId) { setError('Error inesperado. Intenta de nuevo.'); setLoading(false); return }
 
-    // Esperar a que el trigger cree el perfil
-    await new Promise(r => setTimeout(r, 800))
+    // Esperar a que el trigger cree el perfil en perfiles
+    await new Promise(r => setTimeout(r, 1200))
 
-    // Vincular todos los hijos automáticamente
-    const { error: vincErr } = await supabase.rpc('vincular_hijos_padre', {
-      p_perfil_id: userId,
-      p_dui:       duiClean,
-      p_nombre:    preview.nombre || 'Encargado',
-    })
+    // Upsert perfil con rol padres
+    await supabase.from('perfiles').upsert({
+      id:      userId,
+      rol:     'padres',
+      nombre:  preview.nombre || 'Encargado',
+      apellido: '',
+    }, { onConflict: 'id' })
 
-    if (vincErr) { setError('Error al vincular estudiantes: ' + vincErr.message); setLoading(false); return }
+    // Insertar vinculación en padre_estudiante para cada hijo encontrado
+    if (preview.hijos?.length > 0) {
+      const vinculaciones = preview.hijos.map(h => ({
+        perfil_id:  userId,
+        estudiante_id: h.id,
+        parentesco: 'Encargado',
+      }))
+      await supabase.from('padre_estudiante').upsert(vinculaciones, { onConflict: 'perfil_id,estudiante_id' })
+    }
 
     setLoading(false)
     setStep(3)

@@ -516,6 +516,12 @@ function SeccionEdit({ titulo, children }) {
   )
 }
 
+function formatDuiDisplay(raw) {
+  const digits = (raw || '').replace(/\D/g, '').slice(0, 9)
+  if (digits.length < 9) return digits
+  return digits.slice(0, 8) + '-' + digits.slice(8)
+}
+
 function CampoEdit({ label, val, onChange, tipo = 'text', opciones = [], fullWidth = false }) {
   const s = {
     gridColumn: fullWidth ? '1 / -1' : 'auto',
@@ -524,6 +530,24 @@ function CampoEdit({ label, val, onChange, tipo = 'text', opciones = [], fullWid
     width:'100%', padding:'8px 10px', border:'1.5px solid #e9e3ff', borderRadius:8,
     fontSize:13, fontFamily:'Plus Jakarta Sans,system-ui,sans-serif', color:'#0f1d40',
     background:'#f8f7ff', outline:'none', marginTop:4,
+  }
+  if (tipo === 'dui') {
+    return (
+      <div style={s}>
+        <div style={{ fontSize:10, fontWeight:700, color:'#9ca3af', textTransform:'uppercase', letterSpacing:'0.8px' }}>{label}</div>
+        <input
+          type="text"
+          inputMode="numeric"
+          placeholder="00000000-0"
+          value={formatDuiDisplay(val)}
+          onChange={e => {
+            const digits = e.target.value.replace(/\D/g, '').slice(0, 9)
+            onChange({ target: { value: digits } })
+          }}
+          style={inputStyle}
+        />
+      </div>
+    )
   }
   return (
     <div style={s}>
@@ -724,13 +748,13 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion, perfil }) {
 
   return (
     <div>
-      {/* ── Barra de tabs + botón editar ── */}
-      <div style={{ display:'flex', alignItems:'center', borderBottom:'2px solid #f3eeff', marginBottom:20 }}>
-        <div style={{ display:'flex', flex:1, overflowX:'auto' }}>
+      {/* ── Barra de tabs ── */}
+      <div style={{ borderBottom:'2px solid #f3eeff', marginBottom:20 }}>
+        <div style={{ display:'flex' }}>
           {tabs.map((t, i) => (
             <button key={i} onClick={() => setTab(i)} style={{
-              padding:'10px 16px', border:'none', background:'none', cursor:'pointer',
-              fontSize:13, fontWeight: tab===i ? 800 : 500,
+              padding:'10px 14px', border:'none', background:'none', cursor:'pointer',
+              fontSize:12, fontWeight: tab===i ? 800 : 500,
               fontFamily:'Plus Jakarta Sans, system-ui, sans-serif',
               color: tab===i ? '#5B2D8E' : '#aaa',
               borderBottom: tab===i ? '2px solid #5B2D8E' : '2px solid transparent',
@@ -738,25 +762,18 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion, perfil }) {
             }}>{t}</button>
           ))}
         </div>
-        {puedeEditar && (tab === 0 || tab === 1 || tab === 2) && (
-          editando ? (
-            <div style={{ display:'flex', gap:8, paddingLeft:12, flexShrink:0 }}>
-              <button onClick={cancelarEdicion}
-                style={{ padding:'6px 14px', borderRadius:8, border:'1.5px solid #e9e3ff', background:'#fff', color:'#9ca3af', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
-                Cancelar
-              </button>
-              <button onClick={guardarEdicion} disabled={guardandoEdit}
-                style={{ padding:'6px 14px', borderRadius:8, border:'none', background:'linear-gradient(135deg,#2d1554,#5B2D8E)', color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit', opacity: guardandoEdit ? 0.6 : 1 }}>
-                {guardandoEdit ? 'Guardando…' : 'Guardar'}
-              </button>
-            </div>
-          ) : (
-            <button onClick={iniciarEdicion}
-              style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 14px', borderRadius:8, border:'1.5px solid #e9e3ff', background:'#f8f7ff', color:'#5B2D8E', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit', flexShrink:0, marginLeft:12 }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              Editar
+        {/* Barra de Guardar/Cancelar cuando se está editando */}
+        {editando && (
+          <div style={{ display:'flex', justifyContent:'flex-end', gap:8, paddingTop:10, paddingBottom:4 }}>
+            <button onClick={cancelarEdicion}
+              style={{ padding:'6px 16px', borderRadius:8, border:'1.5px solid #e9e3ff', background:'#fff', color:'#9ca3af', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
+              Cancelar
             </button>
-          )
+            <button onClick={guardarEdicion} disabled={guardandoEdit}
+              style={{ padding:'6px 16px', borderRadius:8, border:'none', background:'linear-gradient(135deg,#2d1554,#5B2D8E)', color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit', opacity: guardandoEdit ? 0.6 : 1 }}>
+              {guardandoEdit ? 'Guardando…' : 'Guardar cambios'}
+            </button>
+          </div>
         )}
       </div>
 
@@ -826,7 +843,7 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion, perfil }) {
           <div>
             <SeccionEdit titulo="Padre">
               <CampoEdit label="Nombre"          val={fe('nombre_padre')}    onChange={sf('nombre_padre')} />
-              <CampoEdit label="DUI"             val={fe('dui_padre')}       onChange={sf('dui_padre')} />
+              <CampoEdit label="DUI" tipo="dui"  val={fe('dui_padre')}       onChange={sf('dui_padre')} />
               <CampoEdit label="Teléfono"        val={fe('telefono_padre')}  onChange={sf('telefono_padre')} />
               <CampoEdit label="Correo"          val={fe('correo_padre')}    onChange={sf('correo_padre')} tipo="email" />
               <CampoEdit label="Lugar de trabajo" val={fe('trabajo_padre')}  onChange={sf('trabajo_padre')} />
@@ -834,7 +851,7 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion, perfil }) {
             </SeccionEdit>
             <SeccionEdit titulo="Madre">
               <CampoEdit label="Nombre"          val={fe('nombre_madre')}    onChange={sf('nombre_madre')} />
-              <CampoEdit label="DUI"             val={fe('dui_madre')}       onChange={sf('dui_madre')} />
+              <CampoEdit label="DUI" tipo="dui"  val={fe('dui_madre')}       onChange={sf('dui_madre')} />
               <CampoEdit label="Teléfono"        val={fe('telefono_madre')}  onChange={sf('telefono_madre')} />
               <CampoEdit label="Correo"          val={fe('correo_madre')}    onChange={sf('correo_madre')} tipo="email" />
               <CampoEdit label="Lugar de trabajo" val={fe('trabajo_madre')}  onChange={sf('trabajo_madre')} />
@@ -842,7 +859,7 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion, perfil }) {
             </SeccionEdit>
             <SeccionEdit titulo="Tutor / Encargado">
               <CampoEdit label="Nombre"          val={fe('nombre_tutor')}    onChange={sf('nombre_tutor')} />
-              <CampoEdit label="DUI"             val={fe('dui_tutor')}       onChange={sf('dui_tutor')} />
+              <CampoEdit label="DUI" tipo="dui"  val={fe('dui_tutor')}       onChange={sf('dui_tutor')} />
               <CampoEdit label="Teléfono"        val={fe('telefono_tutor')}  onChange={sf('telefono_tutor')} />
               <CampoEdit label="Correo"          val={fe('correo_tutor')}    onChange={sf('correo_tutor')} tipo="email" />
               <CampoEdit label="Lugar de trabajo" val={fe('trabajo_tutor')}  onChange={sf('trabajo_tutor')} />
@@ -918,6 +935,22 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion, perfil }) {
 
       {tab === 5 && !esRecepcion && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+          {/* ── Editar ficha ──────────────────────────────── */}
+          {puedeEditar && (
+            <div style={{ background: '#f8f7ff', borderRadius: 14, padding: '16px 20px', border: '1.5px solid #e9e3ff', display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 800, color: '#3d1f61', marginBottom: 3 }}>Editar ficha del estudiante</div>
+                <div style={{ fontSize: 12, color: '#b0a8c0', fontWeight: 500 }}>Modifica datos generales, familiares o de salud.</div>
+              </div>
+              <button
+                onClick={() => { setTab(0); iniciarEdicion() }}
+                style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 16px', borderRadius:9, border:'1.5px solid #d8c8f0', background:'#fff', color:'#5B2D8E', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'Plus Jakarta Sans,system-ui,sans-serif', flexShrink:0 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Editar ficha
+              </button>
+            </div>
+          )}
 
           {/* ── Acceso al portal ───────────────────────────── */}
           <div style={{ background: '#faf8ff', borderRadius: 14, padding: '18px 20px', border: '1.5px solid #e8e0f0' }}>

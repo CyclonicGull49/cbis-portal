@@ -95,13 +95,16 @@ export default function Anecdotario() {
 
     // Cargar estudiantes según rol
     if (esDocente) {
-      // Docente: solo estudiantes de su grado encargado
-      const { data: gradoEnc } = await supabase.from('grados')
-        .select('id').eq('encargado_id', perfil.id).single()
-      if (gradoEnc) {
+      // Docente: estudiantes de todos los grados donde tiene asignaciones
+      const { data: asigs } = await supabase.from('asignaciones')
+        .select('grado_id')
+        .eq('docente_id', perfil.id)
+        .eq('año_escolar', year)
+      const gradoIds = [...new Set((asigs || []).map(a => a.grado_id))]
+      if (gradoIds.length > 0) {
         const { data: ests } = await supabase.from('estudiantes')
           .select('id, nombre, apellido, grados(nombre)')
-          .eq('grado_id', gradoEnc.id)
+          .in('grado_id', gradoIds)
           .eq('estado', 'activo')
           .order('apellido')
         setEstudiantes(ests || [])
