@@ -57,7 +57,7 @@ const nivelColor = {
 
 // ── HijoSelector ──────────────────────────────
 function HijoSelector() {
-  const { hijos, hijoActual, setHijoActual, agregarHijo } = usePadreHijo()
+  const { hijos, hijoActual, setHijoActual, agregarHijo, nombreEncargado } = usePadreHijo()
   const [open,      setOpen]      = useState(false)
   const [modoAgreg, setModoAgreg] = useState(false)
   const [query,     setQuery]     = useState('')
@@ -254,7 +254,7 @@ function SidebarContent({ onNav, sidebarOpen, setSidebarOpen, isTablet }) {
 
       {/* Hijo selector */}
       <div style={{ padding:'12px 10px', borderBottom:'1px solid rgba(255,255,255,0.08)', position:'relative', zIndex:1 }}>
-        <div style={{ fontSize:9, fontWeight:700, color:'rgba(255,255,255,0.25)', textTransform:'uppercase', letterSpacing:'1px', marginBottom:6, paddingLeft:2 }}>Estudiante</div>
+        <div style={{ fontSize:9, fontWeight:700, color:'rgba(255,255,255,0.25)', textTransform:'uppercase', letterSpacing:'1px', marginBottom:6, paddingLeft:2 }}>Alumno vinculado</div>
         <HijoSelector />
       </div>
 
@@ -282,10 +282,10 @@ function SidebarContent({ onNav, sidebarOpen, setSidebarOpen, isTablet }) {
       <div style={{ padding:'10px 8px', borderTop:'1px solid rgba(255,255,255,0.08)', position:'relative', zIndex:1 }}>
         <div style={{ display:'flex', alignItems:'center', gap:9, padding:'8px 10px', borderRadius:10, background:'rgba(255,255,255,0.05)', marginBottom:6, border:'1px solid rgba(255,255,255,0.07)' }}>
           <div style={{ width:32, height:32, borderRadius:'50%', background:'linear-gradient(135deg,#D4A017,#b8860b)', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontWeight:800, fontSize:11, flexShrink:0, boxShadow:'0 2px 8px rgba(0,0,0,0.25)', border:'1.5px solid rgba(255,255,255,0.15)' }}>
-            {perfil?.nombre?.charAt(0)}
+            {(nombreEncargado || perfil?.nombre)?.charAt(0)}
           </div>
           <div style={{ overflow:'hidden', flex:1 }}>
-            <div style={{ color:'#fff', fontSize:11.5, fontWeight:700, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', lineHeight:1.3 }}>{perfil?.nombre}</div>
+            <div style={{ color:'#fff', fontSize:11.5, fontWeight:700, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', lineHeight:1.3 }}>{nombreEncargado || perfil?.nombre}</div>
             <div style={{ color:'#D4A017', fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.6px', marginTop:1 }}>Padre / Tutor</div>
           </div>
         </div>
