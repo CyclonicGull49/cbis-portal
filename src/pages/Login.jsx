@@ -485,7 +485,7 @@ export default function Login() {
                 color: '#5B2D8E', fontWeight: 700, fontSize: 13,
                 fontFamily: 'inherit', textDecoration: 'underline', textUnderlineOffset: 2,
               }}>
-                Crear cuenta aquí
+                Acceder al portal de padres
               </button>
             </div>
 
