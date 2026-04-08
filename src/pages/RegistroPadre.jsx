@@ -100,11 +100,12 @@ export default function RegistroPadre() {
     if (existe) await supabase.auth.signOut()
 
     setPreview({
-      nombre:       rows[0].nombre || '',
-      apellido_est: (hijo.apellido || '').split(' ')[0],
+      nombre:          rows[0].nombre || '',
+      apellido_est:    (hijo.apellido || '').split(' ')[0],
+      nombre_completo: `${hijo.nombre} ${hijo.apellido}`,
       email,
       existe,
-      hijos:        rows,
+      hijos:           rows,
     })
     setStep(2)
   }
@@ -350,7 +351,7 @@ export default function RegistroPadre() {
 
                 <div className="rp-preview">
                   {[
-                    ['Nombre',      preview.nombre || '—'],
+                    ['Estudiante',  preview.nombre_completo || preview.nombre || '—'],
                     ['DUI',         formatDui(duiSinGuion(dui))],
                     ['Contraseña',  `${preview.apellido_est}2026`],
                   ].map(([k,v]) => (
