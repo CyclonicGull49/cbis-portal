@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../supabase'
 import { useAuth } from '../../context/AuthContext'
-import { usePadreHijo } from '../../hooks/usePadreHijo'
+import { usePadreHijo } from '../../hooks/usePadreHijo.jsx'
 import { useYearEscolar } from '../../hooks/useYearEscolar'
 
 const nivelColor = {
@@ -30,7 +30,7 @@ function StatCard({ icon, label, value, sub, color = '#5B2D8E', onClick }) {
 export default function PadreInicio() {
   const navigate = useNavigate()
   const { perfil } = useAuth()
-  const { hijoActual } = usePadreHijo()
+  const { hijoActual, nombreEncargado } = usePadreHijo()
   const yearEscolar = useYearEscolar()
 
   const [stats,    setStats]    = useState({ cobros:0, solicitudes:0, promedio:null })
@@ -76,11 +76,11 @@ export default function PadreInicio() {
       <div style={{ background:`linear-gradient(135deg, #1a0d30, #5B2D8E)`, borderRadius:20, padding:'28px 32px', marginBottom:24, position:'relative', overflow:'hidden' }}>
         <div style={{ position:'absolute', width:300, height:300, borderRadius:'50%', background:'radial-gradient(circle,rgba(212,160,23,0.15) 0%,transparent 70%)', filter:'blur(60px)', top:-80, right:-60, pointerEvents:'none' }} />
         <div style={{ position:'relative', zIndex:1 }}>
-          <div style={{ fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.45)', textTransform:'uppercase', letterSpacing:'1.5px', marginBottom:8 }}>{saludo}, {perfil?.nombre}</div>
+          <div style={{ fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.45)', textTransform:'uppercase', letterSpacing:'1.5px', marginBottom:8 }}>{saludo}, {nombreEncargado || perfil?.nombre}</div>
           {hijoActual ? (
             <>
               <div style={{ fontSize:22, fontWeight:800, color:'#fff', letterSpacing:'-0.5px', marginBottom:6 }}>
-                Aquí tienes el resumen de {hijoActual.nombre}
+                Aquí tienes el resumen de {hijoActual.nombre} {hijoActual.apellido}
               </div>
               <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                 <div style={{ width:20, height:20, borderRadius:6, background: color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:800, color:'#fff' }}>

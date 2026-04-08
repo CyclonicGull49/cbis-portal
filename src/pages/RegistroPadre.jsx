@@ -147,20 +147,24 @@ export default function RegistroPadre() {
 
     // Upsert perfil con rol padres
     await supabase.from('perfiles').upsert({
-      id:      userId,
-      rol:     'padres',
-      nombre:  preview.nombre || 'Encargado',
+      id:       userId,
+      nombre:   preview.nombre || 'Encargado',
       apellido: '',
+      email:    email,
+      rol:      'padres',
     }, { onConflict: 'id' })
 
-    // Insertar vinculación en padre_estudiante para cada hijo encontrado
+    // Vincular hijos usando UPDATE (unique constraint está en estudiante_id, no en perfil+estudiante)
     if (preview.hijos?.length > 0) {
-      const vinculaciones = preview.hijos.map(h => ({
-        perfil_id:  userId,
-        estudiante_id: h.id,
-        parentesco: 'Encargado',
-      }))
-      await supabase.from('padre_estudiante').upsert(vinculaciones, { onConflict: 'perfil_id,estudiante_id' })
+      for (const h of preview.hijos) {
+        const { error: e1 } = await supabase.from('padre_estudiante')
+          .update({ perfil_id: userId, parentesco: 'Padre' })
+          .eq('estudiante_id', h.id)
+        if (e1) {
+          await supabase.from('padre_estudiante')
+            .insert({ perfil_id: userId, estudiante_id: h.id, parentesco: 'Padre' })
+        }
+      }
     }
 
     setLoading(false)
