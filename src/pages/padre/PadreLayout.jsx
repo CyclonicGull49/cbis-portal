@@ -57,7 +57,7 @@ const nivelColor = {
 
 // ── HijoSelector ──────────────────────────────
 function HijoSelector() {
-  const { hijos, hijoActual, setHijoActual, agregarHijo, nombreEncargado } = usePadreHijo()
+  const { hijos, hijoActual, setHijoActual, agregarHijo } = usePadreHijo()
   const [open,      setOpen]      = useState(false)
   const [modoAgreg, setModoAgreg] = useState(false)
   const [query,     setQuery]     = useState('')
@@ -218,6 +218,7 @@ function SidebarContent({ onNav, sidebarOpen, setSidebarOpen, isTablet }) {
   const navigate    = useNavigate()
   const location    = useLocation()
   const { perfil, signOut } = useAuth()
+  const { nombreEncargado } = usePadreHijo()
   const current = NAV.find(n => location.pathname.startsWith(n.path))?.id || 'inicio'
 
   return (
