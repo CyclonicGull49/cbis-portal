@@ -305,7 +305,7 @@ function PadreLayoutInner() {
   const navigate  = useNavigate()
   const location  = useLocation()
   const { perfil } = useAuth()
-  const { hijoActual } = usePadreHijo()
+  const { hijoActual, nombreEncargado } = usePadreHijo()
   const bp = useBreakpoint()
 
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -389,7 +389,7 @@ function PadreLayoutInner() {
                   </div>
                 )}
                 <div style={{ width:30, height:30, borderRadius:'50%', background:'linear-gradient(135deg,#D4A017,#b8860b)', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontWeight:800, fontSize:11 }}>
-                  {perfil?.nombre?.charAt(0)}
+                  {(nombreEncargado || perfil?.nombre)?.charAt(0)}
                 </div>
               </div>
             </div>
