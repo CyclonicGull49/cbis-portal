@@ -502,6 +502,47 @@ const ps = {
   badge: { display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700 },
 }
 
+// ── Componentes de edición ─────────────────────────────────────
+let gradosEditRef = [] // se llenará desde el componente principal
+
+function SeccionEdit({ titulo, children }) {
+  return (
+    <div style={{ marginBottom:20 }}>
+      <div style={{ fontSize:12, fontWeight:800, color:'#3d1f61', textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:12, paddingBottom:6, borderBottom:'1px solid #f3eeff' }}>{titulo}</div>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px 20px' }}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function CampoEdit({ label, val, onChange, tipo = 'text', opciones = [], fullWidth = false }) {
+  const s = {
+    gridColumn: fullWidth ? '1 / -1' : 'auto',
+  }
+  const inputStyle = {
+    width:'100%', padding:'8px 10px', border:'1.5px solid #e9e3ff', borderRadius:8,
+    fontSize:13, fontFamily:'Plus Jakarta Sans,system-ui,sans-serif', color:'#0f1d40',
+    background:'#f8f7ff', outline:'none', marginTop:4,
+  }
+  return (
+    <div style={s}>
+      <div style={{ fontSize:10, fontWeight:700, color:'#9ca3af', textTransform:'uppercase', letterSpacing:'0.8px' }}>{label}</div>
+      {tipo === 'select' ? (
+        <select value={val ?? ''} onChange={onChange} style={{ ...inputStyle, cursor:'pointer' }}>
+          <option value="">— Sin especificar —</option>
+          {opciones.map(([v,l]) => <option key={v} value={v}>{l}</option>)}
+        </select>
+      ) : tipo === 'textarea' ? (
+        <textarea value={val ?? ''} onChange={onChange} rows={3}
+          style={{ ...inputStyle, resize:'vertical', lineHeight:1.5 }} />
+      ) : (
+        <input type={tipo} value={val ?? ''} onChange={onChange} style={inputStyle} />
+      )}
+    </div>
+  )
+}
+
 // ─────────────────────────────────────────────────────────────
 
 function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion, perfil }) {
@@ -511,6 +552,54 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion, perfil }) {
   const [modalEliminar, setModalEliminar] = useState(false)
   const [verificandoEliminar, setVerificandoEliminar] = useState(false)
   const [tienePagos, setTienePagos] = useState(false)
+
+  // ── Edición ────────────────────────────────────────────────
+  const puedeEditar = ['admin', 'registro_academico'].includes(perfil?.rol)
+  const [editando,  setEditando]  = useState(false)
+  const [formEdit,  setFormEdit]  = useState({})
+  const [guardandoEdit, setGuardandoEdit] = useState(false)
+
+  function iniciarEdicion() {
+    setFormEdit({ ...estudiante })
+    setEditando(true)
+  }
+
+  function cancelarEdicion() {
+    setEditando(false)
+    setFormEdit({})
+  }
+
+  async function guardarEdicion() {
+    setGuardandoEdit(true)
+    const campos = [
+      'nombre','apellido','nie','genero','fecha_nacimiento','grado_id',
+      'tipo_ingreso','nacionalidad','lugar_nacimiento','partida_nacimiento',
+      'folio_partida','libro_partida','direccion','municipio','departamento',
+      'zona','correo_institucional','telefono_contacto','email_contacto',
+      'institucion_procedencia','convivencia','iglesia',
+      'nombre_padre','dui_padre','telefono_padre','correo_padre','trabajo_padre','direccion_padre',
+      'nombre_madre','dui_madre','telefono_madre','correo_madre','trabajo_madre','direccion_madre',
+      'nombre_tutor','dui_tutor','telefono_tutor','correo_tutor','trabajo_tutor','direccion_tutor',
+      'contacto_emergencia','telefono_emergencia',
+      'enfermedades_alergias','medicamento_permanente',
+      'diplomado_opcion','estudio_parvularia',
+    ]
+    const payload = {}
+    campos.forEach(c => { payload[c] = formEdit[c] ?? null })
+    // grado_id debe ser int
+    if (payload.grado_id) payload.grado_id = parseInt(payload.grado_id)
+
+    const { error } = await supabase.from('estudiantes').update(payload).eq('id', estudiante.id)
+    setGuardandoEdit(false)
+    if (error) { toast.error('Error al guardar: ' + error.message); return }
+    toast.success('Datos actualizados')
+    setEditando(false)
+    onUpdate()
+  }
+
+  // helpers de edición
+  const fe = (campo) => formEdit[campo] ?? ''
+  const sf = (campo) => (e) => setFormEdit(f => ({ ...f, [campo]: e.target.value }))
 
   // Acceso al portal
   const [cuentaPortal, setCuentaPortal] = useState(null)
@@ -617,82 +706,189 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion, perfil }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', borderBottom: '2px solid #f3eeff', marginBottom: 20 }}>
-        {tabs.map((t, i) => (
-          <button key={i} onClick={() => setTab(i)} style={{
-            padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer',
-            fontSize: 13, fontWeight: tab === i ? 800 : 500,
-            fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif',
-            color: tab === i ? '#5B2D8E' : '#aaa',
-            borderBottom: tab === i ? '2px solid #5B2D8E' : '2px solid transparent',
-            marginBottom: -2
-          }}>{t}</button>
-        ))}
+      {/* ── Barra de tabs + botón editar ── */}
+      <div style={{ display:'flex', alignItems:'center', borderBottom:'2px solid #f3eeff', marginBottom:20 }}>
+        <div style={{ display:'flex', flex:1, overflowX:'auto' }}>
+          {tabs.map((t, i) => (
+            <button key={i} onClick={() => setTab(i)} style={{
+              padding:'10px 16px', border:'none', background:'none', cursor:'pointer',
+              fontSize:13, fontWeight: tab===i ? 800 : 500,
+              fontFamily:'Plus Jakarta Sans, system-ui, sans-serif',
+              color: tab===i ? '#5B2D8E' : '#aaa',
+              borderBottom: tab===i ? '2px solid #5B2D8E' : '2px solid transparent',
+              marginBottom:-2, whiteSpace:'nowrap',
+            }}>{t}</button>
+          ))}
+        </div>
+        {puedeEditar && (tab === 0 || tab === 1 || tab === 2) && (
+          editando ? (
+            <div style={{ display:'flex', gap:8, paddingLeft:12, flexShrink:0 }}>
+              <button onClick={cancelarEdicion}
+                style={{ padding:'6px 14px', borderRadius:8, border:'1.5px solid #e9e3ff', background:'#fff', color:'#9ca3af', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
+                Cancelar
+              </button>
+              <button onClick={guardarEdicion} disabled={guardandoEdit}
+                style={{ padding:'6px 14px', borderRadius:8, border:'none', background:'linear-gradient(135deg,#2d1554,#5B2D8E)', color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit', opacity: guardandoEdit ? 0.6 : 1 }}>
+                {guardandoEdit ? 'Guardando…' : 'Guardar'}
+              </button>
+            </div>
+          ) : (
+            <button onClick={iniciarEdicion}
+              style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 14px', borderRadius:8, border:'1.5px solid #e9e3ff', background:'#f8f7ff', color:'#5B2D8E', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit', flexShrink:0, marginLeft:12 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Editar
+            </button>
+          )
+        )}
+      </div>
       </div>
 
       {tab === 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 24px' }}>
-          <Dato label="NIE" val={estudiante.nie} />
-          <Dato label="Grado" val={estudiante.grados?.nombre} />
-          <Dato label="Género" val={estudiante.genero} />
-          <Dato label="Fecha de nacimiento" val={estudiante.fecha_nacimiento ? new Date(estudiante.fecha_nacimiento + 'T12:00:00').toLocaleDateString('es-SV') : null} />
-          <Dato label="Nacionalidad" val={estudiante.nacionalidad} />
-          <Dato label="Lugar de nacimiento" val={estudiante.lugar_nacimiento} />
-          <Dato label="Partida de nacimiento" val={estudiante.partida_nacimiento} />
-          <Dato label="Folio" val={estudiante.folio_partida} />
-          <Dato label="Nº de libro" val={estudiante.libro_partida} />
-          <Dato label="Tipo de ingreso" val={estudiante.tipo_ingreso} />
-          <Dato label="Correo institucional" val={estudiante.email} />
-          <Dato label="Institución de procedencia" val={estudiante.institucion_procedencia} />
-          <Dato label="Dirección" val={estudiante.direccion} />
-          <Dato label="Municipio" val={estudiante.municipio} />
-          <Dato label="Departamento" val={estudiante.departamento} />
-          <Dato label="Zona" val={estudiante.zona} />
-          <Dato label="Registrado" val={estudiante.creado_en ? new Date(estudiante.creado_en).toLocaleDateString('es-SV') : null} />
-        </div>
+        editando ? (
+          <div>
+            {/* Sección: Datos académicos */}
+            <SeccionEdit titulo="Datos académicos">
+              <CampoEdit label="Nombre(s)"    val={fe('nombre')}    onChange={sf('nombre')} />
+              <CampoEdit label="Apellido(s)"  val={fe('apellido')}  onChange={sf('apellido')} />
+              <CampoEdit label="NIE"          val={fe('nie')}       onChange={sf('nie')} />
+              <CampoEdit label="Género" val={fe('genero')} onChange={sf('genero')} tipo="select"
+                opciones={[['masculino','Masculino'],['femenino','Femenino']]} />
+              <CampoEdit label="Fecha de nacimiento" val={fe('fecha_nacimiento')} onChange={sf('fecha_nacimiento')} tipo="date" />
+              <CampoEdit label="Grado" val={fe('grado_id')} onChange={sf('grado_id')} tipo="select"
+                opciones={gradosEditRef.map(g => [g.id, g.nombre])} />
+              <CampoEdit label="Tipo de ingreso" val={fe('tipo_ingreso')} onChange={sf('tipo_ingreso')} tipo="select"
+                opciones={[['nuevo','Nuevo'],['antiguo','Antiguo']]} />
+              <CampoEdit label="Correo institucional" val={fe('correo_institucional')} onChange={sf('correo_institucional')} tipo="email" />
+            </SeccionEdit>
+            {/* Sección: Procedencia */}
+            <SeccionEdit titulo="Origen y procedencia">
+              <CampoEdit label="Nacionalidad"           val={fe('nacionalidad')}            onChange={sf('nacionalidad')} />
+              <CampoEdit label="Lugar de nacimiento"    val={fe('lugar_nacimiento')}        onChange={sf('lugar_nacimiento')} />
+              <CampoEdit label="Partida de nacimiento"  val={fe('partida_nacimiento')}      onChange={sf('partida_nacimiento')} />
+              <CampoEdit label="Folio"                  val={fe('folio_partida')}           onChange={sf('folio_partida')} />
+              <CampoEdit label="Nº de libro"            val={fe('libro_partida')}           onChange={sf('libro_partida')} />
+              <CampoEdit label="Inst. de procedencia"   val={fe('institucion_procedencia')} onChange={sf('institucion_procedencia')} />
+              <CampoEdit label="Estudió parvularia" val={fe('estudio_parvularia')} onChange={sf('estudio_parvularia')} tipo="select"
+                opciones={[['true','Sí'],['false','No']]} />
+            </SeccionEdit>
+            {/* Sección: Dirección */}
+            <SeccionEdit titulo="Dirección y contacto">
+              <CampoEdit label="Dirección"          val={fe('direccion')}         onChange={sf('direccion')} fullWidth />
+              <CampoEdit label="Municipio"          val={fe('municipio')}         onChange={sf('municipio')} />
+              <CampoEdit label="Departamento"       val={fe('departamento')}      onChange={sf('departamento')} />
+              <CampoEdit label="Zona"               val={fe('zona')}              onChange={sf('zona')} />
+              <CampoEdit label="Teléfono contacto"  val={fe('telefono_contacto')} onChange={sf('telefono_contacto')} />
+              <CampoEdit label="Correo contacto"    val={fe('email_contacto')}    onChange={sf('email_contacto')} tipo="email" />
+            </SeccionEdit>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 24px' }}>
+            <Dato label="NIE" val={estudiante.nie} />
+            <Dato label="Grado" val={estudiante.grados?.nombre} />
+            <Dato label="Género" val={estudiante.genero} />
+            <Dato label="Fecha de nacimiento" val={estudiante.fecha_nacimiento ? new Date(estudiante.fecha_nacimiento + 'T12:00:00').toLocaleDateString('es-SV') : null} />
+            <Dato label="Nacionalidad" val={estudiante.nacionalidad} />
+            <Dato label="Lugar de nacimiento" val={estudiante.lugar_nacimiento} />
+            <Dato label="Partida de nacimiento" val={estudiante.partida_nacimiento} />
+            <Dato label="Folio" val={estudiante.folio_partida} />
+            <Dato label="Nº de libro" val={estudiante.libro_partida} />
+            <Dato label="Tipo de ingreso" val={estudiante.tipo_ingreso} />
+            <Dato label="Correo institucional" val={estudiante.email} />
+            <Dato label="Institución de procedencia" val={estudiante.institucion_procedencia} />
+            <Dato label="Dirección" val={estudiante.direccion} />
+            <Dato label="Municipio" val={estudiante.municipio} />
+            <Dato label="Departamento" val={estudiante.departamento} />
+            <Dato label="Zona" val={estudiante.zona} />
+            <Dato label="Registrado" val={estudiante.creado_en ? new Date(estudiante.creado_en).toLocaleDateString('es-SV') : null} />
+          </div>
+        )
       )}
 
       {tab === 1 && (
-        <div>
-          {[
-            { titulo: 'Padre', campos: ['nombre_padre','dui_padre','telefono_padre','correo_padre','trabajo_padre','direccion_padre'], labels: ['Nombre','DUI','Teléfono','Correo','Lugar de trabajo','Dirección'] },
-            { titulo: 'Madre', campos: ['nombre_madre','dui_madre','telefono_madre','correo_madre','trabajo_madre','direccion_madre'], labels: ['Nombre','DUI','Teléfono','Correo','Lugar de trabajo','Dirección'] },
-            { titulo: 'Tutor/Encargado', campos: ['nombre_tutor','dui_tutor','telefono_tutor','correo_tutor','trabajo_tutor','direccion_tutor'], labels: ['Nombre','DUI','Teléfono','Correo','Lugar de trabajo','Dirección'] },
-          ].map(({ titulo, campos, labels }) => (
-            <div key={titulo} style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: '#3d1f61', marginBottom: 12, paddingBottom: 6, borderBottom: '1px solid #f3eeff' }}>{titulo}</div>
+        editando ? (
+          <div>
+            <SeccionEdit titulo="Padre">
+              <CampoEdit label="Nombre"          val={fe('nombre_padre')}    onChange={sf('nombre_padre')} />
+              <CampoEdit label="DUI"             val={fe('dui_padre')}       onChange={sf('dui_padre')} />
+              <CampoEdit label="Teléfono"        val={fe('telefono_padre')}  onChange={sf('telefono_padre')} />
+              <CampoEdit label="Correo"          val={fe('correo_padre')}    onChange={sf('correo_padre')} tipo="email" />
+              <CampoEdit label="Lugar de trabajo" val={fe('trabajo_padre')}  onChange={sf('trabajo_padre')} />
+              <CampoEdit label="Dirección"       val={fe('direccion_padre')} onChange={sf('direccion_padre')} />
+            </SeccionEdit>
+            <SeccionEdit titulo="Madre">
+              <CampoEdit label="Nombre"          val={fe('nombre_madre')}    onChange={sf('nombre_madre')} />
+              <CampoEdit label="DUI"             val={fe('dui_madre')}       onChange={sf('dui_madre')} />
+              <CampoEdit label="Teléfono"        val={fe('telefono_madre')}  onChange={sf('telefono_madre')} />
+              <CampoEdit label="Correo"          val={fe('correo_madre')}    onChange={sf('correo_madre')} tipo="email" />
+              <CampoEdit label="Lugar de trabajo" val={fe('trabajo_madre')}  onChange={sf('trabajo_madre')} />
+              <CampoEdit label="Dirección"       val={fe('direccion_madre')} onChange={sf('direccion_madre')} />
+            </SeccionEdit>
+            <SeccionEdit titulo="Tutor / Encargado">
+              <CampoEdit label="Nombre"          val={fe('nombre_tutor')}    onChange={sf('nombre_tutor')} />
+              <CampoEdit label="DUI"             val={fe('dui_tutor')}       onChange={sf('dui_tutor')} />
+              <CampoEdit label="Teléfono"        val={fe('telefono_tutor')}  onChange={sf('telefono_tutor')} />
+              <CampoEdit label="Correo"          val={fe('correo_tutor')}    onChange={sf('correo_tutor')} tipo="email" />
+              <CampoEdit label="Lugar de trabajo" val={fe('trabajo_tutor')}  onChange={sf('trabajo_tutor')} />
+              <CampoEdit label="Dirección"       val={fe('direccion_tutor')} onChange={sf('direccion_tutor')} />
+            </SeccionEdit>
+            <SeccionEdit titulo="Emergencia y familia">
+              <CampoEdit label="Contacto emergencia"  val={fe('contacto_emergencia')}  onChange={sf('contacto_emergencia')} />
+              <CampoEdit label="Teléfono emergencia"  val={fe('telefono_emergencia')}  onChange={sf('telefono_emergencia')} />
+              <CampoEdit label="Convivencia familiar" val={fe('convivencia')}          onChange={sf('convivencia')} />
+              <CampoEdit label="Iglesia"              val={fe('iglesia')}              onChange={sf('iglesia')} />
+            </SeccionEdit>
+          </div>
+        ) : (
+          <div>
+            {[
+              { titulo: 'Padre', campos: ['nombre_padre','dui_padre','telefono_padre','correo_padre','trabajo_padre','direccion_padre'], labels: ['Nombre','DUI','Teléfono','Correo','Lugar de trabajo','Dirección'] },
+              { titulo: 'Madre', campos: ['nombre_madre','dui_madre','telefono_madre','correo_madre','trabajo_madre','direccion_madre'], labels: ['Nombre','DUI','Teléfono','Correo','Lugar de trabajo','Dirección'] },
+              { titulo: 'Tutor/Encargado', campos: ['nombre_tutor','dui_tutor','telefono_tutor','correo_tutor','trabajo_tutor','direccion_tutor'], labels: ['Nombre','DUI','Teléfono','Correo','Lugar de trabajo','Dirección'] },
+            ].map(({ titulo, campos, labels }) => (
+              <div key={titulo} style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: '#3d1f61', marginBottom: 12, paddingBottom: 6, borderBottom: '1px solid #f3eeff' }}>{titulo}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 24px' }}>
+                  {campos.map((c, i) => <Dato key={c} label={labels[i]} val={estudiante[c]} />)}
+                </div>
+              </div>
+            ))}
+            <div style={{ background: '#fff4f0', borderRadius: 10, padding: '12px 16px', marginBottom: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: '#E8573A', marginBottom: 8 }}>Contacto de emergencia</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 24px' }}>
-                {campos.map((c, i) => <Dato key={c} label={labels[i]} val={estudiante[c]} />)}
+                <Dato label="Persona" val={estudiante.contacto_emergencia} />
+                <Dato label="Teléfono" val={estudiante.telefono_emergencia} />
               </div>
             </div>
-          ))}
-          <div style={{ background: '#fff4f0', borderRadius: 10, padding: '12px 16px', marginBottom: 12 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: '#E8573A', marginBottom: 8 }}>Contacto de emergencia</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 24px' }}>
-              <Dato label="Persona" val={estudiante.contacto_emergencia} />
-              <Dato label="Teléfono" val={estudiante.telefono_emergencia} />
-            </div>
+            <Dato label="Convivencia familiar" val={estudiante.convivencia} />
+            <Dato label="Iglesia" val={estudiante.iglesia} />
           </div>
-          <Dato label="Convivencia familiar" val={estudiante.convivencia} />
-          <Dato label="Iglesia" val={estudiante.iglesia} />
-        </div>
+        )
       )}
 
       {tab === 2 && (
-        <div>
-          <div style={{ background: '#faf8ff', borderRadius: 12, padding: '16px 20px', marginBottom: 16 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Enfermedades o alergias</div>
-            <div style={{ fontSize: 14, color: estudiante.enfermedades_alergias ? '#222' : '#ccc' }}>
-              {estudiante.enfermedades_alergias || 'Ninguna registrada'}
+        editando ? (
+          <div>
+            <SeccionEdit titulo="Salud">
+              <CampoEdit label="Enfermedades o alergias"     val={fe('enfermedades_alergias')}   onChange={sf('enfermedades_alergias')} tipo="textarea" fullWidth />
+              <CampoEdit label="Medicamento prescrito permanente" val={fe('medicamento_permanente')} onChange={sf('medicamento_permanente')} tipo="textarea" fullWidth />
+            </SeccionEdit>
+          </div>
+        ) : (
+          <div>
+            <div style={{ background: '#faf8ff', borderRadius: 12, padding: '16px 20px', marginBottom: 16 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Enfermedades o alergias</div>
+              <div style={{ fontSize: 14, color: estudiante.enfermedades_alergias ? '#222' : '#ccc' }}>
+                {estudiante.enfermedades_alergias || 'Ninguna registrada'}
+              </div>
+            </div>
+            <div style={{ background: '#faf8ff', borderRadius: 12, padding: '16px 20px' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Medicamento prescrito permanente</div>
+              <div style={{ fontSize: 14, color: estudiante.medicamento_permanente ? '#222' : '#ccc' }}>
+                {estudiante.medicamento_permanente || 'Ninguno registrado'}
+              </div>
             </div>
           </div>
-          <div style={{ background: '#faf8ff', borderRadius: 12, padding: '16px 20px' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Medicamento prescrito permanente</div>
-            <div style={{ fontSize: 14, color: estudiante.medicamento_permanente ? '#222' : '#ccc' }}>
-              {estudiante.medicamento_permanente || 'Ninguno registrado'}
-            </div>
-          </div>
-        </div>
+        )
       )}
 
       {tab === 3 && (
@@ -895,6 +1091,7 @@ export default function Estudiantes({ estudianteIdInicial, onVolver }) {
     })
     setEstudiantes(sorted)
     setGrados(gra || [])
+    gradosEditRef = gra || []
     setLoading(false)
   }
 
@@ -1316,7 +1513,7 @@ export default function Estudiantes({ estudianteIdInicial, onVolver }) {
               </div>
               <button onClick={() => setEstudianteDetalle(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: ['admin', 'direccion_academica', 'recepcion', 'registro_academico'].includes(perfil?.rol) ? 'pointer' : 'default', color: '#aaa' }}>✕</button>
             </div>
-            <FichaTabs estudiante={estudianteDetalle} esRecepcion={esRecepcion} perfil={perfil} onUpdate={(updated) => { setEstudianteDetalle(updated); cargarDatos() }} onDelete={() => { setEstudianteDetalle(null); cargarDatos() }} />
+            <FichaTabs estudiante={estudianteDetalle} esRecepcion={esRecepcion} perfil={perfil} onUpdate={async () => { await cargarDatos(); const { data } = await supabase.from('estudiantes').select('*, grados(nombre, nivel)').eq('id', estudianteDetalle.id).single(); if (data) setEstudianteDetalle(data) }} onDelete={() => { setEstudianteDetalle(null); cargarDatos() }} />
           </div>
         </div>
       )}
