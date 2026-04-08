@@ -90,6 +90,17 @@ const Icons = {
       <polyline points="16 11 18 13 22 9"/>
     </svg>
   ),
+  anecdotario: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+    </svg>
+  ),
+  permisos: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2"/>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+    </svg>
+  ),
   solicitudes: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="11" width="18" height="11" rx="2"/>
@@ -180,6 +191,8 @@ export default function Layout({ pagina, setPagina, children }) {
     { id: 'matricula',     label: 'Matrícula',     icon: Icons.matricula },
     { id: 'notas',         label: 'Notas',         icon: Icons.notas },
     { id: 'asistencia',    label: 'Asistencia',    icon: Icons.asistencia },
+    { id: 'anecdotario',   label: 'Anecdotario',   icon: Icons.anecdotario },
+    { id: 'permisos',      label: 'Permisos',      icon: Icons.permisos },
     { id: 'boletas',       label: 'Boletas',       icon: Icons.boletas },
     { id: 'cobros',        label: 'Cobros',        icon: Icons.cobros },
     { id: 'contabilidad',  label: 'Contabilidad',  icon: Icons.contabilidad },
@@ -205,6 +218,8 @@ export default function Layout({ pagina, setPagina, children }) {
     { id: 'estudiantes',  label: 'Estudiantes',  icon: Icons.estudiantes },
     { id: 'notas',        label: 'Notas',        icon: Icons.notas },
     { id: 'asistencia',   label: 'Asistencia',   icon: Icons.asistencia },
+    { id: 'anecdotario',  label: 'Anecdotario',  icon: Icons.anecdotario },
+    { id: 'permisos',     label: 'Permisos',     icon: Icons.permisos },
     { id: 'cobros',       label: 'Cobros',       icon: Icons.cobros },
     { id: 'contabilidad', label: 'Contabilidad', icon: Icons.contabilidad },
     { id: 'solicitudes',  label: 'Solicitudes',  icon: Icons.solicitudes },
@@ -228,13 +243,15 @@ export default function Layout({ pagina, setPagina, children }) {
   ]
 
   const menuDocente = [
-    { id: 'dashboard',   label: 'Dashboard',   icon: Icons.dashboard },
-    { id: 'notas',       label: 'Notas',       icon: Icons.notas },
-    { id: 'asistencia',  label: 'Asistencia',  icon: Icons.asistencia },
-    { id: 'solicitudes', label: 'Solicitudes', icon: Icons.solicitudes },
-    { id: 'reportes',    label: 'Reportes',    icon: Icons.reportes },
-    { id: 'horario',     label: 'Horario',     icon: Icons.horario },
-    { id: 'calendario',  label: 'Calendario',  icon: Icons.calendario },
+    { id: 'dashboard',    label: 'Dashboard',    icon: Icons.dashboard },
+    { id: 'notas',        label: 'Notas',        icon: Icons.notas },
+    { id: 'asistencia',   label: 'Asistencia',   icon: Icons.asistencia },
+    { id: 'anecdotario',  label: 'Anecdotario',  icon: Icons.anecdotario },
+    { id: 'permisos',     label: 'Permisos',     icon: Icons.permisos },
+    { id: 'solicitudes',  label: 'Solicitudes',  icon: Icons.solicitudes },
+    { id: 'reportes',     label: 'Reportes',     icon: Icons.reportes },
+    { id: 'horario',      label: 'Horario',      icon: Icons.horario },
+    { id: 'calendario',   label: 'Calendario',   icon: Icons.calendario },
   ]
 
   const menuAlumno = [
