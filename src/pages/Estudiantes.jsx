@@ -759,7 +759,6 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion, perfil }) {
           )
         )}
       </div>
-      </div>
 
       {tab === 0 && (
         editando ? (
