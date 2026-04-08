@@ -53,12 +53,26 @@ export default function RegistroPadre() {
     setError(''); setLoading(true)
 
     // Buscar estudiantes donde el DUI coincide en padre, madre o tutor
-    // Normalizamos: quitamos guiones antes de comparar
-    const { data: rows, error: searchErr } = await supabase
-      .from('estudiantes')
-      .select('id, nombre, apellido, grado_id')
-      .eq('estado', 'activo')
-      .or(`dui_padre.eq.${duiClean},dui_padre.eq.${dui},dui_madre.eq.${duiClean},dui_madre.eq.${dui},dui_tutor.eq.${duiClean},dui_tutor.eq.${dui}`)
+    // Tres queries separadas para evitar problemas con .or() en Supabase
+    const duiConGuion = duiClean.slice(0,8) + '-' + duiClean.slice(8)
+    const [q1, q2, q3] = await Promise.all([
+      supabase.from('estudiantes').select('id, nombre, apellido, grado_id').eq('estado', 'activo').eq('dui_padre', duiClean),
+      supabase.from('estudiantes').select('id, nombre, apellido, grado_id').eq('estado', 'activo').eq('dui_madre', duiClean),
+      supabase.from('estudiantes').select('id, nombre, apellido, grado_id').eq('estado', 'activo').eq('dui_tutor', duiClean),
+    ])
+    // También buscar con guión por si se guardó así
+    const [q4, q5, q6] = await Promise.all([
+      supabase.from('estudiantes').select('id, nombre, apellido, grado_id').eq('estado', 'activo').eq('dui_padre', duiConGuion),
+      supabase.from('estudiantes').select('id, nombre, apellido, grado_id').eq('estado', 'activo').eq('dui_madre', duiConGuion),
+      supabase.from('estudiantes').select('id, nombre, apellido, grado_id').eq('estado', 'activo').eq('dui_tutor', duiConGuion),
+    ])
+
+    const allRows = [...(q1.data||[]), ...(q2.data||[]), ...(q3.data||[]), ...(q4.data||[]), ...(q5.data||[]), ...(q6.data||[])]
+    // Deduplicar por id
+    const seen = new Set()
+    const rows = allRows.filter(r => { if (seen.has(r.id)) return false; seen.add(r.id); return true })
+
+    const searchErr = q1.error || q2.error || q3.error
 
     setLoading(false)
 
