@@ -15,32 +15,37 @@ export function PadreHijoProvider({ children }) {
 
   async function cargar() {
     setLoading(true)
-    const { data } = await supabase
+
+    // Paso 1: obtener IDs vinculados
+    const { data: vinculos } = await supabase
       .from('padre_estudiante')
-      .select(`
-        id, parentesco,
-        estudiantes (
-          id, nombre, apellido, email,
-          nombre_padre, nombre_madre, nombre_tutor,
-          grados ( id, nombre, nivel, componentes_nota )
-        )
-      `)
+      .select('id, parentesco, estudiante_id')
       .eq('perfil_id', perfil.id)
 
-    const lista = (data || []).map(r => ({
-      vinculoId:  r.id,
-      parentesco: r.parentesco,
-      ...r.estudiantes,
-    }))
+    if (!vinculos || vinculos.length === 0) {
+      setHijos([])
+      setHijoActual(null)
+      setLoading(false)
+      return
+    }
 
-    // Determinar nombre del encargado desde la ficha del primer hijo
+    const ids = vinculos.map(v => v.estudiante_id)
+
+    // Paso 2: cargar datos de los estudiantes
+    const { data: ests } = await supabase
+      .from('estudiantes')
+      .select('id, nombre, apellido, email, nombre_padre, nombre_madre, nombre_tutor, grado_id, grados(id, nombre, nivel, componentes_nota)')
+      .in('id', ids)
+
+    const lista = vinculos.map(v => {
+      const est = (ests || []).find(e => e.id === v.estudiante_id)
+      return est ? { vinculoId: v.id, parentesco: v.parentesco, ...est } : null
+    }).filter(Boolean)
+
+    // Nombre del encargado desde ficha
     if (lista.length > 0) {
-      const h = lista[0]
-      const nombreEncargado = h.nombre_padre || h.nombre_madre || h.nombre_tutor || null
-      if (nombreEncargado) {
-        // Actualizar perfil en contexto con el nombre real de la ficha
-        setNombreEncargado(nombreEncargado)
-      }
+      const enc = lista[0].nombre_padre || lista[0].nombre_madre || lista[0].nombre_tutor || null
+      if (enc) setNombreEncargado(enc)
     }
 
     setHijos(lista)
