@@ -75,29 +75,29 @@ export default function RegistroPadre() {
       return
     }
 
-    // Verificar contraseña: debe ser apellidoAlumno + 2026 (sin importar mayúsculas)
+    // Verificar contraseña: primer apellido + 2026 (sin importar mayúsculas ni apellido compuesto)
     const passLower = password.trim().toLowerCase()
     const hijo = rows.find(r => {
-      const expected = (r.apellido || '').trim().toLowerCase() + '2026'
-      return passLower === expected
+      const primerApellido = (r.apellido || '').trim().split(' ')[0].toLowerCase()
+      const apellidoCompleto = (r.apellido || '').trim().toLowerCase()
+      return passLower === primerApellido + '2026' || passLower === apellidoCompleto + '2026'
     })
 
     if (!hijo) {
-      setError('Contraseña incorrecta. Usa el apellido de tu hijo/a seguido de "2026". Ej: García2026')
+      const ejemploApellido = rows[0]?.apellido?.split(' ')[0] || 'García'
+      setError(`Contraseña incorrecta. Usa el primer apellido de tu hijo/a seguido de "2026". Ej: ${ejemploApellido}2026`)
       return
     }
 
-    // Intentar signup para saber si el email ya existe
-    // Supabase devuelve error "User already registered" si ya existe
+    // Verificar si ya tiene cuenta: intentar login silencioso
     const email = `${duiClean}@cbis.padre.sv`
-    const { error: signupCheck } = await supabase.auth.signUp({
+    const { error: loginCheck } = await supabase.auth.signInWithPassword({
       email,
-      password: '__check_only_' + duiClean,
-      options: { data: { _check: true } }
+      password: password.trim()
     })
-    const existe = signupCheck?.message?.toLowerCase().includes('already registered') ||
-                   signupCheck?.message?.toLowerCase().includes('already exists') ||
-                   signupCheck?.code === 'user_already_exists'
+    const existe = !loginCheck
+    // Si el login fue exitoso ya está dentro — lo sacamos para que el flujo continúe
+    if (existe) await supabase.auth.signOut()
 
     setPreview({
       nombre:       rows[0].nombre || '',
@@ -115,10 +115,9 @@ export default function RegistroPadre() {
     const duiClean = duiSinGuion(dui)
     const email    = preview.email
 
-    if (preview.existe) {
-      // Cuenta ya existe → directo a login
-      const { error: loginErr } = await supabase.auth.signInWithPassword({ email, password: password.trim() })
-      if (loginErr) { setError('Error al iniciar sesión: ' + loginErr.message); setLoading(false); return }
+    // Intentar login primero (cuenta ya podría existir)
+    const { error: loginErr } = await supabase.auth.signInWithPassword({ email, password: password.trim() })
+    if (!loginErr) {
       navigate('/padre/inicio')
       return
     }
