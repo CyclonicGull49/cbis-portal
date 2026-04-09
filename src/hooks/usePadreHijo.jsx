@@ -31,15 +31,30 @@ export function PadreHijoProvider({ children }) {
 
     const ids = vinculos.map(v => v.estudiante_id)
 
-    // Paso 2: cargar datos de los estudiantes
+    // Paso 2: datos del estudiante sin join anidado
     const { data: ests } = await supabase
       .from('estudiantes')
-      .select('id, nombre, apellido, email, nombre_padre, nombre_madre, nombre_tutor, grado_id, grados(id, nombre, nivel, componentes_nota)')
+      .select('id, nombre, apellido, email, nombre_padre, nombre_madre, nombre_tutor, grado_id')
       .in('id', ids)
+
+    // Paso 3: grados por separado
+    const gradoIds = [...new Set((ests || []).map(e => e.grado_id).filter(Boolean))]
+    const { data: grados } = gradoIds.length
+      ? await supabase.from('grados').select('id, nombre, nivel, componentes_nota').in('id', gradoIds)
+      : { data: [] }
+
+    const gradoMap = {}
+    for (const g of (grados || [])) gradoMap[g.id] = g
 
     const lista = vinculos.map(v => {
       const est = (ests || []).find(e => e.id === v.estudiante_id)
-      return est ? { vinculoId: v.id, parentesco: v.parentesco, ...est } : null
+      if (!est) return null
+      return {
+        vinculoId:  v.id,
+        parentesco: v.parentesco,
+        ...est,
+        grados: gradoMap[est.grado_id] || null,
+      }
     }).filter(Boolean)
 
     // Nombre del encargado desde ficha

@@ -37,7 +37,11 @@ export default function PadreInicio() {
   const [eventos,  setEventos]  = useState([])
   const [loading,  setLoading]  = useState(true)
 
-  useEffect(() => { if (hijoActual) cargar() }, [hijoActual, yearEscolar])
+  const { loading: loadingHijo } = usePadreHijo()
+  useEffect(() => {
+    if (hijoActual) cargar()
+    else if (!loadingHijo) setLoading(false)
+  }, [hijoActual, yearEscolar, loadingHijo])
 
   async function cargar() {
     setLoading(true)
