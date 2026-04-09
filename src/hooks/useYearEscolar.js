@@ -8,7 +8,7 @@ export function useYearEscolar() {
     supabase.from('configuracion')
       .select('valor')
       .eq('clave', 'year_escolar_activo')
-      .single()
+      .maybeSingle()  // evita 406 si no hay resultado
       .then(({ data }) => {
         if (data?.valor) setYearEscolar(parseInt(data.valor))
       })
