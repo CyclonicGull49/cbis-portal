@@ -58,34 +58,34 @@ export default function PadreNotas() {
 
       const year = yearEscolar || new Date().getFullYear()
 
-      const { data: mgs, error: mgsErr } = await supabase.from('materia_grado')
-        .select('materia_id, es_complementario').eq('grado_id', gradoId)
-
-      console.log('PadreNotas mgs:', mgs, 'gradoId:', gradoId, 'error:', mgsErr)
-
-      const matIds = (mgs || []).map(m => m.materia_id)
-      if (!matIds.length) { setMaterias([]); return }
-
-      const { data: matsData } = await supabase.from('materias')
-        .select('id, nombre').in('id', matIds).order('nombre')
-
-      const { data: notasData } = await supabase.from('notas').select('*')
-        .eq('estudiante_id', estudiante.id).eq('grado_id', gradoId).eq('año_escolar', year)
-
-      const notasMap = {}
-      for (const n of (notasData || []))
-        notasMap[`${n.materia_id}-${n.periodo}-${n.tipo}`] = n.nota
-
-      const compIds = (mgs || []).filter(m => m.es_complementario).map(m => m.materia_id)
-      const lista = (matsData || []).map(m => {
-        const notas = {}
-        for (let p = 1; p <= nPer; p++) {
-          notas[p] = {}
-          for (const c of compsList) notas[p][c] = notasMap[`${m.id}-${p}-${c}`] ?? null
-        }
-        return { id: m.id, nombre: m.nombre, notas, esComplementaria: compIds.includes(m.id) }
+      // Usar RPC SECURITY DEFINER para evitar problemas de RLS con rol padres
+      const { data: rows, error: rpcErr } = await supabase.rpc('get_notas_alumno', {
+        p_estudiante_id: estudiante.id,
+        p_grado_id:      gradoId,
+        p_year:          year,
       })
-      setMaterias(lista)
+
+      if (rpcErr) { console.error('get_notas_alumno:', rpcErr); return }
+
+      // Agrupar por materia
+      const materiasMap = {}
+      for (const r of (rows || [])) {
+        if (!materiasMap[r.materia_id]) {
+          materiasMap[r.materia_id] = {
+            id: r.materia_id, nombre: r.materia_nombre,
+            esComplementaria: r.es_complementario,
+            notas: {}
+          }
+          for (let p = 1; p <= nPer; p++) {
+            materiasMap[r.materia_id].notas[p] = {}
+            for (const comp of compsList) materiasMap[r.materia_id].notas[p][comp] = null
+          }
+        }
+        if (r.periodo && r.tipo) {
+          materiasMap[r.materia_id].notas[r.periodo][r.tipo] = r.nota
+        }
+      }
+      setMaterias(Object.values(materiasMap).sort((a,b) => a.nombre.localeCompare(b.nombre)))
     } catch(e) { console.error('PadreNotas:', e) }
     finally { setLoading(false) }
   }
