@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../supabase'
-import { usePadreHijo } from '../../hooks/usePadreHijo'
+import { usePadreEstudiante } from '../../hooks/usePadreEstudiante'
 
 const ESTADO_META = {
   pendiente: { label:'Pendiente', color:'#d97706', bg:'#fffbeb', border:'#fde68a' },
@@ -18,18 +18,18 @@ function Badge({ estado }) {
 }
 
 export default function PadreCobros() {
-  const { hijoActual, loading: loadingHijo } = usePadreHijo()
+  const { estudiante, loading: loadingEst } = usePadreEstudiante()
   const [cobros,    setCobros]    = useState([])
   const [loading,   setLoading]   = useState(true)
   const [filtro,    setFiltro]    = useState('todos')
 
-  useEffect(() => { if (hijoActual) cargar(); else if (!loadingHijo) setLoading(false) }, [hijoActual, loadingHijo])
+  useEffect(() => { if (estudiante) cargar(); else if (!loadingEst) setLoading(false) }, [estudiante, loadingEst])
 
   async function cargar() {
     try {
       const { data } = await supabase.from('cobros')
         .select('id, estado, monto, fecha_vencimiento, mes, year_escolar, conceptos_cobro(nombre, tipo)')
-        .eq('estudiante_id', hijoActual.id)
+        .eq('estudiante_id', estudiante.id)
         .order('fecha_vencimiento', { ascending: false })
       setCobros(data || [])
     } catch(e) {
@@ -46,7 +46,7 @@ export default function PadreCobros() {
     <div style={{ maxWidth:800, margin:'0 auto' }}>
       <div style={{ marginBottom:20 }}>
         <div style={{ fontWeight:800, fontSize:20, color:'#0f1d40', letterSpacing:'-0.5px', marginBottom:4 }}>Cobros</div>
-        <div style={{ fontSize:13, color:'#9ca3af' }}>{hijoActual?.nombre} {hijoActual?.apellido}</div>
+        <div style={{ fontSize:13, color:'#9ca3af' }}>{estudiante?.nombre} {estudiante?.apellido}</div>
       </div>
 
       {/* Resumen */}

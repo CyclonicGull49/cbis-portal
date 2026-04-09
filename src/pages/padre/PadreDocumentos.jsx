@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../supabase'
-import { usePadreHijo } from '../../hooks/usePadreHijo.jsx'
+import { usePadreEstudiante } from '../../hooks/usePadreEstudiante'
 
 const IcoDoc = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
 const IcoId   = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M16 10h2M16 14h2M7 10h5M7 14h3"/></svg>
@@ -21,7 +21,7 @@ const TIPO_META = {
 }
 
 export default function PadreDocumentos() {
-  const { hijoActual, loading: loadingHijo } = usePadreHijo()
+  const { estudiante, loading: loadingEst } = usePadreEstudiante()
   const [docs,     setDocs]     = useState([])
   const [loading,  setLoading]  = useState(true)
   const [abriendo, setAbriendo] = useState(null)
@@ -33,7 +33,7 @@ export default function PadreDocumentos() {
     try {
     const { data } = await supabase.from('documentos_estudiante')
       .select('id, tipo, nombre_archivo, storage_path, created_at')
-      .eq('estudiante_id', hijoActual.id)
+      .eq('estudiante_id', estudiante.id)
       .order('created_at', { ascending: false })
     setDocs(data || [])
     } catch(e) { console.error(e) } finally { setLoading(false) }
@@ -52,7 +52,7 @@ export default function PadreDocumentos() {
     <div style={{ maxWidth:700, margin:'0 auto' }}>
       <div style={{ marginBottom:20 }}>
         <div style={{ fontWeight:800, fontSize:20, color:'#0f1d40', letterSpacing:'-0.5px', marginBottom:4 }}>Documentos</div>
-        <div style={{ fontSize:13, color:'#9ca3af' }}>{hijoActual?.nombre} {hijoActual?.apellido}</div>
+        <div style={{ fontSize:13, color:'#9ca3af' }}>{estudiante?.nombre} {estudiante?.apellido}</div>
       </div>
 
       {loading ? (
