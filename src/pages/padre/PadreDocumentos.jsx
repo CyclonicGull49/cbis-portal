@@ -21,12 +21,12 @@ const TIPO_META = {
 }
 
 export default function PadreDocumentos() {
-  const { hijoActual } = usePadreHijo()
+  const { hijoActual, loading: loadingHijo } = usePadreHijo()
   const [docs,     setDocs]     = useState([])
   const [loading,  setLoading]  = useState(true)
   const [abriendo, setAbriendo] = useState(null)
 
-  useEffect(() => { if (hijoActual) cargar() }, [hijoActual])
+  useEffect(() => { if (hijoActual) cargar(); else if (!loadingHijo) setLoading(false) }, [hijoActual, loadingHijo])
 
   async function cargar() {
     setLoading(true)

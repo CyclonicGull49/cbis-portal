@@ -18,12 +18,12 @@ function Badge({ estado }) {
 }
 
 export default function PadreCobros() {
-  const { hijoActual } = usePadreHijo()
+  const { hijoActual, loading: loadingHijo } = usePadreHijo()
   const [cobros,    setCobros]    = useState([])
   const [loading,   setLoading]   = useState(true)
   const [filtro,    setFiltro]    = useState('todos')
 
-  useEffect(() => { if (hijoActual) cargar() }, [hijoActual])
+  useEffect(() => { if (hijoActual) cargar(); else if (!loadingHijo) setLoading(false) }, [hijoActual, loadingHijo])
 
   async function cargar() {
     setLoading(true)

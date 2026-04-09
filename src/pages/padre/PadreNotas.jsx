@@ -34,7 +34,7 @@ const s = {
 }
 
 export default function PadreNotas() {
-  const { hijoActual } = usePadreHijo()
+  const { hijoActual, loading: loadingHijo } = usePadreHijo()
   const yearEscolar = useYearEscolar()
   const [loading, setLoading] = useState(true)
   const [materias, setMaterias] = useState([])
@@ -43,7 +43,7 @@ export default function PadreNotas() {
   const [numPer,   setNumPer]   = useState(3)
   const [periodo,  setPeriodo]  = useState(1)
 
-  useEffect(() => { if (hijoActual) cargar() }, [hijoActual, yearEscolar])
+  useEffect(() => { if (hijoActual) cargar(); else if (!loadingHijo) setLoading(false) }, [hijoActual, yearEscolar, loadingHijo])
 
   async function cargar() {
     setLoading(true)
