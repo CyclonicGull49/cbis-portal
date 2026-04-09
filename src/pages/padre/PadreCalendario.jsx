@@ -24,19 +24,10 @@ export default function PadreCalendario() {
     setLoading(true)
     const year = yearEscolar || hoy.getFullYear()
 
-    // Intentar con año exacto primero
-    let { data, error } = await supabase.from('eventos_calendario')
+    const { data, error } = await supabase.from('eventos_calendario')
       .select('titulo, descripcion, fecha_inicio, fecha_fin, tipo, color')
       .eq('año_escolar', year)
       .order('fecha_inicio')
-
-    // Si no hay datos (RLS o año distinto), cargar sin filtro de año
-    if (!error && (!data || data.length === 0)) {
-      const res = await supabase.from('eventos_calendario')
-        .select('titulo, descripcion, fecha_inicio, fecha_fin, tipo, color')
-        .order('fecha_inicio')
-      if (!res.error) data = res.data
-    }
 
     if (!error) setEventos(data || [])
     setLoading(false)

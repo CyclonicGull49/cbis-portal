@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
 
+// Hook standalone que usa el perfil directamente desde la sesión activa
 export function usePadreEstudiante() {
   const [estudiante, setEstudiante] = useState(null)
   const [loading,    setLoading]    = useState(true)
@@ -9,14 +10,13 @@ export function usePadreEstudiante() {
 
   async function cargar() {
     try {
-      const { data: { user } } = await supabase.auth.getSession().then(r => ({ data: { user: r.data.session?.user } }))
-      if (!user?.id) { console.warn('usePadreEstudiante: no session'); return }
-      console.log('usePadreEstudiante: user.id =', user.id)
-      const { data, error } = await supabase.rpc('get_padre_estudiante_by_id', {
-        p_perfil_id: user.id
-      })
-      if (error) { console.error('get_padre_estudiante_by_id error:', error); return }
-      console.log('usePadreEstudiante data:', data)
+      const { data: { session } } = await supabase.auth.getSession()
+      const uid = session?.user?.id
+      if (!uid) { return }
+
+      const { data, error } = await supabase.rpc('get_padre_estudiante_by_id', { p_perfil_id: uid })
+      if (error) { console.error('usePadreEstudiante:', error); return }
+
       if (data && data.length > 0) {
         const r = data[0]
         setEstudiante({
@@ -37,7 +37,7 @@ export function usePadreEstudiante() {
         })
       }
     } catch(e) {
-      console.error('usePadreEstudiante:', e)
+      console.error('usePadreEstudiante catch:', e)
     } finally {
       setLoading(false)
     }

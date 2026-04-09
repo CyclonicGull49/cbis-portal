@@ -60,37 +60,35 @@ function HijoSelector() {
   const { hijos, hijoActual, setHijoActual, agregarHijo } = usePadreHijo()
   const [open,      setOpen]      = useState(false)
   const [modoAgreg, setModoAgreg] = useState(false)
-  const [query,     setQuery]     = useState('')
-  const [resultados,setResultados]= useState([])
-  const [buscando,  setBuscando]  = useState(false)
+  const [dui,       setDui]       = useState('')
   const [agregando, setAgregando] = useState(false)
-  const debounceRef = useRef(null)
+  const [errorDui,  setErrorDui]  = useState('')
 
-  useEffect(() => {
-    if (query.trim().length < 2) { setResultados([]); return }
-    clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(async () => {
-      setBuscando(true)
-      const { data } = await supabase.rpc('buscar_estudiantes_publico', { p_query: query.trim() })
-      setBuscando(false)
-      setResultados((data || []).map(r => ({
-        id: r.id, nombre: r.nombre, apellido: r.apellido,
-        grados: { nombre: r.grado_nombre, nivel: r.grado_nivel },
-      })))
-    }, 350)
-    return () => clearTimeout(debounceRef.current)
-  }, [query])
+  function formatDui(raw) {
+    const digits = raw.replace(/\D/g, '').slice(0, 9)
+    if (digits.length < 9) return digits
+    return digits.slice(0, 8) + '-' + digits.slice(8)
+  }
 
-  async function handleAgregar(est) {
-    setAgregando(true)
+  async function handleAgregarPorDui() {
+    const duiClean = dui.replace(/-/g, '')
+    if (duiClean.length !== 9) { setErrorDui('Ingresa 9 dígitos'); return }
+    setAgregando(true); setErrorDui('')
     try {
-      await agregarHijo(est.id, 'Padre')
-      setModoAgreg(false)
-      setOpen(false)
-      setQuery('')
-      setResultados([])
-    } catch (e) {
-      alert(e.message?.includes('ya tiene') ? 'Este estudiante ya tiene un encargado vinculado.' : e.message)
+      // Buscar estudiante por DUI en cualquier campo de encargado
+      const { data: rows1 } = await supabase.rpc('buscar_estudiantes_por_dui', { p_dui: duiClean })
+      const { data: rows2 } = await supabase.rpc('buscar_estudiantes_por_dui', { p_dui: dui })
+      const todos = [...(rows1||[]), ...(rows2||[])]
+      const seen = new Set(); const rows = todos.filter(r => { if(seen.has(r.id)) return false; seen.add(r.id); return true })
+      if (!rows.length) { setErrorDui('No se encontraron alumnos con ese DUI'); return }
+      // Vincular todos los que no estén ya vinculados
+      const idsActuales = hijos.map(h => h.id)
+      const nuevos = rows.filter(r => !idsActuales.includes(r.id))
+      if (!nuevos.length) { setErrorDui('Ese alumno ya está vinculado'); return }
+      for (const r of nuevos) await agregarHijo(r.id, 'Padre')
+      setModoAgreg(false); setOpen(false); setDui('')
+    } catch(e) {
+      setErrorDui(e.message || 'Error al vincular')
     }
     setAgregando(false)
   }
@@ -157,7 +155,7 @@ function HijoSelector() {
             )
           })}
 
-          {/* Vincular / búsqueda */}
+          {/* Vincular por DUI */}
           {!modoAgreg ? (
             <button onClick={() => setModoAgreg(true)}
               style={{ display:'flex', alignItems:'center', gap:8, width:'100%',
@@ -168,38 +166,24 @@ function HijoSelector() {
             </button>
           ) : (
             <div style={{ padding:'10px' }}>
-              <div style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 10px',
-                background:'rgba(255,255,255,0.1)', borderRadius:8, marginBottom:6,
-                border:'1px solid rgba(255,255,255,0.12)' }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input autoFocus value={query} onChange={e => setQuery(e.target.value)}
-                  placeholder="Nombre o apellido…"
-                  style={{ flex:1, background:'transparent', border:'none', outline:'none',
-                    color:'#fff', fontSize:12, fontFamily:'inherit' }} />
-              </div>
-              {buscando && (
-                <div style={{ fontSize:11, color:'rgba(255,255,255,0.35)', textAlign:'center', padding:'4px 0' }}>Buscando…</div>
-              )}
-              {resultados.map(r => (
-                <button key={r.id} onClick={() => handleAgregar(r)} disabled={agregando}
-                  style={{ display:'flex', alignItems:'center', gap:8, width:'100%',
-                    padding:'7px 8px', borderRadius:8, border:'none', cursor:'pointer',
-                    fontFamily:'inherit', background:'rgba(255,255,255,0.07)', marginBottom:3,
-                    opacity: agregando ? 0.5 : 1 }}>
-                  <div style={{ width:24, height:24, borderRadius:6,
-                    background: nivelColor[r.grados?.nivel] || '#5B2D8E',
-                    display:'flex', alignItems:'center', justifyContent:'center',
-                    fontWeight:800, fontSize:9, color:'#fff', flexShrink:0 }}>
-                    {r.nombre?.[0]}{r.apellido?.[0]}
-                  </div>
-                  <div style={{ textAlign:'left' }}>
-                    <div style={{ color:'#fff', fontWeight:700, fontSize:11 }}>{r.apellido}, {r.nombre}</div>
-                    <div style={{ color:'rgba(255,255,255,0.4)', fontSize:10 }}>{r.grados?.nombre}</div>
-                  </div>
+              <div style={{ fontSize:10, color:'rgba(255,255,255,0.4)', marginBottom:6, fontWeight:600 }}>DUI del encargado</div>
+              <div style={{ display:'flex', gap:6, marginBottom:4 }}>
+                <input autoFocus value={formatDui(dui)}
+                  onChange={e => setDui(e.target.value.replace(/\D/g,'').slice(0,9))}
+                  inputMode="numeric" placeholder="00000000-0"
+                  style={{ flex:1, background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.15)',
+                    borderRadius:8, padding:'6px 10px', color:'#fff', fontSize:12,
+                    fontFamily:'Plus Jakarta Sans,system-ui,sans-serif', outline:'none' }} />
+                <button onClick={handleAgregarPorDui} disabled={agregando}
+                  style={{ padding:'6px 12px', borderRadius:8, border:'none', background:'#D4A017',
+                    color:'#000', fontWeight:700, fontSize:11, cursor:'pointer', fontFamily:'inherit',
+                    opacity: agregando ? 0.6 : 1 }}>
+                  {agregando ? '…' : 'Vincular'}
                 </button>
-              ))}
-              <button onClick={() => { setModoAgreg(false); setQuery(''); setResultados([]) }}
-                style={{ width:'100%', marginTop:4, padding:'5px', background:'none', border:'none',
+              </div>
+              {errorDui && <div style={{ fontSize:10, color:'#fca5a5', marginBottom:4 }}>{errorDui}</div>}
+              <button onClick={() => { setModoAgreg(false); setDui(''); setErrorDui('') }}
+                style={{ width:'100%', marginTop:2, padding:'5px', background:'none', border:'none',
                   color:'rgba(255,255,255,0.3)', fontSize:11, cursor:'pointer', fontFamily:'inherit' }}>
                 Cancelar
               </button>
