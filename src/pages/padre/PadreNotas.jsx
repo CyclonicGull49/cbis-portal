@@ -46,18 +46,22 @@ export default function PadreNotas() {
   async function cargar() {
     setLoading(true)
     try {
-      const grado = estudiante.grados || estudiante.grado
-      if (!grado) return
+      // grados puede venir como .grados o .grado según el hook
+      const grado    = estudiante.grados || estudiante.grado
+      const gradoId  = grado?.id || estudiante.grado_id
+      if (!gradoId) { console.warn('PadreNotas: sin grado_id', estudiante); return }
 
-      const compsList = (grado.componentes_nota || 'ac,ai,em,ef').split(',')
-      const esBach    = grado.nivel === 'bachillerato'
+      const compsList = (grado?.componentes_nota || 'ac,ai,em,ef').split(',')
+      const esBach    = grado?.nivel === 'bachillerato'
       const nPer      = esBach ? 4 : 3
       setComps(compsList); setIsBach(esBach); setNumPer(nPer)
 
       const year = yearEscolar || new Date().getFullYear()
 
-      const { data: mgs } = await supabase.from('materia_grado')
-        .select('materia_id, es_complementario').eq('grado_id', grado.id)
+      const { data: mgs, error: mgsErr } = await supabase.from('materia_grado')
+        .select('materia_id, es_complementario').eq('grado_id', gradoId)
+
+      console.log('PadreNotas mgs:', mgs, 'gradoId:', gradoId, 'error:', mgsErr)
 
       const matIds = (mgs || []).map(m => m.materia_id)
       if (!matIds.length) { setMaterias([]); return }
@@ -66,7 +70,7 @@ export default function PadreNotas() {
         .select('id, nombre').in('id', matIds).order('nombre')
 
       const { data: notasData } = await supabase.from('notas').select('*')
-        .eq('estudiante_id', estudiante.id).eq('grado_id', grado.id).eq('año_escolar', year)
+        .eq('estudiante_id', estudiante.id).eq('grado_id', gradoId).eq('año_escolar', year)
 
       const notasMap = {}
       for (const n of (notasData || []))
