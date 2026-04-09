@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../supabase'
-import { usePadreEstudiante } from '../../hooks/usePadreEstudiante'
+import { usePadreHijo } from '../../hooks/usePadreHijo'
 
 const ESTADO_META = {
   pendiente: { label:'Pendiente', color:'#d97706', bg:'#fffbeb', border:'#fde68a' },
@@ -18,7 +18,7 @@ function Badge({ estado }) {
 }
 
 export default function PadreCobros() {
-  const { estudiante, loading: loadingEst } = usePadreEstudiante()
+  const { hijoActual: estudiante, loading: loadingEst } = usePadreHijo()
   const [cobros,    setCobros]    = useState([])
   const [loading,   setLoading]   = useState(true)
   const [filtro,    setFiltro]    = useState('todos')

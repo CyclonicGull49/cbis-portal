@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../supabase'
-import { usePadreEstudiante } from '../../hooks/usePadreEstudiante'
+import { usePadreHijo } from '../../hooks/usePadreHijo'
 import { useYearEscolar } from '../../hooks/useYearEscolar'
 
 const PESOS = { ac:0.35, ai:0.35, em:0.10, ep:0.10, ef:0.20 }
@@ -32,7 +32,7 @@ const s = {
 }
 
 export default function PadreNotas() {
-  const { estudiante, loading: loadingEst } = usePadreEstudiante()
+  const { hijoActual: estudiante, loading: loadingEst } = usePadreHijo()
   const yearEscolar = useYearEscolar()
   const [loading,  setLoading]  = useState(false)
   const [materias, setMaterias] = useState([])
@@ -46,7 +46,7 @@ export default function PadreNotas() {
   async function cargar() {
     setLoading(true)
     try {
-      const grado = estudiante.grado
+      const grado = estudiante.grados || estudiante.grado
       if (!grado) return
 
       const compsList = (grado.componentes_nota || 'ac,ai,em,ef').split(',')
