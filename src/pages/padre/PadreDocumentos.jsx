@@ -26,7 +26,7 @@ export default function PadreDocumentos() {
   const [loading,  setLoading]  = useState(true)
   const [abriendo, setAbriendo] = useState(null)
 
-  useEffect(() => { if (hijoActual) cargar(); else if (!loadingHijo) setLoading(false) }, [hijoActual, loadingHijo])
+  useEffect(() => { if (estudiante) cargar(); else if (!loadingEst) setLoading(false) }, [estudiante, loadingEst])
 
   async function cargar() {
     setLoading(true)
