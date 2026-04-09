@@ -47,47 +47,53 @@ export default function PadreNotas() {
 
   async function cargar() {
     setLoading(true)
-    const estId = hijoActual.id
-    const year  = yearEscolar || new Date().getFullYear()
-    const grado = hijoActual.grados
+    try {
+      const estId = hijoActual.id
+      const year  = yearEscolar || new Date().getFullYear()
+      const grado = hijoActual.grados
 
-    if (!grado) { setLoading(false); return }
+      if (!grado) return
 
-    const compsList = (grado.componentes_nota || 'ac,ai,em,ef').split(',')
-    const esBach    = grado.nivel === 'bachillerato'
-    const nPer      = esBach ? 4 : 3
+      const compsList = (grado.componentes_nota || 'ac,ai,em,ef').split(',')
+      const esBach    = grado.nivel === 'bachillerato'
+      const nPer      = esBach ? 4 : 3
 
-    setComps(compsList)
-    setIsBach(esBach)
-    setNumPer(nPer)
+      setComps(compsList)
+      setIsBach(esBach)
+      setNumPer(nPer)
 
-    const { data: mgs } = await supabase.from('materia_grado')
-      .select('materia_id, es_complementario').eq('grado_id', grado.id)
+      const { data: mgs } = await supabase.from('materia_grado')
+        .select('materia_id, es_complementario').eq('grado_id', grado.id)
 
-    const matIds = (mgs || []).map(m => m.materia_id)
-    const { data: matsData } = await supabase.from('materias')
-      .select('id, nombre').in('id', matIds).order('nombre')
+      const matIds = (mgs || []).map(m => m.materia_id)
+      const { data: matsData } = matIds.length
+        ? await supabase.from('materias').select('id, nombre').in('id', matIds).order('nombre')
+        : { data: [] }
 
-    const { data: notasData } = await supabase.from('notas').select('*')
-      .eq('estudiante_id', estId).eq('grado_id', grado.id).eq('año_escolar', year)
+      const { data: notasData } = await supabase.from('notas').select('*')
+        .eq('estudiante_id', estId).eq('grado_id', grado.id).eq('año_escolar', year)
 
-    const notasMap = {}
-    for (const n of (notasData || [])) {
-      notasMap[`${n.materia_id}-${n.periodo}-${n.tipo}`] = n.nota
-    }
-
-    const compIds = (mgs || []).filter(m => m.es_complementario).map(m => m.materia_id)
-    const lista = (matsData || []).map(m => {
-      const notas = {}
-      for (let p = 1; p <= nPer; p++) {
-        notas[p] = {}
-        for (const c of compsList) notas[p][c] = notasMap[`${m.id}-${p}-${c}`] ?? null
+      const notasMap = {}
+      for (const n of (notasData || [])) {
+        notasMap[`${n.materia_id}-${n.periodo}-${n.tipo}`] = n.nota
       }
-      return { id: m.id, nombre: m.nombre, notas, esComplementaria: compIds.includes(m.id) }
-    })
 
-    setMaterias(lista)
-    setLoading(false)
+      const compIds = (mgs || []).filter(m => m.es_complementario).map(m => m.materia_id)
+      const lista = (matsData || []).map(m => {
+        const notas = {}
+        for (let p = 1; p <= nPer; p++) {
+          notas[p] = {}
+          for (const c of compsList) notas[p][c] = notasMap[`${m.id}-${p}-${c}`] ?? null
+        }
+        return { id: m.id, nombre: m.nombre, notas, esComplementaria: compIds.includes(m.id) }
+      })
+
+      setMaterias(lista)
+    } catch(e) {
+      console.error('PadreNotas cargar:', e)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const periodos = Array.from({ length: numPer }, (_, i) => i + 1)

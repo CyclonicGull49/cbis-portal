@@ -30,12 +30,13 @@ export default function PadreDocumentos() {
 
   async function cargar() {
     setLoading(true)
+    try {
     const { data } = await supabase.from('documentos_estudiante')
       .select('id, tipo, nombre_archivo, storage_path, created_at')
       .eq('estudiante_id', hijoActual.id)
       .order('created_at', { ascending: false })
     setDocs(data || [])
-    setLoading(false)
+    } catch(e) { console.error(e) } finally { setLoading(false) }
   }
 
   async function abrirDoc(doc) {

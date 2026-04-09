@@ -26,14 +26,17 @@ export default function PadreCobros() {
   useEffect(() => { if (hijoActual) cargar(); else if (!loadingHijo) setLoading(false) }, [hijoActual, loadingHijo])
 
   async function cargar() {
-    setLoading(true)
-    const { data } = await supabase.from('cobros')
-      .select('id, estado, monto, fecha_vencimiento, mes, year_escolar, anulado, conceptos_cobro(nombre, tipo)')
-      .eq('estudiante_id', hijoActual.id)
-      .neq('anulado', true)
-      .order('fecha_vencimiento', { ascending: false })
-    setCobros(data || [])
-    setLoading(false)
+    try {
+      const { data } = await supabase.from('cobros')
+        .select('id, estado, monto, fecha_vencimiento, mes, year_escolar, conceptos_cobro(nombre, tipo)')
+        .eq('estudiante_id', hijoActual.id)
+        .order('fecha_vencimiento', { ascending: false })
+      setCobros(data || [])
+    } catch(e) {
+      console.error('PadreCobros:', e)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const filtrados = filtro === 'todos' ? cobros : cobros.filter(c => c.estado === filtro)
