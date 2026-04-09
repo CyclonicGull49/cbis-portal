@@ -16,8 +16,12 @@ export function PadreHijoProvider({ children }) {
   async function cargar() {
     setLoading(true)
     try {
-      const { data, error } = await supabase.rpc('get_padre_estudiante')
-      if (error) { console.error('usePadreHijo:', error); return }
+      // Pasar el ID explícitamente en lugar de depender de auth.uid() en el servidor
+      const { data, error } = await supabase.rpc('get_padre_estudiante_by_id', {
+        p_perfil_id: perfil.id
+      })
+      if (error) { console.error('usePadreHijo RPC error:', error); return }
+      console.log('usePadreHijo data:', data, 'perfil.id:', perfil.id)
 
       const lista = (data || []).map(r => ({
         id:           r.estudiante_id,

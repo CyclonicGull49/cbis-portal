@@ -9,8 +9,14 @@ export function usePadreEstudiante() {
 
   async function cargar() {
     try {
-      const { data, error } = await supabase.rpc('get_padre_estudiante')
-      if (error) { console.error('get_padre_estudiante:', error); return }
+      const { data: { user } } = await supabase.auth.getSession().then(r => ({ data: { user: r.data.session?.user } }))
+      if (!user?.id) { console.warn('usePadreEstudiante: no session'); return }
+      console.log('usePadreEstudiante: user.id =', user.id)
+      const { data, error } = await supabase.rpc('get_padre_estudiante_by_id', {
+        p_perfil_id: user.id
+      })
+      if (error) { console.error('get_padre_estudiante_by_id error:', error); return }
+      console.log('usePadreEstudiante data:', data)
       if (data && data.length > 0) {
         const r = data[0]
         setEstudiante({
