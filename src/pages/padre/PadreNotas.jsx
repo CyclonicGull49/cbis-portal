@@ -48,14 +48,18 @@ export default function PadreNotas() {
   async function cargar() {
     setLoading(true)
     try {
-      const estId = hijoActual.id
-      const year  = yearEscolar || new Date().getFullYear()
-      const grado = hijoActual.grados
+      const estId  = hijoActual.id
+      const year   = yearEscolar || new Date().getFullYear()
+      // Obtener grado directamente de DB para no depender del contexto
+      const gradoId = hijoActual.grado_id || hijoActual.grados?.id
+      if (!gradoId) return
 
-      if (!grado) return
+      const { data: gradoData } = await supabase.from('grados')
+        .select('id, nombre, nivel, componentes_nota').eq('id', gradoId).single()
+      if (!gradoData) return
 
-      const compsList = (grado.componentes_nota || 'ac,ai,em,ef').split(',')
-      const esBach    = grado.nivel === 'bachillerato'
+      const compsList = (gradoData.componentes_nota || 'ac,ai,em,ef').split(',')
+      const esBach    = gradoData.nivel === 'bachillerato'
       const nPer      = esBach ? 4 : 3
 
       setComps(compsList)
@@ -63,7 +67,7 @@ export default function PadreNotas() {
       setNumPer(nPer)
 
       const { data: mgs } = await supabase.from('materia_grado')
-        .select('materia_id, es_complementario').eq('grado_id', grado.id)
+        .select('materia_id, es_complementario').eq('grado_id', gradoId)
 
       const matIds = (mgs || []).map(m => m.materia_id)
       const { data: matsData } = matIds.length
@@ -71,7 +75,7 @@ export default function PadreNotas() {
         : { data: [] }
 
       const { data: notasData } = await supabase.from('notas').select('*')
-        .eq('estudiante_id', estId).eq('grado_id', grado.id).eq('año_escolar', year)
+        .eq('estudiante_id', estId).eq('grado_id', gradoId).eq('año_escolar', year)
 
       const notasMap = {}
       for (const n of (notasData || [])) {
