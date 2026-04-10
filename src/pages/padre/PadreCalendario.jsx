@@ -2,6 +2,16 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../supabase'
 import { useYearEscolar } from '../../hooks/useYearEscolar'
 
+const COLOR_TIPO = {
+  feriado:     '#dc2626',
+  actividad:   '#5B2D8E',
+  evaluacion:  '#d97706',
+  entrega:     '#0e9490',
+  institucional:'#2563eb',
+  otro:        '#6b7280',
+}
+function colorEvento(tipo) { return COLOR_TIPO[tipo] || '#5B2D8E' }
+
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 const DIAS_SEMANA = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']
 
@@ -25,7 +35,7 @@ export default function PadreCalendario() {
     const year = yearEscolar || hoy.getFullYear()
 
     const { data, error } = await supabase.from('eventos_calendario')
-      .select('titulo, descripcion, fecha_inicio, fecha_fin, tipo, color')
+      .select('titulo, descripcion, fecha_inicio, fecha_fin, tipo')
       .eq('año_escolar', year)
       .order('fecha_inicio')
 
@@ -98,12 +108,12 @@ export default function PadreCalendario() {
               return (
                 <div key={i}
                   onClick={() => tieneEvs && setDetalle({ dia, eventos: evs })}
-                  style={{ aspectRatio:'1', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', borderRadius:9, background: hoyDia ? '#5B2D8E' : tieneEvs ? `${evs[0].color || '#5B2D8E'}14` : 'transparent', cursor: tieneEvs ? 'pointer' : 'default', transition:'background 0.15s', position:'relative', gap:2 }}>
+                  style={{ aspectRatio:'1', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', borderRadius:9, background: hoyDia ? '#5B2D8E' : tieneEvs ? `${colorEvento(evs[0].tipo)}14` : 'transparent', cursor: tieneEvs ? 'pointer' : 'default', transition:'background 0.15s', position:'relative', gap:2 }}>
                   <span style={{ fontSize:12, fontWeight: hoyDia || tieneEvs ? 800 : 500, color: hoyDia ? '#fff' : tieneEvs ? '#0f1d40' : '#6b7280' }}>{dia}</span>
                   {tieneEvs && (
                     <div style={{ display:'flex', gap:2 }}>
                       {evs.slice(0,3).map((e, ei) => (
-                        <div key={ei} style={{ width:5, height:5, borderRadius:'50%', background: hoyDia ? 'rgba(255,255,255,0.7)' : (e.color || '#5B2D8E') }} />
+                        <div key={ei} style={{ width:5, height:5, borderRadius:'50%', background: hoyDia ? 'rgba(255,255,255,0.7)' : (colorEvento(e.tipo)) }} />
                       ))}
                     </div>
                   )}
@@ -123,7 +133,7 @@ export default function PadreCalendario() {
               </div>
               {detalle.eventos.map((e, i) => (
                 <div key={i} style={{ display:'flex', gap:10, padding:'10px 0', borderBottom: i < detalle.eventos.length - 1 ? '1px solid #f3eeff' : 'none' }}>
-                  <div style={{ width:4, borderRadius:2, background: e.color || '#5B2D8E', flexShrink:0, alignSelf:'stretch' }} />
+                  <div style={{ width:4, borderRadius:2, background: colorEvento(e.tipo), flexShrink:0, alignSelf:'stretch' }} />
                   <div>
                     <div style={{ fontWeight:700, fontSize:13, color:'#0f1d40', marginBottom:3 }}>{e.titulo}</div>
                     {e.descripcion && <div style={{ fontSize:11, color:'#6b7280', lineHeight:1.4 }}>{e.descripcion}</div>}
@@ -143,7 +153,7 @@ export default function PadreCalendario() {
                 <div style={{ color:'#9ca3af', fontSize:13 }}>No hay eventos próximos</div>
               ) : proximos.map((e, i) => (
                 <div key={i} style={{ display:'flex', gap:10, padding:'8px 0', borderBottom: i < proximos.length - 1 ? '1px solid #f3eeff' : 'none' }}>
-                  <div style={{ width:4, borderRadius:2, background: e.color || '#5B2D8E', flexShrink:0, minHeight:40, alignSelf:'stretch' }} />
+                  <div style={{ width:4, borderRadius:2, background: colorEvento(e.tipo), flexShrink:0, minHeight:40, alignSelf:'stretch' }} />
                   <div>
                     <div style={{ fontWeight:700, fontSize:12, color:'#0f1d40' }}>{e.titulo}</div>
                     <div style={{ fontSize:10, color:'#9ca3af', marginTop:2 }}>

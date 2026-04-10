@@ -57,7 +57,7 @@ export default function PadreInicio() {
       supabase.from('cobros').select('id, estado').eq('estudiante_id', estId).eq('estado', 'pendiente').neq('anulado', true),
       supabase.from('solicitudes').select('id').eq('solicitante_id', perfil.id).eq('estado', 'pendiente'),
       supabase.from('notas').select('nota').eq('estudiante_id', estId).eq('año_escolar', year).eq('tipo', 'ef'),
-      supabase.from('eventos_calendario').select('titulo, fecha_inicio, tipo, color').eq('año_escolar', year).gte('fecha_inicio', new Date().toISOString().split('T')[0]).order('fecha_inicio').limit(4),
+      supabase.from('eventos_calendario').select('titulo, fecha_inicio, tipo').eq('año_escolar', year).gte('fecha_inicio', new Date().toISOString().split('T')[0]).order('fecha_inicio').limit(4),
     ])
 
     const notasEf = (notas || []).map(n => n.nota).filter(n => n !== null)
@@ -144,7 +144,7 @@ export default function PadreInicio() {
             ) : eventos.map((e, i) => (
               <div key={i} style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 0', borderBottom: i < eventos.length - 1 ? '1px solid #f3eeff' : 'none' }}>
                 <div style={{ width:38, height:38, borderRadius:10, background: e.color ? `${e.color}18` : '#f3eeff', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={e.color || '#5B2D8E'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={'#5B2D8E' || '#5B2D8E'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                 </div>
                 <div style={{ flex:1 }}>
                   <div style={{ fontWeight:700, fontSize:13, color:'#0f1d40' }}>{e.titulo}</div>
