@@ -121,15 +121,7 @@ export default function Calendario() {
         )}
       </div>
 
-      {/* Leyenda */}
-      <div style={{ display:'flex', gap:8, marginBottom:16, flexWrap:'wrap' }}>
-        {Object.entries(TIPOS).map(([k, v]) => (
-          <div key={k} style={{ display:'flex', alignItems:'center', gap:5, fontSize:11, fontWeight:700, color:v.color, background:v.bg, padding:'3px 10px', borderRadius:20 }}>
-            <span style={{ width:7, height:7, borderRadius:'50%', background:v.dot, flexShrink:0 }} />
-            {v.label}
-          </div>
-        ))}
-      </div>
+
 
       <div style={{ display:'flex', gap:20, flexWrap:'wrap', alignItems:'flex-start' }}>
 
@@ -142,7 +134,7 @@ export default function Calendario() {
             </button>
             <div style={{ display:'flex', alignItems:'center', gap:10 }}>
               <span style={{ fontSize:15, fontWeight:800, color:'#0f1d40' }}>{MESES[mes]} {anio}</span>
-              <span style={{ fontSize:11, color:'#b0a8c0', background:'#f3eeff', padding:'2px 10px', borderRadius:10 }}>{eventosMes.length} eventos</span>
+
             </div>
             <button onClick={() => navMes(1)} style={s.navBtn}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
@@ -240,9 +232,7 @@ export default function Calendario() {
                     <div style={{ fontSize:10, color:'#9ca3af', marginTop:2 }}>
                       {formatFecha(e.fecha_inicio, { weekday:'short', day:'numeric', month:'short' })}
                     </div>
-                    <span style={{ fontSize:10, fontWeight:700, color: TIPOS[e.tipo]?.color, background: TIPOS[e.tipo]?.bg, padding:'1px 6px', borderRadius:6, display:'inline-block', marginTop:2 }}>
-                      {TIPOS[e.tipo]?.label}
-                    </span>
+
                   </div>
                 </div>
               ))}
