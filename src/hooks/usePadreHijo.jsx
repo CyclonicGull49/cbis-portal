@@ -21,7 +21,6 @@ export function PadreHijoProvider({ children }) {
         p_perfil_id: perfil.id
       })
       if (error) { console.error('usePadreHijo RPC error:', error); return }
-      console.log('usePadreHijo data:', data, 'perfil.id:', perfil.id)
 
       const lista = (data || []).map(r => ({
         id:           r.estudiante_id,

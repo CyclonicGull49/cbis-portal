@@ -49,7 +49,7 @@ export default function PadreNotas() {
       // grados puede venir como .grados o .grado según el hook
       const grado    = estudiante.grados || estudiante.grado
       const gradoId  = grado?.id || estudiante.grado_id
-      if (!gradoId) { console.warn('PadreNotas: sin grado_id', estudiante); return }
+      if (!gradoId) return
 
       const compsList = (grado?.componentes_nota || 'ac,ai,em,ef').split(',')
       const esBach    = grado?.nivel === 'bachillerato'
