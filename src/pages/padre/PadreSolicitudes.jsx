@@ -38,7 +38,7 @@ const CON_FECHA   = ['reunion_encargado','reunion_direccion']
 export default function PadreSolicitudes() {
   const { perfil }    = useAuth()
   const { hijoActual } = usePadreHijo()
-  const yearEscolar   = useYearEscolar()
+  const { yearEscolar } = useYearEscolar()
 
   const [solicitudes, setSolicitudes] = useState([])
   const [loading,     setLoading]     = useState(true)
@@ -51,9 +51,9 @@ export default function PadreSolicitudes() {
   async function cargar() {
     setLoading(true)
     const { data } = await supabase.from('solicitudes')
-      .select('id, tipo, estado, motivo, respuesta, fecha_cita, created_at')
+      .select('id, tipo, estado, motivo, respuesta, fecha_cita, creado_en')
       .eq('solicitante_id', perfil.id)
-      .order('created_at', { ascending: false })
+      .order('creado_en', { ascending: false })
     setSolicitudes(data || [])
     setLoading(false)
   }
@@ -71,6 +71,7 @@ export default function PadreSolicitudes() {
       solicitante_id: perfil.id,
       motivo:         form.motivo.trim(),
       estado:         'pendiente',
+      año_escolar:    yearEscolar || new Date().getFullYear(),
       ...(conFecha && form.fecha_cita ? { fecha_cita: form.fecha_cita } : {}),
     }).select('id').single()
 
@@ -191,7 +192,7 @@ export default function PadreSolicitudes() {
                       <div style={{ fontWeight:700, fontSize:14, color:'#0f1d40', marginBottom:3 }}>{tipoMeta(s.tipo).label}</div>
                       <div style={{ fontSize:12, color:'#6b7280', marginBottom:4, lineHeight:1.5 }}>{s.motivo}</div>
                       <div style={{ fontSize:11, color:'#c4b5fd' }}>
-                        {new Date(s.created_at).toLocaleDateString('es-SV', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}
+                        {new Date(s.creado_en).toLocaleDateString('es-SV', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}
                         {s.fecha_cita && ` · Cita: ${new Date(s.fecha_cita + 'T00:00:00').toLocaleDateString('es-SV', { day:'numeric', month:'short' })}`}
                       </div>
                     </div>
