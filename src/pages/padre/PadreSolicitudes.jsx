@@ -50,7 +50,8 @@ export default function PadreSolicitudes() {
 
   async function cargar() {
     setLoading(true)
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { session } } = await supabase.auth.getSession()
+    const user = session?.user
     if (!user) { setLoading(false); return }
     const { data } = await supabase.from('solicitudes')
       .select('id, tipo, estado, motivo, respuesta, fecha_cita, creado_en')
@@ -68,7 +69,8 @@ export default function PadreSolicitudes() {
     const conFecha     = CON_FECHA.includes(form.tipo)
 
     // Obtener auth.uid() real para que coincida con la RLS
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { session } } = await supabase.auth.getSession()
+    const user = session?.user
     if (!user) { toast.error('Sesión expirada, vuelve a iniciar sesión'); setGuardando(false); return }
 
     // 1. Insertar solicitud
