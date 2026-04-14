@@ -69,6 +69,9 @@ function TipoIcono({ tipo, size = 16 }) {
   if (tipo === 'modificar_asistencia') return (
     <svg {...props}><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="12" y2="17"/></svg>
   )
+  if (tipo === 'permiso_personal') return (
+    <svg {...props}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+  )
   return (
     <svg {...props}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
   )
@@ -78,6 +81,7 @@ const TIPOS = {
   desbloqueo_notas:     { label: 'Desbloqueo de notas',  color: '#5B2D8E', bg: '#f3eeff' },
   modificar_asistencia: { label: 'Modificar asistencia', color: '#0e9490', bg: '#e0f7f6' },
   cita_padres:          { label: 'Cita con padres',      color: '#d97706', bg: '#fffbeb' },
+  permiso_personal:     { label: 'Permiso personal',     color: '#be185d', bg: '#fdf2f8' },
 }
 
 const ESTADOS = {
@@ -133,7 +137,7 @@ export default function Solicitudes() {
   const [estudiantes,    setEstudiantes]    = useState([])
   const [form, setForm] = useState({
     tipo: 'desbloqueo_notas', motivo: '', materia_id: '',
-    grado_id: '', periodo: '', estudiante_id: '', fecha_asistencia: '',
+    grado_id: '', periodo: '', estudiante_id: '', fecha_asistencia: '', fecha_permiso: '',
   })
 
   useEffect(() => { cargar() }, [perfil, year])
@@ -175,6 +179,11 @@ export default function Solicitudes() {
     if (!form.motivo.trim()) { toast.error('El motivo es obligatorio'); return }
     if (form.tipo === 'desbloqueo_notas' && (!form.materia_id || !form.grado_id || !form.periodo)) { toast.error('Completa materia, grado y periodo'); return }
     if (form.tipo === 'modificar_asistencia' && !form.fecha_asistencia) { toast.error('Indica la fecha de asistencia'); return }
+    if (form.tipo === 'permiso_personal') {
+      if (!form.fecha_permiso) { toast.error('Indica la fecha del permiso'); return }
+      const diasAnticipacion = Math.ceil((new Date(form.fecha_permiso) - new Date()) / (1000 * 60 * 60 * 24))
+      if (diasAnticipacion < 4) { toast.error('El permiso personal debe solicitarse con al menos 4 días de anticipación'); return }
+    }
     setGuardando(true)
     const { error } = await supabase.from('solicitudes').insert({
       tipo: form.tipo, motivo: form.motivo.trim(), solicitante_id: perfil.id, año_escolar: year,
@@ -182,6 +191,7 @@ export default function Solicitudes() {
       periodo: form.periodo ? parseInt(form.periodo) : null,
       estudiante_id: form.estudiante_id ? parseInt(form.estudiante_id) : null,
       fecha_asistencia: form.fecha_asistencia || null,
+      fecha_permiso: form.fecha_permiso || null,
     })
     if (error) { toast.error('Error al crear solicitud'); setGuardando(false); return }
 
@@ -245,7 +255,7 @@ export default function Solicitudes() {
   }
 
   function resetForm() {
-    setForm({ tipo: 'desbloqueo_notas', motivo: '', materia_id: '', grado_id: '', periodo: '', estudiante_id: '', fecha_asistencia: '' })
+    setForm({ tipo: 'desbloqueo_notas', motivo: '', materia_id: '', grado_id: '', periodo: '', estudiante_id: '', fecha_asistencia: '', fecha_permiso: '' })
   }
 
   const tabs = [
@@ -297,6 +307,11 @@ export default function Solicitudes() {
               <div style={{ fontSize: 13, fontWeight: 700, color: '#3d1f61', marginBottom: 4 }}>
                 {s.estudiantes ? `${s.estudiantes.apellido}, ${s.estudiantes.nombre}` : 'Cita con padres'}
                 {s.grados && <span style={{ fontWeight: 500, color: '#6b7280' }}> · {s.grados.nombre}</span>}
+              </div>
+            )}
+            {s.tipo === 'permiso_personal' && s.fecha_permiso && (
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#be185d', marginBottom: 4 }}>
+                Permiso: {new Date(s.fecha_permiso + 'T12:00:00').toLocaleDateString('es-SV', { weekday: 'long', day: 'numeric', month: 'long' })}
               </div>
             )}
 
@@ -461,10 +476,27 @@ export default function Solicitudes() {
               </div>
             )}
 
+            {form.tipo === 'permiso_personal' && (
+              <>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', background: '#fdf2f8', border: '1px solid #fbcfe8', borderRadius: 10, marginBottom: 14 }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#be185d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  <span style={{ fontSize: 12, color: '#9d174d', fontWeight: 600, lineHeight: 1.6 }}>
+                    Los permisos personales deben solicitarse con <strong>mínimo 4 días de anticipación</strong>. Solicitudes con menor anticipación no serán procesadas.
+                  </span>
+                </div>
+                <div style={s.field}>
+                  <label style={s.label}>Fecha del permiso</label>
+                  <input type="date" style={s.inputFull} value={form.fecha_permiso}
+                    min={(() => { const d = new Date(); d.setDate(d.getDate() + 4); return d.toISOString().split('T')[0] })()}
+                    onChange={e => setForm(f => ({ ...f, fecha_permiso: e.target.value }))} />
+                </div>
+              </>
+            )}
+
             <div style={s.field}>
               <label style={s.label}>Motivo</label>
               <textarea style={{ ...s.inputFull, minHeight: 90, resize: 'vertical' }}
-                placeholder={form.tipo === 'desbloqueo_notas' ? 'Explica por qué necesitas modificar las notas...' : form.tipo === 'modificar_asistencia' ? 'Explica por qué necesitas modificar la asistencia...' : 'Describe el motivo de la cita...'}
+                placeholder={form.tipo === 'desbloqueo_notas' ? 'Explica por qué necesitas modificar las notas...' : form.tipo === 'modificar_asistencia' ? 'Explica por qué necesitas modificar la asistencia...' : form.tipo === 'permiso_personal' ? 'Describe el motivo de tu permiso (médico, personal, familiar...)' : 'Describe el motivo de la cita...'}
                 value={form.motivo} onChange={e => setForm(f => ({ ...f, motivo: e.target.value }))} />
             </div>
 
@@ -503,7 +535,8 @@ export default function Solicitudes() {
                     {modalDetalle.grados      && <div style={{ fontSize: 12, marginBottom: 4 }}><b>Grado:</b> {modalDetalle.grados.nombre}</div>}
                     {modalDetalle.periodo     && <div style={{ fontSize: 12, marginBottom: 4 }}><b>Periodo:</b> {modalDetalle.periodo}</div>}
                     {modalDetalle.estudiantes && <div style={{ fontSize: 12, marginBottom: 4 }}><b>Estudiante:</b> {modalDetalle.estudiantes.apellido}, {modalDetalle.estudiantes.nombre}</div>}
-                    {modalDetalle.fecha_asistencia && <div style={{ fontSize: 12, marginBottom: 4 }}><b>Fecha:</b> {new Date(modalDetalle.fecha_asistencia + 'T12:00:00').toLocaleDateString('es-SV', { weekday: 'long', day: 'numeric', month: 'long' })}</div>}
+                    {modalDetalle.fecha_asistencia && <div style={{ fontSize: 12, marginBottom: 4 }}><b>Fecha asistencia:</b> {new Date(modalDetalle.fecha_asistencia + 'T12:00:00').toLocaleDateString('es-SV', { weekday: 'long', day: 'numeric', month: 'long' })}</div>}
+                    {modalDetalle.fecha_permiso && <div style={{ fontSize: 12, marginBottom: 4 }}><b>Fecha permiso:</b> {new Date(modalDetalle.fecha_permiso + 'T12:00:00').toLocaleDateString('es-SV', { weekday: 'long', day: 'numeric', month: 'long' })}</div>}
                     {canManage && <div style={{ fontSize: 12, marginBottom: 4 }}><b>Solicitado por:</b> {modalDetalle.solicitante?.nombre} {modalDetalle.solicitante?.apellido}</div>}
                     <div style={{ fontSize: 12 }}><b>Fecha:</b> {formatFecha(modalDetalle.creado_en)}</div>
                   </div>
