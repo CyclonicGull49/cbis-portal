@@ -49,13 +49,11 @@ export default function PadreSolicitudes() {
   useEffect(() => { if (perfil) cargar() }, [perfil])
 
   async function cargar() {
+    if (!perfil?.id) return
     setLoading(true)
-    const { data: { session } } = await supabase.auth.getSession()
-    const user = session?.user
-    if (!user) { setLoading(false); return }
     const { data } = await supabase.from('solicitudes')
       .select('id, tipo, estado, motivo, respuesta, fecha_cita, creado_en')
-      .eq('solicitante_id', user.id)
+      .eq('solicitante_id', perfil.id)
       .order('creado_en', { ascending: false })
     setSolicitudes(data || [])
     setLoading(false)
@@ -68,15 +66,10 @@ export default function PadreSolicitudes() {
     const esConstancia = CONSTANCIAS.includes(form.tipo)
     const conFecha     = CON_FECHA.includes(form.tipo)
 
-    // Obtener auth.uid() real para que coincida con la RLS
-    const { data: { session } } = await supabase.auth.getSession()
-    const user = session?.user
-    if (!user) { toast.error('Sesión expirada, vuelve a iniciar sesión'); setGuardando(false); return }
-
     // 1. Insertar solicitud
     const { data: solData, error: solError } = await supabase.from('solicitudes').insert({
       tipo:           form.tipo,
-      solicitante_id: user.id,
+      solicitante_id: perfil.id,
       motivo:         form.motivo.trim(),
       estado:         'pendiente',
       año_escolar:    yearEscolar || new Date().getFullYear(),
