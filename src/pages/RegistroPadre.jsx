@@ -141,13 +141,20 @@ if (!loginErr) {
     if (authErr) { setError('Error al crear cuenta: ' + authErr.message); setLoading(false); return }
 
     const userId = authData.user?.id
-    if (!userId) { setError('Error inesperado. Intenta de nuevo.'); setLoading(false); return }
+if (!userId) { setError('Error inesperado. Intenta de nuevo.'); setLoading(false); return }
 
-    // Esperar a que el trigger cree el perfil en perfiles
-    await new Promise(r => setTimeout(r, 1200))
+// Esperar a que el trigger cree el perfil en perfiles (con retry)
+let intentos = 0
+let perfilCreado = false
+while (!perfilCreado && intentos < 5) {
+  await new Promise(r => setTimeout(r, 300))
+  const { data } = await supabase.from('perfiles').select('id').eq('id', userId).single()
+  if (data) perfilCreado = true
+  intentos++
+}
 
-    // Upsert perfil con rol padres
-    await supabase.from('perfiles').upsert({
+// Upsert perfil con rol padres (para asegurar)
+await supabase.from('perfiles').upsert({
       id:       userId,
       nombre:   preview.nombre || 'Encargado',
       apellido: '',

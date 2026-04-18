@@ -23,10 +23,20 @@ export function AuthProvider({ children }) {
   }, [])
 
   async function cargarPerfil(userId) {
-    const { data } = await supabase.from('perfiles').select('*').eq('id', userId).single()
+  try {
+    const { data, error } = await supabase.from('perfiles').select('*').eq('id', userId).single()
+    if (error) {
+      console.warn('Perfil no encontrado, esperando trigger:', error.message)
+      setLoading(false)
+      return
+    }
     setPerfil(data || null)
     setLoading(false)
+  } catch(e) {
+    console.error('cargarPerfil error:', e)
+    setLoading(false)
   }
+}
 
   async function login(email, password) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
