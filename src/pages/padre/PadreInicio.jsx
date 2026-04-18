@@ -54,7 +54,7 @@ export default function PadreInicio() {
       { data: notas },
       { data: evts },
     ] = await Promise.all([
-      supabase.from('cobros').select('id, estado').eq('estudiante_id', estId).eq('estado', 'pendiente').neq('anulado', true),
+      supabase.from('cobros').select('id, estado').eq('estudiante_id', estId).eq('estado', 'pendiente'),
       supabase.from('solicitudes').select('id').eq('solicitante_id', perfil.id).eq('estado', 'pendiente'),
       supabase.from('notas').select('nota').eq('estudiante_id', estId).eq('año_escolar', year).eq('tipo', 'ef'),
       supabase.from('eventos_calendario').select('titulo, fecha_inicio, tipo').eq('año_escolar', year).gte('fecha_inicio', new Date().toISOString().split('T')[0]).order('fecha_inicio').limit(4),
