@@ -23,28 +23,25 @@ export function AuthProvider({ children }) {
   }, [])
 
   async function cargarPerfil(userId) {
-  try {
-    // Intentar cargar perfil existente
-    const { data, error } = await supabase
-      .from('perfiles')
-      .select('*')
-      .eq('id', userId)
-      .single()
-    
-    if (error && error.code !== 'PGRST116') {
-      // PGRST116 = no rows found, que es esperado si el trigger aún no corrió
-      console.error('Error inesperado en cargarPerfil:', error.message)
+    try {
+      const { data, error } = await supabase
+        .from('perfiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('[AuthContext] Error cargando perfil:', error.message, error.code)
+      }
+
+      setPerfil(data || null)
+    } catch(e) {
+      console.error('[AuthContext] Exception cargando perfil:', e.message)
+      setPerfil(null)
+    } finally {
+      setLoading(false)
     }
-    
-    setPerfil(data || null)
- 
-  } catch(e) {
-    console.error('cargarPerfil exception:', e.message)
-    setPerfil(null)
-  } finally {
-    setLoading(false)
   }
-}
 
   async function login(email, password) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
