@@ -118,8 +118,9 @@ export default function RegistroPadre() {
 
     // Intentar login primero (cuenta ya podría existir)
     const { error: loginErr } = await supabase.auth.signInWithPassword({ email, password: password.trim() })
-    if (!loginErr) {
-      navigate('/padre/inicio')
+if (!loginErr) {
+  await new Promise(r => setTimeout(r, 500))
+  navigate('/padre/inicio')
       return
     }
 
