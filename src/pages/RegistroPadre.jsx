@@ -112,19 +112,27 @@ export default function RegistroPadre() {
 
   // ── Paso 2: crear cuenta o iniciar sesión ──
   async function handleActivar() {
-    setLoading(true); setError('')
-    const duiClean = duiSinGuion(dui)
-    const email    = preview.email
+  setLoading(true)
+  setError('')
+  const duiClean = duiSinGuion(dui)
+  const email    = preview.email
 
-    // Intentar login primero (cuenta ya podría existir)
-    const { error: loginErr } = await supabase.auth.signInWithPassword({ email, password: password.trim() })
-if (!loginErr) {
-  await new Promise(r => setTimeout(r, 500))
-  navigate('/padre/inicio')
+  try {
+    // Paso 1: Intentar login primero (cuenta ya podría existir)
+    const { error: loginErr, data: loginData } = await supabase.auth.signInWithPassword({ 
+      email, 
+      password: password.trim() 
+    })
+    
+    if (!loginErr && loginData.session) {
+      // Ya tiene cuenta y contraseña es correcta
+      console.log('Login exitoso, cuenta existente')
+      setLoading(false)
+      setStep(3)
       return
     }
 
-    // Crear cuenta nueva en Auth
+    // Paso 2: Crear cuenta nueva
     const { data: authData, error: authErr } = await supabase.auth.signUp({
       email,
       password: password.trim(),
@@ -138,31 +146,65 @@ if (!loginErr) {
       }
     })
 
-    if (authErr) { setError('Error al crear cuenta: ' + authErr.message); setLoading(false); return }
+    if (authErr) { 
+      setError('Error al crear cuenta: ' + authErr.message)
+      setLoading(false)
+      return 
+    }
 
     const userId = authData.user?.id
-if (!userId) { setError('Error inesperado. Intenta de nuevo.'); setLoading(false); return }
+    if (!userId) { 
+      setError('Error inesperado. Intenta de nuevo.')
+      setLoading(false)
+      return 
+    }
 
-// Esperar a que el trigger cree el perfil en perfiles (con retry)
-let intentos = 0
-let perfilCreado = false
-while (!perfilCreado && intentos < 5) {
-  await new Promise(r => setTimeout(r, 300))
-  const { data } = await supabase.from('perfiles').select('id').eq('id', userId).single()
-  if (data) perfilCreado = true
-  intentos++
-}
+    // Paso 3: Esperar a que el trigger cree el perfil (con reintentos)
+    let perfilCreado = false
+    for (let i = 0; i < 6; i++) {
+      await new Promise(r => setTimeout(r, 400))
+      const { data: perfil } = await supabase
+        .from('perfiles')
+        .select('id')
+        .eq('id', userId)
+        .single()
+      if (perfil) {
+        perfilCreado = true
+        break
+      }
+    }
 
-// Upsert perfil con rol padres (para asegurar)
-await supabase.from('perfiles').upsert({
-      id:       userId,
-      nombre:   preview.nombre || 'Encargado',
-      apellido: '',
-      email:    email,
-      rol:      'padres',
-    }, { onConflict: 'id' })
+    // Paso 4: Si el trigger no corrió, crear perfil manualmente
+    if (!perfilCreado) {
+      console.warn('Trigger no corrió, creando perfil manual')
+      const { error: upsertErr } = await supabase.from('perfiles').upsert({
+        id:       userId,
+        nombre:   preview.nombre || 'Encargado',
+        apellido: '',
+        email:    email,
+        rol:      'padres',
+        dui:      duiClean,
+      }, { onConflict: 'id' })
 
-    // Vincular hijos usando UPDATE (unique constraint está en estudiante_id, no en perfil+estudiante)
+      if (upsertErr) {
+        console.error('Error en upsert manual:', upsertErr)
+        // No fallar aquí — continuar con login
+      }
+    }
+
+    // Paso 5: Hacer login para que sesión se establezca
+    const { error: finalLoginErr } = await supabase.auth.signInWithPassword({
+      email,
+      password: password.trim()
+    })
+
+    if (finalLoginErr) {
+      setError('Error al iniciar sesión. Intenta de nuevo.')
+      setLoading(false)
+      return
+    }
+
+    // Paso 6: Vincular hijos
     if (preview.hijos?.length > 0) {
       for (const h of preview.hijos) {
         const { error: e1 } = await supabase.from('padre_estudiante')
@@ -177,7 +219,13 @@ await supabase.from('perfiles').upsert({
 
     setLoading(false)
     setStep(3)
+
+  } catch(e) {
+    console.error('handleActivar exception:', e.message)
+    setError('Hubo un error. Intenta de nuevo.')
+    setLoading(false)
   }
+}
 
   const duiFormateado = formatDui(dui)
 

@@ -24,16 +24,24 @@ export function AuthProvider({ children }) {
 
   async function cargarPerfil(userId) {
   try {
-    const { data, error } = await supabase.from('perfiles').select('*').eq('id', userId).single()
-    if (error) {
-      console.warn('Perfil no encontrado, esperando trigger:', error.message)
-      setLoading(false)
-      return
+    // Intentar cargar perfil existente
+    const { data, error } = await supabase
+      .from('perfiles')
+      .select('*')
+      .eq('id', userId)
+      .single()
+    
+    if (error && error.code !== 'PGRST116') {
+      // PGRST116 = no rows found, que es esperado si el trigger aún no corrió
+      console.error('Error inesperado en cargarPerfil:', error.message)
     }
+    
     setPerfil(data || null)
-    setLoading(false)
+ 
   } catch(e) {
-    console.error('cargarPerfil error:', e)
+    console.error('cargarPerfil exception:', e.message)
+    setPerfil(null)
+  } finally {
     setLoading(false)
   }
 }
