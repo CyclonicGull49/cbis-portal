@@ -89,15 +89,16 @@ export default function RegistroPadre() {
       return
     }
 
-    // Verificar si ya tiene cuenta: intentar login silencioso
+    // Verificar si ya tiene cuenta consultando perfiles directamente
+    // (NO hacer signInWithPassword aquí — causaba race condition con el signOut
+    //  que destruía la sesión del login real en handleActivar)
     const email = `${duiClean}@cbis.padre.sv`
-    const { error: loginCheck } = await supabase.auth.signInWithPassword({
-      email,
-      password: password.trim()
-    })
-    const existe = !loginCheck
-    // Si el login fue exitoso ya está dentro — lo sacamos para que el flujo continúe
-    if (existe) await supabase.auth.signOut()
+    const { data: perfilExistente } = await supabase
+      .from('perfiles')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle()
+    const existe = !!perfilExistente
 
     setPreview({
       nombre:          rows[0].nombre || '',
