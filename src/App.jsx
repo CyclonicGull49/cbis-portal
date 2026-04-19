@@ -6,6 +6,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 
 const RegistroPadre   = lazy(() => import('./pages/RegistroPadre'))
+const ResetPassword   = lazy(() => import('./pages/ResetPassword'))
 const PadreLayout     = lazy(() => import('./pages/padre/PadreLayout'))
 const PadreInicio     = lazy(() => import('./pages/padre/PadreInicio'))
 const PadreNotas      = lazy(() => import('./pages/padre/PadreNotas'))
@@ -18,8 +19,15 @@ function Spinner() {
   return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh', background:'#f4f0fa' }}>
       <div style={{ textAlign:'center' }}>
-        <div style={{ fontSize:40, marginBottom:12 }}>🎓</div>
-        <p style={{ color:'#5B2D8E', fontWeight:700 }}>Cargando CBIS+...</p>
+        <div style={{
+          width: 44, height: 44, margin: '0 auto 14px',
+          border: '3px solid rgba(91, 45, 142, 0.15)',
+          borderTopColor: '#5B2D8E',
+          borderRadius: '50%',
+          animation: 'cbisSpin 0.8s linear infinite',
+        }} />
+        <p style={{ color:'#5B2D8E', fontWeight:700, fontFamily:"'Plus Jakarta Sans', sans-serif" }}>Cargando CBIS+...</p>
+        <style>{`@keyframes cbisSpin { to { transform: rotate(360deg); } }`}</style>
       </div>
     </div>
   )
@@ -56,6 +64,7 @@ function App() {
           <Routes>
             <Route path="/login"          element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/registro-padre" element={<PublicRoute><RegistroPadre /></PublicRoute>} />
+            <Route path="/reset-password" element={<ResetPassword />} />
 
             <Route path="/dashboard" element={
               <RutaProtegida>

@@ -38,9 +38,11 @@ export default function Usuarios() {
   const [grados, setGrados]                 = useState([])
   const [estudiantes, setEstudiantes]       = useState([])
   const [resetando, setResetando]           = useState(null)
+  const [passwordTempPadre, setPasswordTempPadre] = useState(null) // { email, password, nombre }
   const [busquedaUsuarios, setBusquedaUsuarios] = useState('')
   const [paginaStaff, setPaginaStaff]       = useState(1)
   const [paginaAlumnos, setPaginaAlumnos]   = useState(1)
+  const [paginaPadres, setPaginaPadres]     = useState(1)
   const POR_PAGINA = 25
   const [form, setForm] = useState({ nombre: '', apellido: '', email: '', rol: 'recepcion', grado_id: '', estudiante_id: '' })
 
@@ -55,21 +57,55 @@ export default function Usuarios() {
     if (!usuario.email) { toast.error('Este usuario no tiene correo registrado'); return }
     setResetando(usuario.id)
     const { error } = await supabase.auth.resetPasswordForEmail(usuario.email, {
-      redirectTo: `${window.location.origin}/dashboard`,
+      redirectTo: `${window.location.origin}/reset-password`,
     })
     setResetando(null)
     if (error) toast.error('Error al enviar correo')
     else toast.success(`Enlace enviado a ${usuario.email}`)
   }
 
+  async function resetearPasswordPadre(padre) {
+    setResetando(padre.id)
+    const { data, error } = await supabase.rpc('resetear_password_padre', {
+      p_padre_id: padre.id,
+      p_motivo:   'Solicitud de recepción desde panel de usuarios',
+    })
+    setResetando(null)
+    if (error) {
+      toast.error(error.message || 'No se pudo generar contraseña temporal')
+      return
+    }
+    const resultado = Array.isArray(data) ? data[0] : data
+    if (!resultado?.password_temporal) {
+      toast.error('Respuesta inesperada del servidor')
+      return
+    }
+    setPasswordTempPadre({
+      email:    resultado.email,
+      password: resultado.password_temporal,
+      nombre:   resultado.nombre_padre,
+    })
+  }
+
   useEffect(() => { cargarUsuarios(); cargarExtras() }, [])
 
   async function cargarUsuarios() {
     setLoading(true)
-    const { data } = await supabase.from('perfiles')
-      .select('*, grados!perfiles_grado_id_fkey(nombre)')
-      .order('nombre', { ascending: true })
-    setUsuarios(data || [])
+    const [{ data: perfilesData }, { data: vinculos }] = await Promise.all([
+      supabase.from('perfiles')
+        .select('*, grados!perfiles_grado_id_fkey(nombre)')
+        .order('nombre', { ascending: true }),
+      supabase.from('padre_estudiante').select('perfil_id'),
+    ])
+    const conteoHijos = {}
+    for (const v of (vinculos || [])) {
+      conteoHijos[v.perfil_id] = (conteoHijos[v.perfil_id] || 0) + 1
+    }
+    const enriquecidos = (perfilesData || []).map(p => ({
+      ...p,
+      hijos_count: p.rol === 'padres' ? (conteoHijos[p.id] || 0) : undefined,
+    }))
+    setUsuarios(enriquecidos)
     setLoading(false)
   }
 
@@ -198,6 +234,7 @@ export default function Usuarios() {
     docente:             { bg: '#e0f7f6', color: '#0e9490' },
     alumno:              { bg: '#fff0e6', color: '#c2410c' },
     talento_humano:      { bg: '#f0fdf4', color: '#166534' },
+    padres:              { bg: '#e0f7f6', color: '#0e9490' },
   }
 
   const rolLabel = {
@@ -208,10 +245,50 @@ export default function Usuarios() {
     docente:             'Docente',
     alumno:              'Alumno',
     talento_humano:      'Talento Humano',
+    padres:              'Padre/Madre',
   }
 
-  const staff   = usuarios.filter(u => u.rol !== 'alumno')
+  const staff   = usuarios.filter(u => u.rol !== 'alumno' && u.rol !== 'padres')
   const alumnos = usuarios.filter(u => u.rol === 'alumno')
+  const padres  = usuarios.filter(u => u.rol === 'padres')
+
+  function MenuAccionesPadre({ u }) {
+    const [open, setOpen] = useState(false)
+    return (
+      <div style={{ position: 'relative', display: 'inline-block' }}>
+        <button onClick={() => setOpen(v => !v)}
+          style={{ background: '#f4f0fa', border: 'none', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#5B2D8E', fontWeight: 900, fontSize: 16, fontFamily: 'inherit' }}>
+          ···
+        </button>
+        {open && (
+          <>
+            <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 199 }} />
+            <div style={{ position: 'fixed', background: '#fff', borderRadius: 12, boxShadow: '0 8px 32px rgba(61,31,97,0.18)', zIndex: 200, minWidth: 200, border: '1px solid #f0ecf8', overflow: 'hidden' }}
+              ref={el => {
+                if (el) {
+                  const btn = el.previousSibling?.previousSibling
+                  if (btn) {
+                    const rect = btn.getBoundingClientRect()
+                    el.style.top = (rect.bottom + 4) + 'px'
+                    el.style.right = (window.innerWidth - rect.right) + 'px'
+                  }
+                }
+              }}>
+              <button onClick={() => { setOpen(false); resetearPasswordPadre(u) }} disabled={resetando === u.id}
+                style={{ width: '100%', padding: '11px 16px', border: 'none', background: 'none', textAlign: 'left', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#5B2D8E', fontFamily: 'inherit' }}>
+                {resetando === u.id ? 'Generando...' : 'Generar contraseña temporal'}
+              </button>
+              <div style={{ height: 1, background: '#f3eeff', margin: '0 12px' }} />
+              <button onClick={() => { setOpen(false); setModalConfirm({ tipo: 'eliminar', usuario: u }) }}
+                style={{ width: '100%', padding: '11px 16px', border: 'none', background: 'none', textAlign: 'left', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#dc2626', fontFamily: 'inherit' }}>
+                Eliminar
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    )
+  }
 
   function MenuAcciones({ u }) {
     const [open, setOpen] = useState(false)
@@ -256,7 +333,7 @@ export default function Usuarios() {
     )
   }
 
-  function TablaUsuarios({ lista, titulo, colorAcento, pagina, setPagina }) {
+  function TablaUsuarios({ lista, titulo, colorAcento, pagina, setPagina, variant = 'staff' }) {
     if (!lista.length) return null
 
     const filtrada = busquedaUsuarios
@@ -309,6 +386,10 @@ export default function Usuarios() {
                       <span style={{ fontSize: 12, color: '#0e9490', fontWeight: 600, background: '#e0f7f6', padding: '3px 10px', borderRadius: 20 }}>{u.grados.nombre}</span>
                     ) : u.rol === 'alumno' && u.estudiante_id ? (
                       <span style={{ fontSize: 12, color: '#c2410c', fontWeight: 600, background: '#fff0e6', padding: '3px 10px', borderRadius: 20 }}>ID #{u.estudiante_id}</span>
+                    ) : u.rol === 'padres' && u.hijos_count ? (
+                      <span style={{ fontSize: 12, color: '#5B2D8E', fontWeight: 600, background: '#f3eeff', padding: '3px 10px', borderRadius: 20 }}>
+                        {u.hijos_count} {u.hijos_count === 1 ? 'hijo' : 'hijos'}
+                      </span>
                     ) : (
                       <span style={{ color: '#d1d5db', fontSize: 12 }}>—</span>
                     )}
@@ -319,7 +400,7 @@ export default function Usuarios() {
                     </span>
                   </td>
                   <td style={{ ...s.td, textAlign: 'right' }}>
-                    <MenuAcciones u={u} />
+                    {variant === 'padres' ? <MenuAccionesPadre u={u} /> : <MenuAcciones u={u} />}
                   </td>
                 </tr>
               ))}
@@ -389,15 +470,16 @@ export default function Usuarios() {
             </span>
             <input type="text" placeholder="Buscar por nombre o correo..."
               value={busquedaUsuarios}
-              onChange={e => { setBusquedaUsuarios(e.target.value); setPaginaStaff(1); setPaginaAlumnos(1) }}
+              onChange={e => { setBusquedaUsuarios(e.target.value); setPaginaStaff(1); setPaginaAlumnos(1); setPaginaPadres(1) }}
               style={{ width: '100%', padding: '9px 14px 9px 34px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }}
             />
             {busquedaUsuarios && (
               <button onClick={() => setBusquedaUsuarios('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#b0a8c0', fontSize: 16 }}>×</button>
             )}
           </div>
-          <TablaUsuarios lista={staff} titulo="Personal" colorAcento="#5B2D8E" pagina={paginaStaff} setPagina={setPaginaStaff} />
-          <TablaUsuarios lista={alumnos} titulo="Alumnos" colorAcento="#c2410c" pagina={paginaAlumnos} setPagina={setPaginaAlumnos} />
+          <TablaUsuarios lista={staff}   titulo="Personal" colorAcento="#5B2D8E" pagina={paginaStaff}   setPagina={setPaginaStaff}   variant="staff" />
+          <TablaUsuarios lista={alumnos} titulo="Alumnos"  colorAcento="#c2410c" pagina={paginaAlumnos} setPagina={setPaginaAlumnos} variant="staff" />
+          <TablaUsuarios lista={padres}  titulo="Padres"   colorAcento="#0e9490" pagina={paginaPadres}  setPagina={setPaginaPadres}  variant="padres" />
         </>
       )}
 
@@ -619,6 +701,78 @@ export default function Usuarios() {
                 Confirmar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal password temporal padre ── */}
+      {passwordTempPadre && (
+        <div style={{ ...s.modalBg, background: 'rgba(26,13,48,0.72)' }}>
+          <div style={{ ...s.modalBox, maxWidth: 460, textAlign: 'center' }}>
+            <div style={{
+              width: 56, height: 56, margin: '0 auto 16px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #D4A017 0%, #a16207 100%)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff',
+            }}>
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </div>
+            <h2 style={{ ...s.modalTitle, textAlign: 'center', marginBottom: 6 }}>Contraseña temporal generada</h2>
+            <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 18, lineHeight: 1.5 }}>
+              Para <strong style={{ color: '#3d1f61' }}>{passwordTempPadre.nombre}</strong>.
+              Esta contraseña se muestra <strong>una sola vez</strong>. Anótala o cópiala ahora.
+            </p>
+
+            <div style={{
+              background: '#faf8ff',
+              border: '1.5px dashed #5B2D8E',
+              borderRadius: 12,
+              padding: '14px 16px',
+              marginBottom: 16,
+              fontSize: 12, color: '#6b7280', textAlign: 'left',
+            }}>
+              <div style={{ fontWeight: 700, color: '#5B2D8E', fontSize: 10, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 }}>
+                Usuario (DUI)
+              </div>
+              <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 14, color: '#3d1f61', fontWeight: 600, marginBottom: 12 }}>
+                {passwordTempPadre.email}
+              </div>
+              <div style={{ fontWeight: 700, color: '#5B2D8E', fontSize: 10, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 }}>
+                Contraseña temporal
+              </div>
+              <div style={{
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                fontSize: 22, color: '#1a0d30', fontWeight: 800,
+                letterSpacing: 0.5,
+              }}>
+                {passwordTempPadre.password}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => {
+                  navigator.clipboard?.writeText(passwordTempPadre.password)
+                  toast.success('Contraseña copiada')
+                }}
+                style={{ ...s.btnSecondary, flex: 1 }}>
+                Copiar contraseña
+              </button>
+              <button
+                onClick={() => setPasswordTempPadre(null)}
+                style={{ ...s.btnPrimary, flex: 1 }}>
+                Cerrar
+              </button>
+            </div>
+
+            <p style={{ fontSize: 11, color: '#b0a8c0', marginTop: 14, lineHeight: 1.5 }}>
+              Al cerrar este diálogo la contraseña no se podrá recuperar.<br />
+              El padre deberá usarla para su próximo inicio de sesión.
+            </p>
           </div>
         </div>
       )}
