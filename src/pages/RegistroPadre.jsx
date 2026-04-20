@@ -75,19 +75,12 @@ export default function RegistroPadre() {
       return
     }
 
-    // Verificar contraseña: primer apellido + 2026 (sin importar mayúsculas ni apellido compuesto)
-    const passLower = password.trim().toLowerCase()
-    const hijo = rows.find(r => {
-      const primerApellido = (r.apellido || '').trim().split(' ')[0].toLowerCase()
-      const apellidoCompleto = (r.apellido || '').trim().toLowerCase()
-      return passLower === primerApellido + '2026' || passLower === apellidoCompleto + '2026'
-    })
-
-    if (!hijo) {
-      const ejemploApellido = rows[0]?.apellido?.split(' ')[0] || 'García'
-      setError(`Contraseña incorrecta. Usa el primer apellido de tu hijo/a seguido de "2026". Ej: ${ejemploApellido}2026`)
-      return
-    }
+    // NO validar password localmente contra formato hardcodeado.
+    // Dejar que signInWithPassword en handleActivar lo valide contra auth.users.
+    // Esto permite tanto passwords iniciales (apellido2026) como temporales
+    // generadas por la RPC resetear_password_padre.
+    
+    const primerHijo = rows[0] // Solo guardamos para mostrar datos del hijo
 
     // Verificar si ya tiene cuenta consultando perfiles directamente
     // (NO hacer signInWithPassword aquí — causaba race condition con el signOut
@@ -102,8 +95,8 @@ export default function RegistroPadre() {
 
     setPreview({
       nombre:          rows[0].nombre || '',
-      apellido_est:    (hijo.apellido || '').split(' ')[0],
-      nombre_completo: `${hijo.nombre} ${hijo.apellido}`,
+      apellido_est:    (primerHijo.apellido || '').split(' ')[0],
+      nombre_completo: `${primerHijo.nombre} ${primerHijo.apellido}`,
       email,
       existe,
       hijos:           rows,
