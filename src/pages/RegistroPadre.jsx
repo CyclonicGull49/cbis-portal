@@ -133,7 +133,19 @@ export default function RegistroPadre() {
       return
     }
 
-    // Paso 2: Crear cuenta nueva
+    // Si la cuenta YA existe pero el login falló, la password está mal.
+    // NO intentar signUp (daría "User already registered" confuso).
+    // Mostrar mensaje claro con ruta de recuperación.
+    if (preview.existe) {
+      setError(
+        'La contraseña no es correcta. Si la olvidaste, comunícate con ' +
+        'recepción del colegio para que te generen una contraseña temporal.'
+      )
+      setLoading(false)
+      return
+    }
+
+    // Paso 2: Crear cuenta nueva (solo si realmente NO existía)
     const { data: authData, error: authErr } = await supabase.auth.signUp({
       email,
       password: password.trim(),
@@ -148,7 +160,12 @@ export default function RegistroPadre() {
     })
 
     if (authErr) { 
-      setError('Error al crear cuenta: ' + authErr.message)
+      // Red de seguridad: si aún así gotrue dice "User already registered",
+      // significa que hay inconsistencia entre perfiles y auth.users.
+      const msg = authErr.message?.toLowerCase().includes('already')
+        ? 'Esta cuenta ya existe pero la contraseña no coincide. Solicita recuperación en recepción.'
+        : 'Error al crear cuenta: ' + authErr.message
+      setError(msg)
       setLoading(false)
       return 
     }
