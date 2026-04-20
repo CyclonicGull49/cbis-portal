@@ -38,7 +38,6 @@ export default function Usuarios() {
   const [grados, setGrados]                 = useState([])
   const [estudiantes, setEstudiantes]       = useState([])
   const [resetando, setResetando]           = useState(null)
-  const [passwordTempPadre, setPasswordTempPadre] = useState(null) // { email, password, nombre }
   const [busquedaUsuarios, setBusquedaUsuarios] = useState('')
   const [paginaStaff, setPaginaStaff]       = useState(1)
   const [paginaAlumnos, setPaginaAlumnos]   = useState(1)
@@ -64,28 +63,6 @@ export default function Usuarios() {
     else toast.success(`Enlace enviado a ${usuario.email}`)
   }
 
-  async function resetearPasswordPadre(padre) {
-    setResetando(padre.id)
-    const { data, error } = await supabase.rpc('resetear_password_padre', {
-      p_padre_id: padre.id,
-      p_motivo:   'Solicitud de recepción desde panel de usuarios',
-    })
-    setResetando(null)
-    if (error) {
-      toast.error(error.message || 'No se pudo generar contraseña temporal')
-      return
-    }
-    const resultado = Array.isArray(data) ? data[0] : data
-    if (!resultado?.password_temporal) {
-      toast.error('Respuesta inesperada del servidor')
-      return
-    }
-    setPasswordTempPadre({
-      email:    resultado.email,
-      password: resultado.password_temporal,
-      nombre:   resultado.nombre_padre,
-    })
-  }
 
   useEffect(() => { cargarUsuarios(); cargarExtras() }, [])
 
@@ -254,6 +231,13 @@ export default function Usuarios() {
 
   function MenuAccionesPadre({ u }) {
     const [open, setOpen] = useState(false)
+    const [showPassword, setShowPassword] = useState(false)
+
+    // Obtener apellido del primer hijo para mostrar password esperada
+    const primeraContrasena = u.hijos_count > 0 
+      ? '(Solicita a recepción que busque el apellido del hijo)'
+      : '(No tiene hijos vinculados)'
+
     return (
       <div style={{ position: 'relative', display: 'inline-block' }}>
         <button onClick={() => setOpen(v => !v)}
@@ -263,7 +247,7 @@ export default function Usuarios() {
         {open && (
           <>
             <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 199 }} />
-            <div style={{ position: 'fixed', background: '#fff', borderRadius: 12, boxShadow: '0 8px 32px rgba(61,31,97,0.18)', zIndex: 200, minWidth: 200, border: '1px solid #f0ecf8', overflow: 'hidden' }}
+            <div style={{ position: 'fixed', background: '#fff', borderRadius: 12, boxShadow: '0 8px 32px rgba(61,31,97,0.18)', zIndex: 200, minWidth: 220, border: '1px solid #f0ecf8', overflow: 'hidden' }}
               ref={el => {
                 if (el) {
                   const btn = el.previousSibling?.previousSibling
@@ -274,10 +258,18 @@ export default function Usuarios() {
                   }
                 }
               }}>
-              <button onClick={() => { setOpen(false); resetearPasswordPadre(u) }} disabled={resetando === u.id}
+              <button onClick={() => { setShowPassword(!showPassword) }}
                 style={{ width: '100%', padding: '11px 16px', border: 'none', background: 'none', textAlign: 'left', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#5B2D8E', fontFamily: 'inherit' }}>
-                {resetando === u.id ? 'Generando...' : 'Generar contraseña temporal'}
+                {showPassword ? 'Ocultar' : 'Ver'} contraseña esperada
               </button>
+              {showPassword && (
+                <>
+                  <div style={{ height: 1, background: '#f3eeff', margin: '0 12px' }} />
+                  <div style={{ padding: '11px 16px', background: '#faf8ff', fontSize: 12, color: '#6b7280', borderBottom: '1px solid #f3eeff' }}>
+                    {primeraContrasena}
+                  </div>
+                </>
+              )}
               <div style={{ height: 1, background: '#f3eeff', margin: '0 12px' }} />
               <button onClick={() => { setOpen(false); setModalConfirm({ tipo: 'eliminar', usuario: u }) }}
                 style={{ width: '100%', padding: '11px 16px', border: 'none', background: 'none', textAlign: 'left', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#dc2626', fontFamily: 'inherit' }}>
@@ -705,77 +697,6 @@ export default function Usuarios() {
         </div>
       )}
 
-      {/* ── Modal password temporal padre ── */}
-      {passwordTempPadre && (
-        <div style={{ ...s.modalBg, background: 'rgba(26,13,48,0.72)' }}>
-          <div style={{ ...s.modalBox, maxWidth: 460, textAlign: 'center' }}>
-            <div style={{
-              width: 56, height: 56, margin: '0 auto 16px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #D4A017 0%, #a16207 100%)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: '#fff',
-            }}>
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-              </svg>
-            </div>
-            <h2 style={{ ...s.modalTitle, textAlign: 'center', marginBottom: 6 }}>Contraseña temporal generada</h2>
-            <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 18, lineHeight: 1.5 }}>
-              Para <strong style={{ color: '#3d1f61' }}>{passwordTempPadre.nombre}</strong>.
-              Esta contraseña se muestra <strong>una sola vez</strong>. Anótala o cópiala ahora.
-            </p>
-
-            <div style={{
-              background: '#faf8ff',
-              border: '1.5px dashed #5B2D8E',
-              borderRadius: 12,
-              padding: '14px 16px',
-              marginBottom: 16,
-              fontSize: 12, color: '#6b7280', textAlign: 'left',
-            }}>
-              <div style={{ fontWeight: 700, color: '#5B2D8E', fontSize: 10, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 }}>
-                Usuario (DUI)
-              </div>
-              <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 14, color: '#3d1f61', fontWeight: 600, marginBottom: 12 }}>
-                {passwordTempPadre.email}
-              </div>
-              <div style={{ fontWeight: 700, color: '#5B2D8E', fontSize: 10, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 }}>
-                Contraseña temporal
-              </div>
-              <div style={{
-                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-                fontSize: 22, color: '#1a0d30', fontWeight: 800,
-                letterSpacing: 0.5,
-              }}>
-                {passwordTempPadre.password}
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                onClick={() => {
-                  navigator.clipboard?.writeText(passwordTempPadre.password)
-                  toast.success('Contraseña copiada')
-                }}
-                style={{ ...s.btnSecondary, flex: 1 }}>
-                Copiar contraseña
-              </button>
-              <button
-                onClick={() => setPasswordTempPadre(null)}
-                style={{ ...s.btnPrimary, flex: 1 }}>
-                Cerrar
-              </button>
-            </div>
-
-            <p style={{ fontSize: 11, color: '#b0a8c0', marginTop: 14, lineHeight: 1.5 }}>
-              Al cerrar este diálogo la contraseña no se podrá recuperar.<br />
-              El padre deberá usarla para su próximo inicio de sesión.
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
