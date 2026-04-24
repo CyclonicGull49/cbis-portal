@@ -14,6 +14,7 @@ const PadreCobros     = lazy(() => import('./pages/padre/PadreCobros'))
 const PadreDocumentos = lazy(() => import('./pages/padre/PadreDocumentos'))
 const PadreSolicitudes= lazy(() => import('./pages/padre/PadreSolicitudes'))
 const PadreCalendario = lazy(() => import('./pages/padre/PadreCalendario'))
+const DesignPreview   = lazy(() => import('./pages/DesignPreview'))
 
 function Spinner() {
   return (
@@ -85,6 +86,8 @@ function App() {
               <Route path="solicitudes" element={<PadreSolicitudes />} />
               <Route path="calendario"  element={<PadreCalendario />} />
             </Route>
+
+            <Route path="/design-preview" element={<DesignPreview />} />
 
             <Route path="*" element={<Navigate to="/login" />} />
           </Routes>
