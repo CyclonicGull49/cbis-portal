@@ -44,7 +44,7 @@ export default function PadreSolicitudes() {
   const [loading,     setLoading]     = useState(true)
   const [modo,        setModo]        = useState('lista')
   const [guardando,   setGuardando]   = useState(false)
-  const [form,        setForm]        = useState({ tipo:'permiso_ausencia', motivo:'', fecha_cita:'' })
+  const [form,        setForm]        = useState({ tipo:'permiso_ausencia', motivo:'', fecha_cita:'', fecha_evento:'' })
 
   useEffect(() => { if (perfil) cargar() }, [perfil])
 
@@ -61,47 +61,104 @@ export default function PadreSolicitudes() {
 
   async function enviar() {
     if (!form.motivo.trim()) { toast.error('Escribe el motivo de tu solicitud'); return }
+    if (['permiso_ausencia','llegada_tardia'].includes(form.tipo) && !form.fecha_evento) {
+      toast.error('Indica la fecha'); return
+    }
     setGuardando(true)
 
     const esConstancia = CONSTANCIAS.includes(form.tipo)
     const conFecha     = CON_FECHA.includes(form.tipo)
 
-    // 1. Insertar solicitud
+    // 1. Resolver grado del hijo para encontrar encargado
+    let encargadoId = null
+    if (hijoActual?.grado_id) {
+      const { data: grado } = await supabase.from('grados')
+        .select('encargado_id').eq('id', hijoActual.grado_id).single()
+      encargadoId = grado?.encargado_id || null
+    }
+
+    // 2. Insertar solicitud
     const { data: solData, error: solError } = await supabase.from('solicitudes').insert({
-      tipo:           form.tipo,
-      solicitante_id: perfil.id,
-      motivo:         form.motivo.trim(),
-      estado:         'pendiente',
-      año_escolar:    yearEscolar || new Date().getFullYear(),
-      ...(conFecha && form.fecha_cita ? { fecha_cita: form.fecha_cita } : {}),
+      tipo:             form.tipo,
+      solicitante_id:   perfil.id,
+      estudiante_id:    hijoActual?.id || null,
+      grado_id:         hijoActual?.grado_id || null,
+      motivo:           form.motivo.trim(),
+      estado:           'pendiente',
+      año_escolar:      yearEscolar || new Date().getFullYear(),
+      ...(conFecha && form.fecha_cita   ? { fecha_cita:       form.fecha_cita   } : {}),
+      ...(['permiso_ausencia','llegada_tardia'].includes(form.tipo) && form.fecha_evento
+        ? { fecha_asistencia: form.fecha_evento } : {}),
     }).select('id').single()
 
     if (solError) { toast.error('Error al enviar la solicitud'); setGuardando(false); return }
 
-    // 2. Si es constancia → generar cobro de $4
+    // 3. Si es constancia → generar cobro de $4
     if (esConstancia && hijoActual) {
       const { data: concepto } = await supabase.from('conceptos_cobro')
         .select('id').eq('tipo', 'constancia').single()
-
       if (concepto) {
         const vencimiento = new Date()
         vencimiento.setDate(vencimiento.getDate() + 7)
         await supabase.from('cobros').insert({
-          estudiante_id:      hijoActual.id,
-          concepto_id:        concepto.id,
-          monto:              4.00,
-          estado:             'pendiente',
-          year_escolar:       yearEscolar || new Date().getFullYear(),
-          fecha_vencimiento:  vencimiento.toISOString().split('T')[0],
+          estudiante_id:     hijoActual.id,
+          concepto_id:       concepto.id,
+          monto:             4.00,
+          estado:            'pendiente',
+          year_escolar:      yearEscolar || new Date().getFullYear(),
+          fecha_vencimiento: vencimiento.toISOString().split('T')[0],
         })
       }
     }
 
+    // 4. Notificar según tipo
+    // Routing: permiso_ausencia → encargado
+    //          llegada_tardia   → encargado + recepción
+    //          reunion_encargado → encargado
+    //          reunion_direccion → dirección_académica
+    //          constancias      → recepción
+    let rolesDestino = []
+    if (['permiso_ausencia','reunion_encargado'].includes(form.tipo)) {
+      // Solo el encargado del grado
+      if (encargadoId) {
+        await notificarPadre([encargadoId], form.tipo, hijoActual)
+      }
+    } else if (form.tipo === 'llegada_tardia') {
+      rolesDestino = ['recepcion']
+      const { data: recep } = await supabase.from('perfiles').select('id').in('rol', rolesDestino)
+      const ids = [...(recep || []).map(p => p.id), encargadoId].filter(Boolean)
+      await notificarPadre(ids, form.tipo, hijoActual)
+    } else if (form.tipo === 'reunion_direccion') {
+      const { data: dir } = await supabase.from('perfiles').select('id').in('rol', ['direccion_academica','admin'])
+      await notificarPadre((dir || []).map(p => p.id), form.tipo, hijoActual)
+    } else if (esConstancia) {
+      const { data: recep } = await supabase.from('perfiles').select('id').eq('rol', 'recepcion')
+      await notificarPadre((recep || []).map(p => p.id), form.tipo, hijoActual)
+    }
+
     setGuardando(false)
-    toast.success(esConstancia ? 'Solicitud enviada — se generó un cobro de $4.00 en recepción' : 'Solicitud enviada')
-    setForm({ tipo:'permiso_ausencia', motivo:'', fecha_cita:'' })
+    toast.success(esConstancia
+      ? 'Solicitud enviada — se generó un cobro de $4.00 en recepción'
+      : 'Solicitud enviada correctamente')
+    setForm({ tipo:'permiso_ausencia', motivo:'', fecha_cita:'', fecha_evento:'' })
     setModo('lista')
     cargar()
+  }
+
+  async function notificarPadre(ids, tipo, hijo) {
+    if (!ids.length) return
+    const nombreHijo = hijo ? `${hijo.nombre} ${hijo.apellido}` : 'un estudiante'
+    const tipoLabel  = TIPOS.find(t => t.value === tipo)?.label || tipo
+    const lote = ids.map(id => ({
+      usuario_id: id,
+      tipo:       'solicitud',
+      titulo:     `Nueva solicitud: ${tipoLabel}`,
+      mensaje:    `Solicitud de padre/tutor para ${nombreHijo}`,
+      link:       'solicitudes',
+    }))
+    for (let i = 0; i < lote.length; i += 50) {
+      await supabase.from('notificaciones').insert(lote.slice(i, i + 50))
+    }
   }
 
   const tipoMeta      = (tipo) => TIPOS.find(t => t.value === tipo) || { label: tipo }
@@ -146,6 +203,20 @@ export default function PadreSolicitudes() {
               <span style={{ fontSize:12, color:'#92400e', fontWeight:600, lineHeight:1.5 }}>
                 Esta solicitud genera un cobro de <strong>$4.00</strong> que deberá cancelarse en recepción del colegio antes de recibir el documento.
               </span>
+            </div>
+          )}
+
+          {/* Fecha del evento (permiso / tardía) */}
+          {['permiso_ausencia','llegada_tardia'].includes(form.tipo) && (
+            <div style={{ marginBottom:20 }}>
+              <label style={{ display:'block', fontSize:11, fontWeight:700, color:'#6b7280', textTransform:'uppercase', letterSpacing:'1px', marginBottom:8 }}>
+                {form.tipo === 'permiso_ausencia' ? 'Fecha de ausencia' : 'Fecha de llegada tardía'}
+              </label>
+              <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 14px', background:'#f8f7ff', border:'1.5px solid #e9e3ff', borderRadius:11 }}>
+                <IcoCal />
+                <input type="date" value={form.fecha_evento} onChange={e => setForm(f => ({ ...f, fecha_evento: e.target.value }))}
+                  style={{ flex:1, border:'none', outline:'none', background:'transparent', fontSize:14, fontWeight:500, color:'#0f1d40', fontFamily:'inherit' }} />
+              </div>
             </div>
           )}
 
