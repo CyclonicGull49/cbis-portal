@@ -97,9 +97,10 @@ export default function Asistencia() {
   const [guardando,     setGuardando]     = useState(false)
   const [cargando,      setCargando]      = useState(false)
   const [yaGuardado,    setYaGuardado]    = useState(false)
+  const [registradoPor, setRegistradoPor] = useState(null) // nombre del docente que ya guardó
   const [alertas,       setAlertas]       = useState([]) // estudiantes con 3+ ausencias o tardanzas este mes
 
-  const puedeEditar = puedeEditarFecha(fecha, isAdmin)
+  const puedeEditar = puedeEditarFecha(fecha, isAdmin) && (isAdmin || !yaGuardado)
 
   useEffect(() => {
     if (!perfil) return
@@ -119,12 +120,13 @@ export default function Asistencia() {
     if (!gradoId || !fecha) return
     setCargando(true)
     setYaGuardado(false)
+    setRegistradoPor(null)
     setAlertas([])
 
     Promise.all([
       supabase.from('estudiantes').select('id, nombre, apellido')
         .eq('grado_id', parseInt(gradoId)).eq('estado', 'activo').order('apellido'),
-      supabase.from('asistencia').select('estudiante_id, estado, observacion')
+      supabase.from('asistencia').select('estudiante_id, estado, observacion, registrado_por')
         .eq('grado_id', parseInt(gradoId)).eq('fecha', fecha).eq('año_escolar', year),
     ]).then(async ([{ data: ests }, { data: asis }]) => {
       const estList = ests || []
@@ -149,6 +151,13 @@ export default function Asistencia() {
         setAsistencia(asMap)
         setObservaciones(obMap)
         setYaGuardado(true)
+        // Resolver nombre del docente que registró (tomar el primero, todos deberían ser el mismo)
+        const regPorId = asis.find(a => a.registrado_por)?.registrado_por
+        if (regPorId) {
+          const { data: regPerfil } = await supabase.from('perfiles')
+            .select('nombre, apellido').eq('id', regPorId).single()
+          if (regPerfil) setRegistradoPor(`${regPerfil.nombre} ${regPerfil.apellido}`)
+        }
       } else {
         const asMap = {}
         for (const e of estList) {
@@ -327,7 +336,11 @@ export default function Asistencia() {
             {/* Avisos */}
             {yaGuardado && (
               <div style={{ ...s.aviso('#dbeafe', '#1e40af'), marginBottom: 12 }}>
-                <IcoCheck /> Asistencia ya registrada para esta fecha {puedeEditar ? '— puedes modificarla' : ''}
+                <IcoCheck />
+                <span>
+                  Asistencia registrada{registradoPor ? ` por ${registradoPor}` : ''}.
+                  {isAdmin ? ' Como administrador puedes modificarla.' : ' Para hacer cambios solicita una modificación a dirección académica.'}
+                </span>
               </div>
             )}
             {permisosHoy > 0 && !yaGuardado && (
