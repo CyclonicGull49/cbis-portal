@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { useYearEscolar } from '../hooks/useYearEscolar'
@@ -117,6 +118,7 @@ export default function Solicitudes() {
   const { perfil } = useAuth()
   const { yearEscolar } = useYearEscolar()
   const year = yearEscolar || new Date().getFullYear()
+  const location = useLocation()
 
   const esDocente   = perfil?.rol === 'docente'
   const esDireccion = ['admin', 'direccion_academica'].includes(perfil?.rol)
@@ -142,6 +144,24 @@ export default function Solicitudes() {
 
   useEffect(() => { cargar() }, [perfil, year])
   useEffect(() => { if (modalNueva) cargarExtras() }, [modalNueva])
+
+  // Pre-llenar form y abrir modal si viene state desde Notas o Asistencia
+  useEffect(() => {
+    if (!location.state || !perfil) return
+    const st = location.state
+    setForm(f => ({
+      ...f,
+      tipo:             st.tipo             || 'desbloqueo_notas',
+      materia_id:       st.materia_id       || '',
+      grado_id:         st.grado_id         || '',
+      periodo:          st.periodo          || '',
+      estudiante_id:    st.estudiante_id    || '',
+      fecha_asistencia: st.fecha_asistencia || '',
+    }))
+    setModalNueva(true)
+    // Limpiar state para que no re-abra si el usuario recarga
+    window.history.replaceState({}, '', window.location.pathname)
+  }, [location.state, perfil])
 
   async function cargar() {
     setLoading(true)
@@ -411,7 +431,13 @@ export default function Solicitudes() {
       {modalNueva && (
         <div style={s.modalBg} onClick={() => { setModalNueva(false); resetForm() }}>
           <div style={{ ...s.modalBox, maxWidth: 520 }} onClick={e => e.stopPropagation()}>
-            <h2 style={{ color: '#3d1f61', fontSize: 17, fontWeight: 800, marginBottom: 20 }}>Nueva solicitud</h2>
+            <h2 style={{ color: '#3d1f61', fontSize: 17, fontWeight: 800, marginBottom: location.state?._hint ? 8 : 20 }}>Nueva solicitud</h2>
+
+            {location.state?._hint && (
+              <div style={{ background: '#f3eeff', borderRadius: 8, padding: '7px 12px', marginBottom: 16, fontSize: 12, fontWeight: 600, color: '#5B2D8E' }}>
+                {location.state._hint}
+              </div>
+            )}
 
             <div style={s.field}>
               <label style={s.label}>Tipo de solicitud</label>

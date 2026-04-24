@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { useYearEscolar } from '../hooks/useYearEscolar'
@@ -127,6 +128,7 @@ function NotaInput({ value, onChange, onPreview, disabled }) {
 
 export default function Notas({ onVerEstudiante }) {
   const { perfil } = useAuth()
+  const navigate = useNavigate()
   const { yearEscolar } = useYearEscolar()
   const bp = useBreakpoint()
   const isMobile = bp === 'mobile'
@@ -189,17 +191,16 @@ export default function Notas({ onVerEstudiante }) {
   const year = yearEscolar || new Date().getFullYear()
   const { isPeriodoAbierto } = usePeriodosNotas(year)
 
-  // ── Solicitudes ───────────────────────────────────────────
-  const [solicitudes, setSolicitudes]         = useState([])
-  const [modalSolicitud, setModalSolicitud]   = useState(null)
-  const [motivoSolicitud, setMotivoSolicitud] = useState('')
-  const [enviandoSolicitud, setEnviandoSolicitud] = useState(false)
+  // ── Solicitudes — se gestionan desde /solicitudes ─────────
+  // El docente navega a Solicitudes con state pre-llenado.
+  // Para saber si hay desbloqueo activo, consultamos la tabla solicitudes.
+  const [solicitudes, setSolicitudes] = useState([])
 
   async function recargarSolicitudes() {
     if (!esDocenteTambien || !perfil) return
-    const { data } = await supabase.from('solicitudes_desbloqueo')
+    const { data } = await supabase.from('solicitudes')
       .select('materia_id, grado_id, estudiante_id, periodo, estado, abierto_en, cierre_en')
-      .eq('docente_id', perfil.id).eq('año_escolar', year)
+      .eq('solicitante_id', perfil.id).eq('tipo', 'desbloqueo_notas').eq('año_escolar', year)
     setSolicitudes(data || [])
   }
 
@@ -221,6 +222,19 @@ export default function Notas({ onVerEstudiante }) {
     ) || null
   }
 
+  function irASolicitar(matId, periodo, estId, estNombre) {
+    navigate('/solicitudes', {
+      state: {
+        tipo: 'desbloqueo_notas',
+        materia_id: matId,
+        grado_id: String(gradoId),
+        periodo: String(periodo),
+        estudiante_id: String(estId),
+        _hint: `${materias.find(m => m.id === matId)?.nombre} · ${gradoInfo?.nombre} · ${gradoInfo?.nivel === 'bachillerato' ? 'Bimestre' : 'Trimestre'} ${periodo} · ${estNombre}`,
+      }
+    })
+  }
+
   function puedeEditarPeriodo(matId, periodo, estId = null) {
     const nivelGrado = gradoInfo?.nivel
     const abierto = isPeriodoAbierto(nivelGrado, periodo)
@@ -228,25 +242,6 @@ export default function Notas({ onVerEstudiante }) {
     if (estId && isMateriaDesbloqueada(matId, gradoId, periodo, estId)) return true
     if (perfil?.rol === 'registro_academico') return true
     return false
-  }
-
-  async function enviarSolicitud() {
-    if (!motivoSolicitud.trim()) { toast.error('Escribe el motivo'); return }
-    setEnviandoSolicitud(true)
-    const { error } = await supabase.from('solicitudes_desbloqueo').insert({
-      docente_id: perfil.id, materia_id: modalSolicitud.matId,
-      grado_id: gradoId, estudiante_id: modalSolicitud.estId,
-      periodo: modalSolicitud.periodo, año_escolar: year, motivo: motivoSolicitud,
-    })
-    if (error) {
-      if (error.code === '23505') toast.error('Ya tienes una solicitud pendiente para este estudiante')
-      else toast.error('Error al enviar')
-    } else {
-      toast.success('Solicitud enviada a Dirección Académica')
-      setModalSolicitud(null); setMotivoSolicitud('')
-      await recargarSolicitudes()
-    }
-    setEnviandoSolicitud(false)
   }
 
   const componentes    = gradoInfo?.componentes_nota?.split(',') || ['ac', 'ai', 'em', 'ef']
@@ -895,7 +890,7 @@ export default function Notas({ onVerEstudiante }) {
                       {!abierto && (
                         <td style={{ padding: '6px 10px', textAlign: 'center' }}>
                           {sinSolicitud && puedeEditarMateria(materiaId) && (
-                            <button onClick={() => { setModalSolicitud({ matId: materiaId, periodo: periodoTab, estId: est.id, estNombre: `${est.apellido}, ${est.nombre}` }); setMotivoSolicitud('') }}
+                            <button onClick={() => irASolicitar(materiaId, periodoTab, est.id, `${est.apellido}, ${est.nombre}`)}
                               style={{ padding: '4px 10px', borderRadius: 7, border: '1px solid #c9b8e8', background: '#f3eeff', color: '#5B2D8E', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                 <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>
@@ -1404,41 +1399,6 @@ export default function Notas({ onVerEstudiante }) {
         </>
       )}
 
-      {modalSolicitud && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 16 }}
-          onClick={() => setModalSolicitud(null)}>
-          <div style={{ background: '#fff', borderRadius: 16, padding: '28px 24px', width: '100%', maxWidth: 440, fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}
-            onClick={e => e.stopPropagation()}>
-            <h2 style={{ color: '#3d1f61', fontSize: 17, fontWeight: 800, marginBottom: 6 }}>Solicitar desbloqueo</h2>
-            <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 4 }}>
-              {materias.find(m => m.id === modalSolicitud.matId)?.nombre} · {gradoInfo?.nombre} · {periodoLabel} {modalSolicitud.periodo}
-            </p>
-            {modalSolicitud.estNombre && (
-              <p style={{ color: '#5B2D8E', fontSize: 12, fontWeight: 700, marginBottom: 16, background: '#f3eeff', padding: '4px 10px', borderRadius: 8, display: 'inline-block' }}>
-                {modalSolicitud.estNombre}
-              </p>
-            )}
-            <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#5B2D8E', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Motivo *</label>
-            <textarea
-              value={motivoSolicitud}
-              onChange={e => setMotivoSolicitud(e.target.value)}
-              placeholder="Explica por qué necesitas modificar las notas de este período..."
-              rows={3}
-              style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: 13, fontFamily: 'inherit', resize: 'none', boxSizing: 'border-box', marginBottom: 16 }}
-            />
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button onClick={() => setModalSolicitud(null)}
-                style={{ padding: '9px 20px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#555', fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
-                Cancelar
-              </button>
-              <button onClick={enviarSolicitud} disabled={enviandoSolicitud}
-                style={{ padding: '9px 20px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #3d1f61, #5B2D8E)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
-                {enviandoSolicitud ? 'Enviando...' : 'Enviar solicitud'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

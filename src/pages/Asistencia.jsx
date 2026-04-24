@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { useYearEscolar } from '../hooks/useYearEscolar'
@@ -79,6 +80,7 @@ function puedeEditarFecha(fecha, esAdmin) {
 
 export default function Asistencia() {
   const { perfil } = useAuth()
+  const navigate = useNavigate()
   const { yearEscolar } = useYearEscolar()
   const year = yearEscolar || new Date().getFullYear()
   const bp = useBreakpoint()
@@ -335,12 +337,26 @@ export default function Asistencia() {
           <>
             {/* Avisos */}
             {yaGuardado && (
-              <div style={{ ...s.aviso('#dbeafe', '#1e40af'), marginBottom: 12 }}>
-                <IcoCheck />
-                <span>
+              <div style={{ ...s.aviso('#dbeafe', '#1e40af'), marginBottom: 12, justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <IcoCheck />
                   Asistencia registrada{registradoPor ? ` por ${registradoPor}` : ''}.
-                  {isAdmin ? ' Como administrador puedes modificarla.' : ' Para hacer cambios solicita una modificación a dirección académica.'}
+                  {isAdmin ? ' Como administrador puedes modificarla.' : ' Para hacer cambios solicita una modificación.'}
                 </span>
+                {!isAdmin && (
+                  <button
+                    onClick={() => navigate('/solicitudes', {
+                      state: {
+                        tipo: 'modificar_asistencia',
+                        grado_id: String(gradoId),
+                        fecha_asistencia: fecha,
+                        _hint: `${gradoInfo?.nombre} · ${fecha}`,
+                      }
+                    })}
+                    style={{ padding: '5px 14px', borderRadius: 8, border: '1.5px solid #1e40af', background: '#fff', color: '#1e40af', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+                    Solicitar modificación
+                  </button>
+                )}
               </div>
             )}
             {permisosHoy > 0 && !yaGuardado && (
