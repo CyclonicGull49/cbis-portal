@@ -685,7 +685,7 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion, perfil }) {
     setCreandoCuenta(false)
   }
 
-  const puedeSubir = ['admin', 'recepcion', 'registro_academico', 'padre'].includes(perfil?.rol)
+  const puedeSubir = ['admin', 'recepcion', 'registro_academico', 'padres'].includes(perfil?.rol)
   const esAdmin    = perfil?.rol === 'admin'
 
   const tabs = esRecepcion

@@ -156,7 +156,7 @@ function FormCrear({ perfil, onCerrar, onEnviado }) {
         const { data } = await supabase.from('perfiles').select('id').eq('rol', 'docente')
         ids = (data || []).map(p => p.id)
       } else if (para === 'padres') {
-        const { data } = await supabase.from('perfiles').select('id').eq('rol', 'padre')
+        const { data } = await supabase.from('perfiles').select('id').eq('rol', 'padres')
         ids = (data || []).map(p => p.id)
       } else if (para.startsWith('grado_alumnos_')) {
         const gradoId = parseInt(para.replace('grado_alumnos_', ''))
@@ -171,7 +171,7 @@ function FormCrear({ perfil, onCerrar, onEnviado }) {
         const { data: ests } = await supabase.from('estudiantes').select('id').eq('grado_id', gradoId).eq('estado', 'activo')
         const estIds = (ests || []).map(e => e.id)
         if (estIds.length) {
-          const { data } = await supabase.from('perfiles').select('id').eq('rol', 'padre').in('estudiante_id', estIds)
+          const { data } = await supabase.from('perfiles').select('id').eq('rol', 'padres').in('estudiante_id', estIds)
           ids = (data || []).map(p => p.id)
         }
       }
