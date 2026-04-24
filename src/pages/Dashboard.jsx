@@ -3,6 +3,9 @@ import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import Layout from '../components/Layout'
 import Campanita from '../components/Campanita'
+import KpiCardNew from '../components/ui/KpiCard'
+import DistributionBar from '../components/ui/DistributionBar'
+import { t as tokens } from '../theme/tokens'
 
 const Estudiantes  = lazy(() => import('./Estudiantes'))
 const Cobros       = lazy(() => import('./Cobros'))
@@ -345,42 +348,28 @@ function DashboardHome() {
         </div>
       </div>
 
-      {/* Fila 1: Estudiantes + distribución — solo roles que deben verla */}
+      {/* Fila 1: Estudiantes + distribución unificados — NUEVO sistema */}
       {verDistribucion && (
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '220px 1fr', gap: 16, marginBottom: 16 }}>
-          <KpiCard
-            acento
-            icon={<IcoEstudiantes />}
+        <div style={{ marginBottom: 16 }}>
+          <KpiCardNew
+            variant="primary"
+            value={stats.estudiantesActivos}
             label="Estudiantes activos"
-            val={stats.estudiantesActivos}
-            sub={`de ${stats.totalEstudiantes} matriculados`}
-            color="#5B2D8E"
+            sublabel={`de ${stats.totalEstudiantes} matriculados · año escolar ${new Date().getFullYear()}`}
+            accent="bachillerato"
+            loading={loading}
+            distribution={
+              stats.porNivel.length > 0 ? (
+                <DistributionBar
+                  segments={stats.porNivel.map(({ nivel, count }) => {
+                    const cfg = NIVEL_COLOR[nivel] || { bar: '#6b7280', label: nivel }
+                    return { label: cfg.label, value: count, color: cfg.bar }
+                  })}
+                  labelWidth={isMobile ? 110 : 150}
+                />
+              ) : null
+            }
           />
-          <div style={{ background: '#fff', borderRadius: 16, padding: '22px 24px', boxShadow: '0 2px 20px rgba(61,31,97,0.09)' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 16 }}>
-              Distribución por nivel
-            </div>
-            {loading ? (
-              <div style={{ color: '#c4bad4', fontSize: 13 }}>Cargando...</div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(160px, 1fr))', gap: isMobile ? 8 : 12 }}>
-                {stats.porNivel.map(({ nivel, count }) => {
-                  const cfg = NIVEL_COLOR[nivel] || { bg: '#f3f4f6', color: '#6b7280', bar: '#6b7280', label: nivel }
-                  const pct = Math.round((count / stats.maxNivel) * 100)
-                  return (
-                    <div key={nivel} style={{ padding: '12px 14px', background: cfg.bg, borderRadius: 12 }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: cfg.color, marginBottom: 8 }}>{cfg.label}</div>
-                      <div style={{ fontSize: 26, fontWeight: 900, color: cfg.color, lineHeight: 1, marginBottom: 8 }}>{count}</div>
-                      <div style={{ background: 'rgba(0,0,0,0.08)', borderRadius: 100, height: 5, overflow: 'hidden' }}>
-                        <div style={{ width: `${pct}%`, height: '100%', background: cfg.bar, borderRadius: 100, transition: 'width 0.8s ease' }} />
-                      </div>
-                    </div>
-                  )
-                })}
-                {!stats.porNivel.length && <div style={{ color: '#c4bad4', fontSize: 13 }}>Sin datos</div>}
-              </div>
-            )}
-          </div>
         </div>
       )}
 
@@ -400,13 +389,45 @@ function DashboardHome() {
         </div>
       )}
 
-      {/* Fila 2: KPIs finanzas */}
+      {/* Fila 2: KPIs finanzas — NUEVO sistema */}
       {verFinanzas && (
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(200px, 1fr))', gap: isMobile ? 10 : 16, marginBottom: 16 }}>
-          <KpiCard icon={<IcoCobradoHoy />} label="Cobrado hoy"        val={`$${stats.cobradoHoy.toFixed(2)}`}     sub="ingresos del día"                             color="#16a34a" />
-          <KpiCard icon={<IcoMes />}        label="Cobrado este mes"   val={`$${stats.totalMes.toFixed(2)}`}        sub="ingresos del mes"                             color="#D4A017" />
-          <KpiCard icon={<IcoPendiente />}  label="Pendiente de cobro" val={`$${stats.totalPendiente.toFixed(2)}`}  sub={`${stats.cobrosPendientes} cobros pendientes`} color="#c2410c" />
-          <KpiCard icon={<IcoVencidos />}   label="Cobros vencidos"    val={stats.cobrosVencidos}                   sub="requieren atención"                           color="#dc2626" />
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(220px, 1fr))', gap: isMobile ? 10 : 16, marginBottom: 16 }}>
+          <KpiCardNew
+            variant="secondary"
+            value={`$${stats.cobradoHoy.toFixed(2)}`}
+            label="Cobrado hoy"
+            sublabel="ingresos del día"
+            icon={<IcoCobradoHoy />}
+            accent="success"
+            loading={loading}
+          />
+          <KpiCardNew
+            variant="secondary"
+            value={`$${stats.totalMes.toFixed(2)}`}
+            label="Cobrado este mes"
+            sublabel="ingresos del mes"
+            icon={<IcoMes />}
+            accent="gold"
+            loading={loading}
+          />
+          <KpiCardNew
+            variant="secondary"
+            value={`$${stats.totalPendiente.toFixed(2)}`}
+            label="Pendiente de cobro"
+            sublabel={`${stats.cobrosPendientes} cobros pendientes`}
+            icon={<IcoPendiente />}
+            accent="warning"
+            loading={loading}
+          />
+          <KpiCardNew
+            variant="secondary"
+            value={stats.cobrosVencidos}
+            label="Cobros vencidos"
+            sublabel="requieren atención"
+            icon={<IcoVencidos />}
+            accent="error"
+            loading={loading}
+          />
         </div>
       )}
 
