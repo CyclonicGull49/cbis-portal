@@ -796,7 +796,7 @@ export default function Notas({ onVerEstudiante }) {
                     NFT
                     <div style={{ fontSize: 9, opacity: 0.6, fontWeight: 400, marginTop: 2 }}>Este período</div>
                   </th>
-                  {!abierto && <th style={{ ...s.th, minWidth: 100 }}>Solicitud</th>}
+                  {!abierto && <th style={{ ...s.th, minWidth: 100 }}>Estado</th>}
                 </tr>
               </thead>
               <tbody>
@@ -808,7 +808,6 @@ export default function Notas({ onVerEstudiante }) {
                   const solicitudEst = esDocenteTambien ? getSolicitudEstudiante(materiaId, periodoTab, est.id) : null
                   const desbloqueado = isMateriaDesbloqueada(materiaId, gradoId, periodoTab, est.id)
                   const enRevision = solicitudEst && !desbloqueado && !['rechazado','cerrado'].includes(solicitudEst.estado)
-                  const sinSolicitud = !solicitudEst || ['rechazado','cerrado'].includes(solicitudEst.estado)
                   const tienePend = Object.keys(pendingNotas).some(k => k.startsWith(`${est.id}|`) && k.includes(`|${periodoTab}|`)) ||
                                     Object.keys(pendingActs).some(k => k.startsWith(`${est.id}|`) && k.includes(`|${periodoTab}|`))
                   return (
@@ -886,18 +885,9 @@ export default function Notas({ onVerEstudiante }) {
                           {nft !== null ? nft.toFixed(2) : '—'}
                         </span>
                       </td>
-                      {/* Solicitud desbloqueo */}
+                      {/* Estado solicitud desbloqueo — solo lectura, se gestiona desde Solicitudes */}
                       {!abierto && (
                         <td style={{ padding: '6px 10px', textAlign: 'center' }}>
-                          {sinSolicitud && puedeEditarMateria(materiaId) && (
-                            <button onClick={() => irASolicitar(materiaId, periodoTab, est.id, `${est.apellido}, ${est.nombre}`)}
-                              style={{ padding: '4px 10px', borderRadius: 7, border: '1px solid #c9b8e8', background: '#f3eeff', color: '#5B2D8E', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>
-                              </svg>
-                              Solicitar
-                            </button>
-                          )}
                           {enRevision && (
                             <span style={{ fontSize: 11, fontWeight: 700, color: solicitudEst?.estado === 'aprobado' ? '#16a34a' : '#92400e', background: solicitudEst?.estado === 'aprobado' ? '#dcfce7' : '#fef9c3', padding: '4px 10px', borderRadius: 7 }}>
                               {solicitudEst?.estado === 'aprobado' ? 'Aprobada' : 'En revisión'}
