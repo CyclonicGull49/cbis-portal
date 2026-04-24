@@ -103,19 +103,17 @@ export default function Asistencia() {
 
   useEffect(() => {
     if (!perfil) return
-    if (isDocente) {
-      supabase.from('grados').select('id, nombre, nivel, orden')
-        .eq('encargado_id', perfil.id)
-        .then(({ data }) => setGrados(data ? [data[0]].filter(Boolean) : []))
-    } else {
-      supabase.from('grados').select('id, nombre, nivel, orden')
-        .order('orden').then(({ data }) => setGrados(data || []))
-    }
+    supabase.from('grados').select('id, nombre, nivel, orden')
+      .order('orden').then(({ data }) => setGrados(data || []))
   }, [perfil, year])
 
   useEffect(() => {
     if (isDocente && grados.length === 1) setGradoId(String(grados[0].id))
-  }, [grados, isDocente])
+    // Si es docente con grado encargado, pre-seleccionar ese grado para comodidad
+    if (isDocente && perfil?.grado_id && grados.length > 0) {
+      setGradoId(String(perfil.grado_id))
+    }
+  }, [grados, isDocente, perfil])
 
   useEffect(() => {
     if (!gradoId || !fecha) return
@@ -153,7 +151,10 @@ export default function Asistencia() {
         setYaGuardado(true)
       } else {
         const asMap = {}
-        for (const e of estList) asMap[e.id] = pMap[e.id] ? 'justificado' : 'presente'
+        for (const e of estList) {
+          if (pMap[e.id]) asMap[e.id] = 'justificado'
+          // Sin registros previos: estado vacío, el docente debe marcarlo explícitamente
+        }
         const obMap = {}
         for (const e of estList) {
           if (pMap[e.id]) obMap[e.id] = `${TIPO_PERMISO[pMap[e.id].tipo]?.label || 'Permiso'}: ${pMap[e.id].motivo}`
@@ -211,13 +212,15 @@ export default function Asistencia() {
     setGuardando(true)
     const toastId = toast.loading('Guardando asistencia...')
     try {
-      const registros = estudiantes.map(e => ({
-        fecha, estudiante_id: e.id, grado_id: parseInt(gradoId),
-        docente_id: perfil.id, año_escolar: year,
-        estado: asistencia[e.id] || 'presente',
-        observacion: observaciones[e.id] || null,
-        materia_id: null, registrado_por: perfil.id,
-      }))
+      const registros = estudiantes
+        .filter(e => asistencia[e.id]) // solo guardar los que tienen estado marcado
+        .map(e => ({
+          fecha, estudiante_id: e.id, grado_id: parseInt(gradoId),
+          docente_id: perfil.id, año_escolar: year,
+          estado: asistencia[e.id],
+          observacion: observaciones[e.id] || null,
+          materia_id: null, registrado_por: perfil.id,
+        }))
       const { error } = await supabase.from('asistencia')
         .upsert(registros, { onConflict: 'estudiante_id,fecha' })
       if (error) throw error
@@ -233,6 +236,7 @@ export default function Asistencia() {
   const resumen = ESTADOS.map(e => ({
     ...e, count: Object.values(asistencia).filter(v => v === e.value).length,
   }))
+  const sinMarcar = estudiantes.filter(e => !asistencia[e.id]).length
   const gradoInfo    = grados.find(g => g.id === parseInt(gradoId))
   const permisosHoy  = Object.keys(permisosMap).length
   const mesNombre    = new Date(fecha + 'T12:00:00').toLocaleDateString('es-SV', { month: 'long' })
@@ -375,8 +379,8 @@ export default function Asistencia() {
                   </thead>
                   <tbody>
                     {estudiantes.map((est, idx) => {
-                      const estadoActual = asistencia[est.id] || 'presente'
-                      const info         = estadoInfo(estadoActual)
+                      const estadoActual = asistencia[est.id] || null
+                      const info         = estadoActual ? estadoInfo(estadoActual) : { dot: '#d1d5db', bg: 'transparent', color: '#9ca3af' }
                       const permiso      = permisosMap[est.id]
                       const tieneAlerta  = alertas.some(a => a.estudiante.id === est.id)
                       return (
@@ -423,11 +427,11 @@ export default function Asistencia() {
                           })}
                           <td style={s.td}>
                             <input type="text"
-                              placeholder={estadoActual !== 'presente' ? 'Motivo...' : ''}
+                              placeholder={estadoActual && estadoActual !== 'presente' ? 'Motivo...' : ''}
                               value={observaciones[est.id] || ''}
                               onChange={e => puedeEditar && setObservaciones(prev => ({ ...prev, [est.id]: e.target.value }))}
                               disabled={!puedeEditar}
-                              style={{ width: '100%', padding: '5px 8px', borderRadius: 6, border: '1px solid #e5e7eb', fontSize: 12, fontFamily: 'inherit', background: estadoActual !== 'presente' ? '#fffbeb' : '#fff', cursor: puedeEditar ? 'text' : 'not-allowed' }} />
+                              style={{ width: '100%', padding: '5px 8px', borderRadius: 6, border: '1px solid #e5e7eb', fontSize: 12, fontFamily: 'inherit', background: estadoActual && estadoActual !== 'presente' ? '#fffbeb' : '#fff', cursor: puedeEditar ? 'text' : 'not-allowed' }} />
                           </td>
                         </tr>
                       )
@@ -439,7 +443,7 @@ export default function Asistencia() {
               /* Tarjetas móvil */
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {estudiantes.map(est => {
-                  const estadoActual = asistencia[est.id] || 'presente'
+                  const estadoActual = asistencia[est.id] || null
                   const permiso      = permisosMap[est.id]
                   const tieneAlerta  = alertas.some(a => a.estudiante.id === est.id)
                   return (
@@ -456,7 +460,7 @@ export default function Asistencia() {
                             </span>
                           )}
                         </div>
-                        <span style={{ width: 10, height: 10, borderRadius: '50%', background: estadoInfo(estadoActual).dot, display: 'inline-block', marginTop: 4 }} />
+                        <span style={{ width: 10, height: 10, borderRadius: '50%', background: estadoActual ? estadoInfo(estadoActual).dot : '#d1d5db', display: 'inline-block', marginTop: 4 }} />
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6, marginBottom: 8 }}>
                         {ESTADOS.map(e => (
@@ -468,7 +472,7 @@ export default function Asistencia() {
                           </button>
                         ))}
                       </div>
-                      {estadoActual !== 'presente' && (
+                      {estadoActual && estadoActual !== 'presente' && (
                         <input type="text" placeholder="Motivo u observación..."
                           value={observaciones[est.id] || ''}
                           onChange={e => puedeEditar && setObservaciones(prev => ({ ...prev, [est.id]: e.target.value }))}
@@ -483,7 +487,12 @@ export default function Asistencia() {
 
             {/* Guardar */}
             {puedeEditar && (
-              <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
+              <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                {sinMarcar > 0 && (
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#b45309', background: '#fef3c7', padding: '6px 12px', borderRadius: 8 }}>
+                    {sinMarcar} estudiante{sinMarcar !== 1 ? 's' : ''} sin marcar
+                  </span>
+                )}
                 <button onClick={guardar} disabled={guardando}
                   style={{ padding: '12px 32px', background: guardando ? '#e5e7eb' : 'linear-gradient(135deg, #3d1f61, #5B2D8E)', color: guardando ? '#9ca3af' : '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 800, cursor: guardando ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 8 }}>
                   {guardando ? (
