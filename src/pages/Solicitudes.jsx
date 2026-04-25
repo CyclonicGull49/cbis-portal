@@ -242,7 +242,37 @@ export default function Solicitudes() {
     }).eq('id', s.id)
     if (error) { toast.error('Error'); setProcesando(null); return }
 
-    // Notificar al docente solicitante
+    if (accion === 'aprobar') {
+      // permiso_ausencia → marcar asistencia como justificado
+      if (s.tipo === 'permiso_ausencia' && s.estudiante_id && s.fecha_asistencia) {
+        await supabase.from('asistencia').upsert({
+          estudiante_id: s.estudiante_id,
+          grado_id:      s.grado_id,
+          fecha:         s.fecha_asistencia,
+          estado:        'justificado',
+          año_escolar:   s.año_escolar,
+          registrado_por: perfil.id,
+          observacion:   `Permiso aprobado por ${perfil.nombre} ${perfil.apellido}`,
+        }, { onConflict: 'estudiante_id,fecha,grado_id' })
+      }
+
+      // permiso_ausencia con retiro → notificar recepción con detalle completo
+      if (s.tipo === 'permiso_ausencia' && s.motivo?.includes('[RETIRO]')) {
+        const { data: recepPerfiles } = await supabase.from('perfiles').select('id').eq('rol', 'recepcion')
+        const idsRecep = (recepPerfiles || []).map(p => p.id)
+        if (idsRecep.length) {
+          const nombreEst = s.estudiantes ? `${s.estudiantes.nombre} ${s.estudiantes.apellido}` : `Estudiante #${s.estudiante_id}`
+          const aprobadoPor = `${perfil.nombre} ${perfil.apellido}`
+          await notificar(idsRecep, 'retiro',
+            `Retiro autorizado: ${nombreEst}`,
+            `${s.motivo.replace('\n[RETIRO]', ' —')} | Aprobado por: ${aprobadoPor}`,
+            'solicitudes'
+          )
+        }
+      }
+    }
+
+    // Notificar al solicitante
     if (s.solicitante_id) {
       const tipoLabel = TIPOS[s.tipo]?.label || s.tipo
       await notificar(
@@ -254,7 +284,7 @@ export default function Solicitudes() {
       )
     }
 
-    toast.success(accion === 'aprobar' ? 'Solicitud aprobada — docente notificado' : 'Solicitud rechazada — docente notificado')
+    toast.success(accion === 'aprobar' ? 'Solicitud aprobada' : 'Solicitud rechazada')
     setModalRespuesta(null); setRespuesta(''); setModalDetalle(null); cargar()
     setProcesando(null)
   }
@@ -272,6 +302,29 @@ export default function Solicitudes() {
     setProcesando(s.id)
     await supabase.from('solicitudes').update({ estado: 'cerrado', cierre_en: new Date().toISOString() }).eq('id', s.id)
     toast.success('Materia cerrada'); cargar(); setProcesando(null)
+  }
+
+  async function confirmarRetiro(s) {
+    setProcesando(s.id)
+    const horaRetiro = new Date().toLocaleTimeString('es-SV', { hour:'2-digit', minute:'2-digit' })
+    const respActual = s.respuesta || ''
+    const { error } = await supabase.from('solicitudes').update({
+      estado:         'cerrado',
+      respuesta:      `${respActual ? respActual + ' | ' : ''}Retiro confirmado por recepción a las ${horaRetiro}`,
+      respondido_por: perfil.id,
+      respondido_en:  new Date().toISOString(),
+    }).eq('id', s.id)
+    if (error) { toast.error('Error al confirmar retiro'); setProcesando(null); return }
+    // Notificar al solicitante (padre)
+    if (s.solicitante_id) {
+      await notificar([s.solicitante_id], 'solicitud_aprobada',
+        'Retiro confirmado',
+        `Recepción confirmó el retiro de su hijo/a a las ${horaRetiro}`,
+        'solicitudes'
+      )
+    }
+    toast.success(`Retiro confirmado — ${horaRetiro}`)
+    setModalDetalle(null); cargar(); setProcesando(null)
   }
 
   function resetForm() {
@@ -367,6 +420,12 @@ export default function Solicitudes() {
               <button onClick={() => abrirMateria(s)} disabled={procesando === s.id}
                 style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 14px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #3d1f61, #5B2D8E)', color: '#fff', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
                 <IcoUnlock /> Abrir 12h
+              </button>
+            )}
+            {esRegistro && s.tipo === 'permiso_ausencia' && s.motivo?.includes('[RETIRO]') && s.estado === 'aprobado' && (
+              <button onClick={() => confirmarRetiro(s)} disabled={procesando === s.id}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 14px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #c2410c, #ea580c)', color: '#fff', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
+                <IcoCheck /> Confirmar retiro
               </button>
             )}
             {esRegistro && abierta && (
@@ -605,6 +664,12 @@ export default function Solicitudes() {
                       <button onClick={() => { abrirMateria(modalDetalle); setModalDetalle(null) }}
                         style={{ ...s.btnPrimary, display: 'flex', alignItems: 'center', gap: 4 }}>
                         <IcoUnlock /> Abrir 12h
+                      </button>
+                    )}
+                    {esRegistro && modalDetalle.tipo === 'permiso_ausencia' && modalDetalle.motivo?.includes('[RETIRO]') && modalDetalle.estado === 'aprobado' && (
+                      <button onClick={() => confirmarRetiro(modalDetalle)}
+                        style={{ ...s.btnPrimary, background: 'linear-gradient(135deg, #c2410c, #ea580c)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <IcoCheck /> Confirmar retiro
                       </button>
                     )}
                     {esRegistro && abierta && (

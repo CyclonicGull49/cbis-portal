@@ -44,7 +44,10 @@ export default function PadreSolicitudes() {
   const [loading,     setLoading]     = useState(true)
   const [modo,        setModo]        = useState('lista')
   const [guardando,   setGuardando]   = useState(false)
-  const [form,        setForm]        = useState({ tipo:'permiso_ausencia', motivo:'', fecha_cita:'', fecha_evento:'' })
+  const [form, setForm] = useState({
+    tipo: 'permiso_ausencia', motivo: '', fecha_cita: '', fecha_evento: '',
+    es_retiro: false, retira_nombre: '', retira_dui: '',
+  })
 
   useEffect(() => { if (perfil) cargar() }, [perfil])
 
@@ -64,6 +67,8 @@ export default function PadreSolicitudes() {
     if (['permiso_ausencia','llegada_tardia'].includes(form.tipo) && !form.fecha_evento) {
       toast.error('Indica la fecha'); return
     }
+    if (form.es_retiro && !form.retira_nombre.trim()) { toast.error('Indica el nombre de quien retirará al estudiante'); return }
+    if (form.es_retiro && !form.retira_dui.trim())    { toast.error('Indica el DUI de quien retirará al estudiante'); return }
     setGuardando(true)
 
     const esConstancia = CONSTANCIAS.includes(form.tipo)
@@ -77,13 +82,18 @@ export default function PadreSolicitudes() {
       encargadoId = grado?.encargado_id || null
     }
 
+    // Datos de retiro se agregan al motivo para respaldo en el registro
+    const motivoFinal = form.es_retiro
+      ? `${form.motivo.trim()}\n[RETIRO] Retira: ${form.retira_nombre.trim()} · DUI: ${form.retira_dui.trim()}`
+      : form.motivo.trim()
+
     // 2. Insertar solicitud
     const { data: solData, error: solError } = await supabase.from('solicitudes').insert({
       tipo:             form.tipo,
       solicitante_id:   perfil.id,
       estudiante_id:    hijoActual?.id || null,
       grado_id:         hijoActual?.grado_id || null,
-      motivo:           form.motivo.trim(),
+      motivo:           motivoFinal,
       estado:           'pendiente',
       año_escolar:      yearEscolar || new Date().getFullYear(),
       ...(conFecha && form.fecha_cita   ? { fecha_cita:       form.fecha_cita   } : {}),
@@ -112,17 +122,9 @@ export default function PadreSolicitudes() {
     }
 
     // 4. Notificar según tipo
-    // Routing: permiso_ausencia → encargado
-    //          llegada_tardia   → encargado + recepción
-    //          reunion_encargado → encargado
-    //          reunion_direccion → dirección_académica
-    //          constancias      → recepción
     let rolesDestino = []
     if (['permiso_ausencia','reunion_encargado'].includes(form.tipo)) {
-      // Solo el encargado del grado
-      if (encargadoId) {
-        await notificarPadre([encargadoId], form.tipo, hijoActual)
-      }
+      if (encargadoId) await notificarPadre([encargadoId], form.tipo, hijoActual)
     } else if (form.tipo === 'llegada_tardia') {
       rolesDestino = ['recepcion']
       const { data: recep } = await supabase.from('perfiles').select('id').in('rol', rolesDestino)
@@ -139,8 +141,10 @@ export default function PadreSolicitudes() {
     setGuardando(false)
     toast.success(esConstancia
       ? 'Solicitud enviada — se generó un cobro de $4.00 en recepción'
-      : 'Solicitud enviada correctamente')
-    setForm({ tipo:'permiso_ausencia', motivo:'', fecha_cita:'', fecha_evento:'' })
+      : form.es_retiro
+        ? 'Solicitud de retiro enviada — esperando aprobación del encargado'
+        : 'Solicitud enviada correctamente')
+    setForm({ tipo:'permiso_ausencia', motivo:'', fecha_cita:'', fecha_evento:'', es_retiro:false, retira_nombre:'', retira_dui:'' })
     setModo('lista')
     cargar()
   }
@@ -216,6 +220,56 @@ export default function PadreSolicitudes() {
                 <IcoCal />
                 <input type="date" value={form.fecha_evento} onChange={e => setForm(f => ({ ...f, fecha_evento: e.target.value }))}
                   style={{ flex:1, border:'none', outline:'none', background:'transparent', fontSize:14, fontWeight:500, color:'#0f1d40', fontFamily:'inherit' }} />
+              </div>
+            </div>
+          )}
+
+          {/* Checkbox retiro anticipado — solo para permiso_ausencia */}
+          {form.tipo === 'permiso_ausencia' && (
+            <div style={{ marginBottom: form.es_retiro ? 0 : 20 }}>
+              <label style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', userSelect:'none', padding:'12px 14px', background: form.es_retiro ? '#fff7ed' : '#f8f7ff', border:`1.5px solid ${form.es_retiro ? '#fed7aa' : '#e9e3ff'}`, borderRadius:11, transition:'all 0.15s' }}>
+                <input
+                  type="checkbox"
+                  checked={form.es_retiro}
+                  onChange={e => setForm(f => ({ ...f, es_retiro: e.target.checked, retira_nombre:'', retira_dui:'' }))}
+                  style={{ width:16, height:16, accentColor:'#5B2D8E', cursor:'pointer' }}
+                />
+                <div>
+                  <div style={{ fontSize:13, fontWeight:700, color: form.es_retiro ? '#c2410c' : '#0f1d40' }}>El estudiante será retirado anticipadamente</div>
+                  <div style={{ fontSize:11, color:'#9ca3af', marginTop:2 }}>Requiere aprobación del encargado. Recepción será notificada.</div>
+                </div>
+              </label>
+            </div>
+          )}
+
+          {/* Datos de quien retira */}
+          {form.es_retiro && (
+            <div style={{ marginBottom:20, padding:'16px 14px', background:'#fff7ed', border:'1.5px solid #fed7aa', borderRadius:11, marginTop:10 }}>
+              <div style={{ fontSize:11, fontWeight:700, color:'#c2410c', textTransform:'uppercase', letterSpacing:'1px', marginBottom:12 }}>Datos de quien retira</div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                <div>
+                  <label style={{ display:'block', fontSize:11, fontWeight:600, color:'#6b7280', marginBottom:6 }}>Nombre completo</label>
+                  <input
+                    type="text"
+                    placeholder="Ej: María García"
+                    value={form.retira_nombre}
+                    onChange={e => setForm(f => ({ ...f, retira_nombre: e.target.value }))}
+                    style={{ width:'100%', padding:'10px 12px', background:'#fff', border:'1.5px solid #fed7aa', borderRadius:9, fontSize:13, fontFamily:'inherit', outline:'none', boxSizing:'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display:'block', fontSize:11, fontWeight:600, color:'#6b7280', marginBottom:6 }}>DUI</label>
+                  <input
+                    type="text"
+                    placeholder="00000000-0"
+                    value={form.retira_dui}
+                    onChange={e => setForm(f => ({ ...f, retira_dui: e.target.value }))}
+                    style={{ width:'100%', padding:'10px 12px', background:'#fff', border:'1.5px solid #fed7aa', borderRadius:9, fontSize:13, fontFamily:'inherit', outline:'none', boxSizing:'border-box' }}
+                  />
+                </div>
+              </div>
+              <div style={{ fontSize:11, color:'#92400e', marginTop:10, fontWeight:500 }}>
+                Si es el padre o madre quien retira, igualmente debe completar estos campos.
               </div>
             </div>
           )}
