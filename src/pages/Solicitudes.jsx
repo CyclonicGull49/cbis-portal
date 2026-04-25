@@ -376,7 +376,13 @@ export default function Solicitudes() {
                 {s.grados && <span style={{ fontWeight: 500, color: '#6b7280' }}> · {s.grados.nombre}</span>}
               </div>
             )}
-            {s.tipo === 'cita_padres' && (
+            {s.tipo === 'permiso_ausencia' && (
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#3d1f61', marginBottom: 4 }}>
+                {s.estudiantes ? `${s.estudiantes.apellido}, ${s.estudiantes.nombre}` : ''}
+                {s.fecha_asistencia && <span style={{ fontWeight: 500, color: '#6b7280' }}> · {new Date(s.fecha_asistencia + 'T12:00:00').toLocaleDateString('es-SV', { day: 'numeric', month: 'short' })}</span>}
+                {s.motivo?.includes('[RETIRO]') && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, color: '#c2410c', background: '#fff7ed', padding: '1px 7px', borderRadius: 6 }}>Retiro</span>}
+              </div>
+            )}
               <div style={{ fontSize: 13, fontWeight: 700, color: '#3d1f61', marginBottom: 4 }}>
                 {s.estudiantes ? `${s.estudiantes.apellido}, ${s.estudiantes.nombre}` : 'Cita con padres'}
                 {s.grados && <span style={{ fontWeight: 500, color: '#6b7280' }}> · {s.grados.nombre}</span>}
@@ -622,6 +628,18 @@ export default function Solicitudes() {
                     {modalDetalle.estudiantes && <div style={{ fontSize: 12, marginBottom: 4 }}><b>Estudiante:</b> {modalDetalle.estudiantes.apellido}, {modalDetalle.estudiantes.nombre}</div>}
                     {modalDetalle.fecha_asistencia && <div style={{ fontSize: 12, marginBottom: 4 }}><b>Fecha asistencia:</b> {new Date(modalDetalle.fecha_asistencia + 'T12:00:00').toLocaleDateString('es-SV', { weekday: 'long', day: 'numeric', month: 'long' })}</div>}
                     {modalDetalle.fecha_permiso && <div style={{ fontSize: 12, marginBottom: 4 }}><b>Fecha permiso:</b> {new Date(modalDetalle.fecha_permiso + 'T12:00:00').toLocaleDateString('es-SV', { weekday: 'long', day: 'numeric', month: 'long' })}</div>}
+                    {modalDetalle.tipo === 'permiso_ausencia' && modalDetalle.estudiantes && (
+                      <div style={{ fontSize: 12, marginBottom: 4 }}><b>Estudiante:</b> {modalDetalle.estudiantes.apellido}, {modalDetalle.estudiantes.nombre}</div>
+                    )}
+                    {modalDetalle.tipo === 'permiso_ausencia' && modalDetalle.motivo?.includes('[RETIRO]') && (() => {
+                      const lineaRetiro = modalDetalle.motivo.split('\n').find(l => l.startsWith('[RETIRO]'))
+                      return lineaRetiro ? (
+                        <div style={{ marginTop: 8, padding: '8px 12px', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 8, fontSize: 12 }}>
+                          <div style={{ fontWeight: 700, color: '#c2410c', marginBottom: 4 }}>Retiro anticipado</div>
+                          <div style={{ color: '#7c2d12' }}>{lineaRetiro.replace('[RETIRO] ', '')}</div>
+                        </div>
+                      ) : null
+                    })()}
                     {canManage && <div style={{ fontSize: 12, marginBottom: 4 }}><b>Solicitado por:</b> {modalDetalle.solicitante?.nombre} {modalDetalle.solicitante?.apellido}</div>}
                     <div style={{ fontSize: 12 }}><b>Fecha:</b> {formatFecha(modalDetalle.creado_en)}</div>
                   </div>
