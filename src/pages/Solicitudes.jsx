@@ -79,10 +79,17 @@ function TipoIcono({ tipo, size = 16 }) {
 }
 
 const TIPOS = {
-  desbloqueo_notas:     { label: 'Desbloqueo de notas',  color: '#5B2D8E', bg: '#f3eeff' },
-  modificar_asistencia: { label: 'Modificar asistencia', color: '#0e9490', bg: '#e0f7f6' },
-  cita_padres:          { label: 'Cita con padres',      color: '#d97706', bg: '#fffbeb' },
-  permiso_personal:     { label: 'Permiso personal',     color: '#be185d', bg: '#fdf2f8' },
+  desbloqueo_notas:     { label: 'Desbloqueo de notas',    color: '#5B2D8E', bg: '#f3eeff' },
+  modificar_asistencia: { label: 'Modificar asistencia',   color: '#0e9490', bg: '#e0f7f6' },
+  cita_padres:          { label: 'Cita con padres',        color: '#d97706', bg: '#fffbeb' },
+  permiso_personal:     { label: 'Permiso personal',       color: '#be185d', bg: '#fdf2f8' },
+  permiso_ausencia:     { label: 'Permiso de ausencia',    color: '#2563eb', bg: '#eff6ff' },
+  llegada_tardia:       { label: 'Llegada tardía',         color: '#d97706', bg: '#fffbeb' },
+  retiro_anticipado:    { label: 'Retiro anticipado',      color: '#c2410c', bg: '#fff7ed' },
+  reunion_encargado:    { label: 'Reunión con encargado',  color: '#0e9490', bg: '#e0f7f6' },
+  reunion_direccion:    { label: 'Reunión con dirección',  color: '#5B2D8E', bg: '#f3eeff' },
+  constancia_pago:      { label: 'Constancia de pago',     color: '#16a34a', bg: '#f0fdf4' },
+  constancia_estudio:   { label: 'Constancia de estudio',  color: '#16a34a', bg: '#f0fdf4' },
 }
 
 const ESTADOS = {
@@ -133,6 +140,8 @@ export default function Solicitudes() {
   const [modalDetalle,   setModalDetalle]   = useState(null)
   const [modalRespuesta, setModalRespuesta] = useState(null)
   const [respuesta,      setRespuesta]      = useState('')
+  const [reunionFecha,   setReunionFecha]   = useState('')
+  const [reunionHora,    setReunionHora]    = useState('')
   const [guardando,      setGuardando]      = useState(false)
   const [materias,       setMaterias]       = useState([])
   const [grados,         setGrados]         = useState([])
@@ -235,10 +244,20 @@ export default function Solicitudes() {
     const s = modalRespuesta?.solicitud
     if (!s) return
     if (accion === 'rechazar' && !respuesta.trim()) { toast.error('Escribe el motivo del rechazo'); return }
+    const esReunion = ['reunion_encargado','reunion_direccion'].includes(s.tipo)
+    if (accion === 'aprobar' && esReunion && (!reunionFecha || !reunionHora)) {
+      toast.error('Indica la fecha y hora de la reunión'); return
+    }
+
+    // Para reuniones, la respuesta incluye fecha+hora confirmadas
+    const respuestaFinal = esReunion && accion === 'aprobar'
+      ? `Reunión agendada para el ${new Date(reunionFecha + 'T12:00:00').toLocaleDateString('es-SV', { weekday:'long', day:'numeric', month:'long' })} a las ${reunionHora}${respuesta.trim() ? '. ' + respuesta.trim() : ''}`
+      : respuesta.trim() || null
+
     setProcesando(s.id)
     const { error } = await supabase.from('solicitudes').update({
       estado: accion === 'aprobar' ? 'aprobado' : 'rechazado',
-      respuesta: respuesta.trim() || null, respondido_por: perfil.id, respondido_en: new Date().toISOString(),
+      respuesta: respuestaFinal, respondido_por: perfil.id, respondido_en: new Date().toISOString(),
     }).eq('id', s.id)
     if (error) { toast.error('Error'); setProcesando(null); return }
 
@@ -256,16 +275,17 @@ export default function Solicitudes() {
         }, { onConflict: 'estudiante_id,fecha,grado_id' })
       }
 
-      // permiso_ausencia con retiro → notificar recepción con detalle completo
-      if (s.tipo === 'permiso_ausencia' && s.motivo?.includes('[RETIRO]')) {
+      // retiro_anticipado → notificar recepción con detalle
+      if (s.tipo === 'retiro_anticipado') {
         const { data: recepPerfiles } = await supabase.from('perfiles').select('id').eq('rol', 'recepcion')
         const idsRecep = (recepPerfiles || []).map(p => p.id)
         if (idsRecep.length) {
-          const nombreEst = s.estudiantes ? `${s.estudiantes.nombre} ${s.estudiantes.apellido}` : `Estudiante #${s.estudiante_id}`
+          const nombreEst  = s.estudiantes ? `${s.estudiantes.nombre} ${s.estudiantes.apellido}` : `Estudiante #${s.estudiante_id}`
           const aprobadoPor = `${perfil.nombre} ${perfil.apellido}`
+          const lineaRetiro = s.motivo?.split('\n').find(l => l.startsWith('[RETIRO]'))?.replace('[RETIRO] ','') || ''
           await notificar(idsRecep, 'retiro',
             `Retiro autorizado: ${nombreEst}`,
-            `${s.motivo.replace('\n[RETIRO]', ' —')} | Aprobado por: ${aprobadoPor}`,
+            `${lineaRetiro} | Aprobado por: ${aprobadoPor}`,
             'solicitudes'
           )
         }
@@ -285,7 +305,8 @@ export default function Solicitudes() {
     }
 
     toast.success(accion === 'aprobar' ? 'Solicitud aprobada' : 'Solicitud rechazada')
-    setModalRespuesta(null); setRespuesta(''); setModalDetalle(null); cargar()
+    setModalRespuesta(null); setRespuesta(''); setReunionFecha(''); setReunionHora('')
+    setModalDetalle(null); cargar()
     setProcesando(null)
   }
 
@@ -428,7 +449,7 @@ export default function Solicitudes() {
                 <IcoUnlock /> Abrir 12h
               </button>
             )}
-            {esRegistro && s.tipo === 'permiso_ausencia' && s.motivo?.includes('[RETIRO]') && s.estado === 'aprobado' && (
+            {esRegistro && s.tipo === 'retiro_anticipado' && s.estado === 'aprobado' && (
               <button onClick={() => confirmarRetiro(s)} disabled={procesando === s.id}
                 style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 14px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #c2410c, #ea580c)', color: '#fff', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
                 <IcoCheck /> Confirmar retiro
@@ -631,11 +652,11 @@ export default function Solicitudes() {
                     {modalDetalle.tipo === 'permiso_ausencia' && modalDetalle.estudiantes && (
                       <div style={{ fontSize: 12, marginBottom: 4 }}><b>Estudiante:</b> {modalDetalle.estudiantes.apellido}, {modalDetalle.estudiantes.nombre}</div>
                     )}
-                    {modalDetalle.tipo === 'permiso_ausencia' && modalDetalle.motivo?.includes('[RETIRO]') && (() => {
+                    {modalDetalle.tipo === 'retiro_anticipado' && modalDetalle.motivo?.includes('[RETIRO]') && (() => {
                       const lineaRetiro = modalDetalle.motivo.split('\n').find(l => l.startsWith('[RETIRO]'))
                       return lineaRetiro ? (
                         <div style={{ marginTop: 8, padding: '8px 12px', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 8, fontSize: 12 }}>
-                          <div style={{ fontWeight: 700, color: '#c2410c', marginBottom: 4 }}>Retiro anticipado</div>
+                          <div style={{ fontWeight: 700, color: '#c2410c', marginBottom: 4 }}>Datos de quien retira</div>
                           <div style={{ color: '#7c2d12' }}>{lineaRetiro.replace('[RETIRO] ', '')}</div>
                         </div>
                       ) : null
@@ -684,7 +705,7 @@ export default function Solicitudes() {
                         <IcoUnlock /> Abrir 12h
                       </button>
                     )}
-                    {esRegistro && modalDetalle.tipo === 'permiso_ausencia' && modalDetalle.motivo?.includes('[RETIRO]') && modalDetalle.estado === 'aprobado' && (
+                    {esRegistro && modalDetalle.tipo === 'retiro_anticipado' && modalDetalle.estado === 'aprobado' && (
                       <button onClick={() => confirmarRetiro(modalDetalle)}
                         style={{ ...s.btnPrimary, background: 'linear-gradient(135deg, #c2410c, #ea580c)', display: 'flex', alignItems: 'center', gap: 4 }}>
                         <IcoCheck /> Confirmar retiro
@@ -706,7 +727,7 @@ export default function Solicitudes() {
 
       {/* Modal aprobar/rechazar */}
       {modalRespuesta && (
-        <div style={s.modalBg} onClick={() => setModalRespuesta(null)}>
+        <div style={s.modalBg} onClick={() => { setModalRespuesta(null); setReunionFecha(''); setReunionHora('') }}>
           <div style={{ ...s.modalBox, maxWidth: 440 }} onClick={e => e.stopPropagation()}>
             <h2 style={{ color: modalRespuesta.accion === 'aprobar' ? '#16a34a' : '#dc2626', fontSize: 16, fontWeight: 800, marginBottom: 8 }}>
               {modalRespuesta.accion === 'aprobar' ? 'Aprobar solicitud' : 'Rechazar solicitud'}
@@ -714,14 +735,28 @@ export default function Solicitudes() {
             <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 16 }}>
               {TIPOS[modalRespuesta.solicitud?.tipo]?.label} · {modalRespuesta.solicitud?.solicitante?.nombre} {modalRespuesta.solicitud?.solicitante?.apellido}
             </p>
+
+            {/* Fecha y hora para reuniones */}
+            {modalRespuesta.accion === 'aprobar' && ['reunion_encargado','reunion_direccion'].includes(modalRespuesta.solicitud?.tipo) && (
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ ...s.label }}>Fecha y hora de la reunión *</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <input type="date" value={reunionFecha} onChange={e => setReunionFecha(e.target.value)}
+                    style={{ ...s.inputFull }} />
+                  <input type="time" value={reunionHora} onChange={e => setReunionHora(e.target.value)}
+                    style={{ ...s.inputFull }} />
+                </div>
+              </div>
+            )}
+
             <div style={s.field}>
-              <label style={s.label}>{modalRespuesta.accion === 'rechazar' ? 'Motivo del rechazo' : 'Comentario (opcional)'}</label>
+              <label style={s.label}>{modalRespuesta.accion === 'rechazar' ? 'Motivo del rechazo' : 'Comentario adicional (opcional)'}</label>
               <textarea value={respuesta} onChange={e => setRespuesta(e.target.value)}
                 placeholder={modalRespuesta.accion === 'rechazar' ? 'Explica por qué se rechaza...' : 'Instrucciones adicionales...'}
                 style={{ ...s.inputFull, minHeight: 80, resize: 'vertical' }} />
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button onClick={() => setModalRespuesta(null)} style={s.btnSecondary}>Cancelar</button>
+              <button onClick={() => { setModalRespuesta(null); setReunionFecha(''); setReunionHora('') }} style={s.btnSecondary}>Cancelar</button>
               <button onClick={() => responder(modalRespuesta.accion)} disabled={procesando === modalRespuesta.solicitud?.id}
                 style={{ ...s.btnPrimary, background: modalRespuesta.accion === 'aprobar' ? 'linear-gradient(135deg, #16a34a, #166534)' : 'linear-gradient(135deg, #dc2626, #b91c1c)' }}>
                 {procesando ? 'Procesando...' : modalRespuesta.accion === 'aprobar' ? 'Confirmar aprobación' : 'Confirmar rechazo'}

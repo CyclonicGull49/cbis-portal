@@ -6,12 +6,13 @@ import { useYearEscolar } from '../../hooks/useYearEscolar'
 import toast from 'react-hot-toast'
 
 const TIPOS = [
-  { value:'permiso_ausencia',    label:'Permiso de ausencia',      desc:'Solicitar permiso para que su hijo/a no asista un día o días' },
-  { value:'llegada_tardia',      label:'Llegada tardía',           desc:'Notificar y justificar llegada tarde a clases' },
-  { value:'reunion_encargado',   label:'Reunión con encargado',    desc:'Solicitar reunión con el encargado del grado' },
-  { value:'reunion_direccion',   label:'Reunión con dirección',    desc:'Solicitar reunión con la dirección académica' },
-  { value:'constancia_pago',     label:'Constancia de pago',       desc:'Solicitar constancia de pagos realizados — genera cobro de $4.00' },
-  { value:'constancia_estudio',  label:'Constancia de estudio',    desc:'Solicitar constancia de alumno activo — genera cobro de $4.00' },
+  { value:'permiso_ausencia',   label:'Permiso de ausencia',      desc:'Su hijo/a no se presentará ese día. Se justifica la inasistencia automáticamente.' },
+  { value:'llegada_tardia',     label:'Llegada tardía',           desc:'Su hijo/a llegará tarde. Notifica al docente encargado y recepción.' },
+  { value:'retiro_anticipado',  label:'Retiro anticipado',        desc:'Su hijo/a será retirado antes de terminar la jornada. Requiere aprobación del encargado.' },
+  { value:'reunion_encargado',  label:'Reunión con encargado',    desc:'El encargado del grado confirmará fecha y hora.' },
+  { value:'reunion_direccion',  label:'Reunión con dirección',    desc:'Dirección académica agendará fecha y hora.' },
+  { value:'constancia_pago',    label:'Constancia de pago',       desc:'Constancia de pagos realizados — genera cobro de $4.00.' },
+  { value:'constancia_estudio', label:'Constancia de estudio',    desc:'Constancia de alumno activo — genera cobro de $4.00.' },
 ]
 
 const ESTADO_META = {
@@ -32,8 +33,9 @@ function Badge({ estado }) {
   return <span style={{ fontSize:11, fontWeight:700, color:m.color, background:m.bg, border:`1px solid ${m.border}`, borderRadius:20, padding:'3px 10px' }}>{m.label}</span>
 }
 
-const CONSTANCIAS = ['constancia_pago','constancia_estudio']
-const CON_FECHA   = ['reunion_encargado','reunion_direccion']
+const CONSTANCIAS   = ['constancia_pago','constancia_estudio']
+const CON_FECHA_EVT = ['permiso_ausencia','llegada_tardia','retiro_anticipado']  // fecha del evento
+const CON_RETIRANTE = ['retiro_anticipado']  // requieren nombre+DUI de quien retira
 
 export default function PadreSolicitudes() {
   const { perfil }    = useAuth()
@@ -45,8 +47,8 @@ export default function PadreSolicitudes() {
   const [modo,        setModo]        = useState('lista')
   const [guardando,   setGuardando]   = useState(false)
   const [form, setForm] = useState({
-    tipo: 'permiso_ausencia', motivo: '', fecha_cita: '', fecha_evento: '',
-    es_retiro: false, retira_nombre: '', retira_dui: '',
+    tipo: 'permiso_ausencia', motivo: '', fecha_evento: '',
+    retira_nombre: '', retira_dui: '',
   })
 
   useEffect(() => { if (perfil) cargar() }, [perfil])
@@ -64,17 +66,15 @@ export default function PadreSolicitudes() {
 
   async function enviar() {
     if (!form.motivo.trim()) { toast.error('Escribe el motivo de tu solicitud'); return }
-    if (['permiso_ausencia','llegada_tardia'].includes(form.tipo) && !form.fecha_evento) {
-      toast.error('Indica la fecha'); return
-    }
-    if (form.es_retiro && !form.retira_nombre.trim()) { toast.error('Indica el nombre de quien retirará al estudiante'); return }
-    if (form.es_retiro && !form.retira_dui.trim())    { toast.error('Indica el DUI de quien retirará al estudiante'); return }
+    if (CON_FECHA_EVT.includes(form.tipo) && !form.fecha_evento) { toast.error('Indica la fecha'); return }
+    if (CON_RETIRANTE.includes(form.tipo) && !form.retira_nombre.trim()) { toast.error('Indica el nombre de quien retirará al estudiante'); return }
+    if (CON_RETIRANTE.includes(form.tipo) && !form.retira_dui.trim())    { toast.error('Indica el DUI de quien retirará al estudiante'); return }
     setGuardando(true)
 
     const esConstancia = CONSTANCIAS.includes(form.tipo)
-    const conFecha     = CON_FECHA.includes(form.tipo)
+    const esRetiro     = form.tipo === 'retiro_anticipado'
 
-    // 1. Resolver grado del hijo para encontrar encargado
+    // Resolver encargado del grado
     let encargadoId = null
     if (hijoActual?.grado_id) {
       const { data: grado } = await supabase.from('grados')
@@ -82,54 +82,48 @@ export default function PadreSolicitudes() {
       encargadoId = grado?.encargado_id || null
     }
 
-    // Datos de retiro se agregan al motivo para respaldo en el registro
-    const motivoFinal = form.es_retiro
+    // Retiro: nombre y DUI van al motivo como respaldo
+    const motivoFinal = esRetiro
       ? `${form.motivo.trim()}\n[RETIRO] Retira: ${form.retira_nombre.trim()} · DUI: ${form.retira_dui.trim()}`
       : form.motivo.trim()
 
-    // 2. Insertar solicitud
-    const { data: solData, error: solError } = await supabase.from('solicitudes').insert({
-      tipo:             form.tipo,
-      solicitante_id:   perfil.id,
-      estudiante_id:    hijoActual?.id || null,
-      grado_id:         hijoActual?.grado_id || null,
-      motivo:           motivoFinal,
-      estado:           'pendiente',
-      año_escolar:      yearEscolar || new Date().getFullYear(),
-      ...(conFecha && form.fecha_cita   ? { fecha_cita:       form.fecha_cita   } : {}),
-      ...(['permiso_ausencia','llegada_tardia'].includes(form.tipo) && form.fecha_evento
-        ? { fecha_asistencia: form.fecha_evento } : {}),
+    const { error: solError } = await supabase.from('solicitudes').insert({
+      tipo:           form.tipo,
+      solicitante_id: perfil.id,
+      estudiante_id:  hijoActual?.id       || null,
+      grado_id:       hijoActual?.grado_id || null,
+      motivo:         motivoFinal,
+      estado:         'pendiente',
+      año_escolar:    yearEscolar || new Date().getFullYear(),
+      ...(CON_FECHA_EVT.includes(form.tipo) && form.fecha_evento ? { fecha_asistencia: form.fecha_evento } : {}),
     }).select('id').single()
 
     if (solError) { toast.error('Error al enviar la solicitud'); setGuardando(false); return }
 
-    // 3. Si es constancia → generar cobro de $4
+    // Constancia → cobro $4
     if (esConstancia && hijoActual) {
       const { data: concepto } = await supabase.from('conceptos_cobro')
         .select('id').eq('tipo', 'constancia').single()
       if (concepto) {
-        const vencimiento = new Date()
-        vencimiento.setDate(vencimiento.getDate() + 7)
+        const venc = new Date(); venc.setDate(venc.getDate() + 7)
         await supabase.from('cobros').insert({
-          estudiante_id:     hijoActual.id,
-          concepto_id:       concepto.id,
-          monto:             4.00,
-          estado:            'pendiente',
-          year_escolar:      yearEscolar || new Date().getFullYear(),
-          fecha_vencimiento: vencimiento.toISOString().split('T')[0],
+          estudiante_id: hijoActual.id, concepto_id: concepto.id,
+          monto: 4.00, estado: 'pendiente',
+          year_escolar: yearEscolar || new Date().getFullYear(),
+          fecha_vencimiento: venc.toISOString().split('T')[0],
         })
       }
     }
 
-    // 4. Notificar según tipo
-    let rolesDestino = []
-    if (['permiso_ausencia','reunion_encargado'].includes(form.tipo)) {
-      if (encargadoId) await notificarPadre([encargadoId], form.tipo, hijoActual)
-    } else if (form.tipo === 'llegada_tardia') {
-      rolesDestino = ['recepcion']
-      const { data: recep } = await supabase.from('perfiles').select('id').in('rol', rolesDestino)
-      const ids = [...(recep || []).map(p => p.id), encargadoId].filter(Boolean)
-      await notificarPadre(ids, form.tipo, hijoActual)
+    // Routing notificaciones
+    if (['permiso_ausencia','llegada_tardia','retiro_anticipado','reunion_encargado'].includes(form.tipo)) {
+      // → docente encargado (+ recepción para llegada tardía)
+      const ids = encargadoId ? [encargadoId] : []
+      if (form.tipo === 'llegada_tardia') {
+        const { data: recep } = await supabase.from('perfiles').select('id').eq('rol', 'recepcion')
+        ids.push(...(recep || []).map(p => p.id))
+      }
+      if (ids.length) await notificarPadre(ids, form.tipo, hijoActual)
     } else if (form.tipo === 'reunion_direccion') {
       const { data: dir } = await supabase.from('perfiles').select('id').in('rol', ['direccion_academica','admin'])
       await notificarPadre((dir || []).map(p => p.id), form.tipo, hijoActual)
@@ -139,12 +133,12 @@ export default function PadreSolicitudes() {
     }
 
     setGuardando(false)
-    toast.success(esConstancia
-      ? 'Solicitud enviada — se generó un cobro de $4.00 en recepción'
-      : form.es_retiro
-        ? 'Solicitud de retiro enviada — esperando aprobación del encargado'
-        : 'Solicitud enviada correctamente')
-    setForm({ tipo:'permiso_ausencia', motivo:'', fecha_cita:'', fecha_evento:'', es_retiro:false, retira_nombre:'', retira_dui:'' })
+    toast.success(
+      esConstancia ? 'Solicitud enviada — se generó un cobro de $4.00 en recepción' :
+      esRetiro     ? 'Solicitud de retiro enviada — esperando aprobación del encargado' :
+                     'Solicitud enviada correctamente'
+    )
+    setForm({ tipo:'permiso_ausencia', motivo:'', fecha_evento:'', retira_nombre:'', retira_dui:'' })
     setModo('lista')
     cargar()
   }
@@ -154,20 +148,20 @@ export default function PadreSolicitudes() {
     const nombreHijo = hijo ? `${hijo.nombre} ${hijo.apellido}` : 'un estudiante'
     const tipoLabel  = TIPOS.find(t => t.value === tipo)?.label || tipo
     const lote = ids.map(id => ({
-      usuario_id: id,
-      tipo:       'solicitud',
-      titulo:     `Nueva solicitud: ${tipoLabel}`,
-      mensaje:    `Solicitud de padre/tutor para ${nombreHijo}`,
-      link:       'solicitudes',
+      usuario_id: id, tipo: 'solicitud',
+      titulo: `Nueva solicitud: ${tipoLabel}`,
+      mensaje: `Solicitud de padre/tutor para ${nombreHijo}`,
+      link: 'solicitudes',
     }))
     for (let i = 0; i < lote.length; i += 50) {
       await supabase.from('notificaciones').insert(lote.slice(i, i + 50))
     }
   }
 
-  const tipoMeta      = (tipo) => TIPOS.find(t => t.value === tipo) || { label: tipo }
-  const conFechaActual = CON_FECHA.includes(form.tipo)
+  const tipoMeta           = (tipo) => TIPOS.find(t => t.value === tipo) || { label: tipo }
   const esConstanciaActual = CONSTANCIAS.includes(form.tipo)
+  const conFechaEvt        = CON_FECHA_EVT.includes(form.tipo)
+  const conRetirante       = CON_RETIRANTE.includes(form.tipo)
 
   return (
     <div style={{ maxWidth:720, margin:'0 auto' }}>
@@ -210,78 +204,43 @@ export default function PadreSolicitudes() {
             </div>
           )}
 
-          {/* Fecha del evento (permiso / tardía) */}
-          {['permiso_ausencia','llegada_tardia'].includes(form.tipo) && (
+          {/* Fecha del evento */}
+          {conFechaEvt && (
             <div style={{ marginBottom:20 }}>
               <label style={{ display:'block', fontSize:11, fontWeight:700, color:'#6b7280', textTransform:'uppercase', letterSpacing:'1px', marginBottom:8 }}>
-                {form.tipo === 'permiso_ausencia' ? 'Fecha de ausencia' : 'Fecha de llegada tardía'}
+                {form.tipo === 'permiso_ausencia' ? 'Fecha de ausencia' :
+                 form.tipo === 'llegada_tardia'   ? 'Fecha de llegada tardía' :
+                                                    'Fecha del retiro'}
               </label>
               <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 14px', background:'#f8f7ff', border:'1.5px solid #e9e3ff', borderRadius:11 }}>
                 <IcoCal />
-                <input type="date" value={form.fecha_evento} onChange={e => setForm(f => ({ ...f, fecha_evento: e.target.value }))}
+                <input type="date" value={form.fecha_evento}
+                  onChange={e => setForm(f => ({ ...f, fecha_evento: e.target.value }))}
                   style={{ flex:1, border:'none', outline:'none', background:'transparent', fontSize:14, fontWeight:500, color:'#0f1d40', fontFamily:'inherit' }} />
               </div>
             </div>
           )}
 
-          {/* Checkbox retiro anticipado — solo para permiso_ausencia */}
-          {form.tipo === 'permiso_ausencia' && (
-            <div style={{ marginBottom: form.es_retiro ? 0 : 20 }}>
-              <label style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', userSelect:'none', padding:'12px 14px', background: form.es_retiro ? '#fff7ed' : '#f8f7ff', border:`1.5px solid ${form.es_retiro ? '#fed7aa' : '#e9e3ff'}`, borderRadius:11, transition:'all 0.15s' }}>
-                <input
-                  type="checkbox"
-                  checked={form.es_retiro}
-                  onChange={e => setForm(f => ({ ...f, es_retiro: e.target.checked, retira_nombre:'', retira_dui:'' }))}
-                  style={{ width:16, height:16, accentColor:'#5B2D8E', cursor:'pointer' }}
-                />
-                <div>
-                  <div style={{ fontSize:13, fontWeight:700, color: form.es_retiro ? '#c2410c' : '#0f1d40' }}>El estudiante será retirado anticipadamente</div>
-                  <div style={{ fontSize:11, color:'#9ca3af', marginTop:2 }}>Requiere aprobación del encargado. Recepción será notificada.</div>
-                </div>
-              </label>
-            </div>
-          )}
-
-          {/* Datos de quien retira */}
-          {form.es_retiro && (
-            <div style={{ marginBottom:20, padding:'16px 14px', background:'#fff7ed', border:'1.5px solid #fed7aa', borderRadius:11, marginTop:10 }}>
+          {/* Datos de quien retira — solo retiro_anticipado */}
+          {conRetirante && (
+            <div style={{ marginBottom:20, padding:'16px 14px', background:'#fff7ed', border:'1.5px solid #fed7aa', borderRadius:11 }}>
               <div style={{ fontSize:11, fontWeight:700, color:'#c2410c', textTransform:'uppercase', letterSpacing:'1px', marginBottom:12 }}>Datos de quien retira</div>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
                 <div>
                   <label style={{ display:'block', fontSize:11, fontWeight:600, color:'#6b7280', marginBottom:6 }}>Nombre completo</label>
-                  <input
-                    type="text"
-                    placeholder="Ej: María García"
-                    value={form.retira_nombre}
+                  <input type="text" placeholder="Ej: María García" value={form.retira_nombre}
                     onChange={e => setForm(f => ({ ...f, retira_nombre: e.target.value }))}
-                    style={{ width:'100%', padding:'10px 12px', background:'#fff', border:'1.5px solid #fed7aa', borderRadius:9, fontSize:13, fontFamily:'inherit', outline:'none', boxSizing:'border-box' }}
-                  />
+                    style={{ width:'100%', padding:'10px 12px', background:'#fff', border:'1.5px solid #fed7aa', borderRadius:9, fontSize:13, fontFamily:'inherit', outline:'none', boxSizing:'border-box' }} />
                 </div>
                 <div>
                   <label style={{ display:'block', fontSize:11, fontWeight:600, color:'#6b7280', marginBottom:6 }}>DUI</label>
-                  <input
-                    type="text"
-                    placeholder="00000000-0"
-                    value={form.retira_dui}
+                  <input type="text" placeholder="00000000-0" value={form.retira_dui}
                     onChange={e => setForm(f => ({ ...f, retira_dui: e.target.value }))}
-                    style={{ width:'100%', padding:'10px 12px', background:'#fff', border:'1.5px solid #fed7aa', borderRadius:9, fontSize:13, fontFamily:'inherit', outline:'none', boxSizing:'border-box' }}
-                  />
+                    style={{ width:'100%', padding:'10px 12px', background:'#fff', border:'1.5px solid #fed7aa', borderRadius:9, fontSize:13, fontFamily:'inherit', outline:'none', boxSizing:'border-box' }} />
                 </div>
               </div>
               <div style={{ fontSize:11, color:'#92400e', marginTop:10, fontWeight:500 }}>
-                Si es el padre o madre quien retira, igualmente debe completar estos campos.
-              </div>
-            </div>
-          )}
-
-          {/* Fecha cita */}
-          {conFechaActual && (
-            <div style={{ marginBottom:20 }}>
-              <label style={{ display:'block', fontSize:11, fontWeight:700, color:'#6b7280', textTransform:'uppercase', letterSpacing:'1px', marginBottom:8 }}>Fecha preferida para la reunión</label>
-              <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 14px', background:'#f8f7ff', border:'1.5px solid #e9e3ff', borderRadius:11 }}>
-                <IcoCal />
-                <input type="date" value={form.fecha_cita} onChange={e => setForm(f => ({ ...f, fecha_cita: e.target.value }))}
-                  style={{ flex:1, border:'none', outline:'none', background:'transparent', fontSize:14, fontWeight:500, color:'#0f1d40', fontFamily:'inherit' }} />
+                Incluir datos aunque sea el padre o madre quien retira.
               </div>
             </div>
           )}
