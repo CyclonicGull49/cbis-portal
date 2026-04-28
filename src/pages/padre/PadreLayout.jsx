@@ -84,8 +84,26 @@ function HijoSelector() {
       // Vincular todos los que no estén ya vinculados
       const idsActuales = hijos.map(h => h.id)
       const nuevos = rows.filter(r => !idsActuales.includes(r.id))
-      if (!nuevos.length) { setErrorDui('Ese alumno ya está vinculado'); return }
-      for (const r of nuevos) await agregarHijo(r.id, 'Padre')
+      if (!nuevos.length) { setErrorDui('Ese alumno ya está vinculado a tu cuenta'); return }
+
+      // Verificar si alguno ya tiene tutor registrado (solo 1 tutor por familia)
+      const { data: vinculosExistentes } = await supabase
+        .from('padre_estudiante')
+        .select('estudiante_id')
+        .in('estudiante_id', nuevos.map(r => r.id))
+      const conTutor = new Set((vinculosExistentes || []).map(v => v.estudiante_id))
+      const bloqueados = nuevos.filter(r => conTutor.has(r.id))
+      const libres = nuevos.filter(r => !conTutor.has(r.id))
+
+      if (bloqueados.length && !libres.length) {
+        setErrorDui('Este estudiante ya tiene un tutor registrado en el portal. Contacta al colegio si necesitas acceso.')
+        return
+      }
+      if (bloqueados.length && libres.length) {
+        setErrorDui(`Nota: ${bloqueados.length} estudiante(s) ya tienen tutor registrado y no se vincularon.`)
+      }
+
+      for (const r of libres) await agregarHijo(r.id, 'Padre')
       setModoAgreg(false); setOpen(false); setDui('')
     } catch(e) {
       setErrorDui(e.message || 'Error al vincular')

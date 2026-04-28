@@ -34,6 +34,14 @@ export default function Matricula() {
 
   function set(campo, valor) { setForm(f => ({ ...f, [campo]: valor })) }
 
+  function handleDui(campo, raw) {
+    // Solo dígitos, máximo 9
+    const digits = raw.replace(/\D/g, '').slice(0, 9)
+    // Formato 00000000-0
+    const masked = digits.length <= 8 ? digits : digits.slice(0, 8) + '-' + digits.slice(8)
+    set(campo, masked)
+  }
+
   async function guardar() {
     setLoading(true); setError('')
     if (form.nie) {
@@ -185,7 +193,7 @@ export default function Matricula() {
                 <h3 style={tituloSeccion}>{titulo}</h3>
                 <div style={grid2}>
                   <Campo label="Nombre completo"><input style={inp} value={form[`nombre_${prefix}`]} onChange={e => set(`nombre_${prefix}`, e.target.value)} /></Campo>
-                  <Campo label="DUI"><input style={inp} value={form[`dui_${prefix}`]} onChange={e => set(`dui_${prefix}`, e.target.value)} placeholder="00000000-0" /></Campo>
+                  <Campo label="DUI"><input style={inp} value={form[`dui_${prefix}`]} onChange={e => handleDui(`dui_${prefix}`, e.target.value)} placeholder="00000000-0" maxLength={10} /></Campo>
                   <Campo label="Lugar de trabajo"><input style={inp} value={form[`trabajo_${prefix}`]} onChange={e => set(`trabajo_${prefix}`, e.target.value)} /></Campo>
                   <Campo label="Teléfono"><input style={inp} value={form[`telefono_${prefix}`]} onChange={e => set(`telefono_${prefix}`, e.target.value)} /></Campo>
                   <Campo label="Correo electrónico"><input style={inp} value={form[`correo_${prefix}`]} onChange={e => set(`correo_${prefix}`, e.target.value)} /></Campo>

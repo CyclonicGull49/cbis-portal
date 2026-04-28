@@ -1107,7 +1107,10 @@ export default function Estudiantes({ estudianteIdInicial, onVolver }) {
   async function cambiarEstado(e, estudiante) {
     e.stopPropagation()
     const nuevoEstado = estudiante.estado === 'activo' ? 'inactivo' : 'activo'
-    await supabase.from('estudiantes').update({ estado: nuevoEstado }).eq('id', estudiante.id)
+    const update = nuevoEstado === 'inactivo'
+      ? { estado: nuevoEstado, inactivo_desde: new Date().toISOString() }
+      : { estado: nuevoEstado, inactivo_desde: null }
+    await supabase.from('estudiantes').update(update).eq('id', estudiante.id)
     toast.success(`Estudiante ${nuevoEstado === 'activo' ? 'activado' : 'desactivado'}`)
     cargarDatos()
   }
