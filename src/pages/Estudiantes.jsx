@@ -721,26 +721,32 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion, perfil }) {
     const { data: perfilAlumno } = await supabase.from('perfiles')
       .select('id').eq('estudiante_id', estudiante.id).single()
 
-    // 2. Borrar cobros y pagos
+    // 2. Borrar pagos y cobros (en ese orden por FK)
     const { data: cobrosEst } = await supabase.from('cobros').select('id').eq('estudiante_id', estudiante.id)
     const cobrosIds = cobrosEst?.map(c => c.id) || []
     if (cobrosIds.length > 0) {
+      // Borrar primero todos los pagos vinculados a esos cobros
       await supabase.from('pagos').delete().in('cobro_id', cobrosIds)
-      await supabase.from('cobros').delete().eq('estudiante_id', estudiante.id)
+      // Luego los cobros
+      const { error: errCobros } = await supabase.from('cobros').delete().eq('estudiante_id', estudiante.id)
+      if (errCobros) { toast.error('Error al borrar cobros: ' + errCobros.message); return }
     }
 
-    // 3. Borrar vínculo padre_estudiante y notas
+    // 3. Borrar solicitudes del estudiante
+    await supabase.from('solicitudes').delete().eq('estudiante_id', estudiante.id)
+
+    // 4. Borrar vínculo padre_estudiante, notas y asistencia
     await supabase.from('padre_estudiante').delete().eq('estudiante_id', estudiante.id)
     await supabase.from('notas').delete().eq('estudiante_id', estudiante.id)
     await supabase.from('asistencia').delete().eq('estudiante_id', estudiante.id)
 
-    // 4. Borrar perfil del portal + cuenta Auth del alumno
+    // 5. Borrar perfil del portal + cuenta Auth del alumno
     if (perfilAlumno?.id) {
       await supabase.from('perfiles').delete().eq('id', perfilAlumno.id)
       await supabase.rpc('eliminar_usuario_auth', { p_perfil_id: perfilAlumno.id })
     }
 
-    // 5. Borrar el estudiante
+    // 6. Borrar el estudiante
     const { error: errDel } = await supabase.from('estudiantes').delete().eq('id', estudiante.id)
     if (errDel) { toast.error('Error al eliminar: ' + errDel.message); return }
     toast.success('Estudiante eliminado')
