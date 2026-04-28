@@ -741,7 +741,8 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion, perfil }) {
     }
 
     // 5. Borrar el estudiante
-    await supabase.from('estudiantes').delete().eq('id', estudiante.id)
+    const { error: errDel } = await supabase.from('estudiantes').delete().eq('id', estudiante.id)
+    if (errDel) { toast.error('Error al eliminar: ' + errDel.message); return }
     toast.success('Estudiante eliminado')
     onDelete()
   }
