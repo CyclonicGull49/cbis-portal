@@ -99,7 +99,7 @@ function DashboardHome() {
     cobradoHoy: 0, totalMes: 0,
     cobrosPendientes: 0, cobrosVencidos: 0,
     totalPendiente: 0, anuladosMes: 0,
-    pagosRecientes: [], porNivel: [], maxNivel: 1,
+    pagosRecientes: [], porNivel: [], porGrado: [], maxNivel: 1,
     notasRegistradas: 0, totalMaterias: 0,
     docenteGrado: null, docenteMaterias: 0,
     esEncargado: false, gradoEncargado: null, estudiantesGrado: 0,
