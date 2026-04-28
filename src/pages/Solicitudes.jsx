@@ -130,7 +130,11 @@ export default function Solicitudes() {
   const esDocente   = perfil?.rol === 'docente'
   const esDireccion = ['admin', 'direccion_academica'].includes(perfil?.rol)
   const esRegistro  = ['admin', 'registro_academico'].includes(perfil?.rol)
-  const canManage   = esDireccion || esRegistro
+  const esRecepcion = perfil?.rol === 'recepcion'
+  const canManage   = esDireccion || esRegistro || esRecepcion
+
+  // Tipos que recepción gestiona
+  const TIPOS_RECEPCION = ['constancia_pago','constancia_estudio','llegada_tardia','retiro_anticipado']
 
   const [solicitudes,    setSolicitudes]    = useState([])
   const [loading,        setLoading]        = useState(true)
@@ -177,7 +181,8 @@ export default function Solicitudes() {
     let q = supabase.from('solicitudes')
       .select(`*, solicitante:perfiles!solicitudes_solicitante_id_fkey(nombre, apellido), materias(nombre), grados(nombre, nivel), estudiantes(nombre, apellido), respondedor:perfiles!solicitudes_respondido_por_fkey(nombre, apellido)`)
       .eq('año_escolar', year).order('creado_en', { ascending: false })
-    if (esDocente) q = q.eq('solicitante_id', perfil.id)
+    if (esDocente)   q = q.eq('solicitante_id', perfil.id)
+    if (esRecepcion) q = q.in('tipo', TIPOS_RECEPCION)
     const { data } = await q
     setSolicitudes(data || [])
     setLoading(false)
@@ -431,7 +436,7 @@ export default function Solicitudes() {
 
           {/* Acciones rápidas */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-            {esDireccion && s.estado === 'pendiente' && (
+            {(esDireccion || (esRecepcion && TIPOS_RECEPCION.includes(s.tipo))) && s.estado === 'pendiente' && (
               <div style={{ display: 'flex', gap: 6 }}>
                 <button onClick={() => { setModalRespuesta({ solicitud: s, accion: 'aprobar' }); setRespuesta('') }} disabled={procesando === s.id}
                   style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 12px', borderRadius: 8, border: 'none', background: '#dcfce7', color: '#16a34a', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
@@ -449,7 +454,7 @@ export default function Solicitudes() {
                 <IcoUnlock /> Abrir 12h
               </button>
             )}
-            {esRegistro && s.tipo === 'retiro_anticipado' && s.estado === 'aprobado' && (
+            {(esRegistro || esRecepcion) && s.tipo === 'retiro_anticipado' && s.estado === 'aprobado' && (
               <button onClick={() => confirmarRetiro(s)} disabled={procesando === s.id}
                 style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 14px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #c2410c, #ea580c)', color: '#fff', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
                 <IcoCheck /> Confirmar retiro
@@ -687,7 +692,7 @@ export default function Solicitudes() {
 
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                     <button onClick={() => setModalDetalle(null)} style={s.btnSecondary}>Cerrar</button>
-                    {esDireccion && modalDetalle.estado === 'pendiente' && (
+                    {(esDireccion || (esRecepcion && TIPOS_RECEPCION.includes(modalDetalle.tipo))) && modalDetalle.estado === 'pendiente' && (
                       <>
                         <button onClick={() => { setModalRespuesta({ solicitud: modalDetalle, accion: 'aprobar' }); setRespuesta('') }}
                           style={{ ...s.btnSecondary, color: '#16a34a', borderColor: '#86efac', display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -705,7 +710,7 @@ export default function Solicitudes() {
                         <IcoUnlock /> Abrir 12h
                       </button>
                     )}
-                    {esRegistro && modalDetalle.tipo === 'retiro_anticipado' && modalDetalle.estado === 'aprobado' && (
+                    {(esRegistro || esRecepcion) && modalDetalle.tipo === 'retiro_anticipado' && modalDetalle.estado === 'aprobado' && (
                       <button onClick={() => confirmarRetiro(modalDetalle)}
                         style={{ ...s.btnPrimary, background: 'linear-gradient(135deg, #c2410c, #ea580c)', display: 'flex', alignItems: 'center', gap: 4 }}>
                         <IcoCheck /> Confirmar retiro
