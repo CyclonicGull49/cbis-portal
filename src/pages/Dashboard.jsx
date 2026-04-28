@@ -380,7 +380,7 @@ function DashboardHome() {
       )}
 
       {/* Distribución por grado — admin, dirección, registro */}
-      {(verAdmin || verFinanzas) && stats.porGrado?.length > 0 && (
+      {(verDistribucion || verFinanzas) && stats.porGrado?.length > 0 && (
         <div style={{ background: '#fff', borderRadius: 16, padding: '20px 24px', marginBottom: 16, boxShadow: '0 2px 12px rgba(61,31,97,0.06)' }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 16 }}>Distribución por grado</div>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
