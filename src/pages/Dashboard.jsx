@@ -119,7 +119,7 @@ function DashboardHome() {
     const hoy = new Date().toISOString().split('T')[0]
 
     const promises = [
-      supabase.from('estudiantes').select('id, estado, grados(nivel)'),
+      supabase.from('estudiantes').select('id, estado, grados(nivel, nombre, orden)'),
       supabase.from('pagos').select('monto_pagado').gte('fecha_pago', hoy).neq('anulado', true),
       supabase.from('pagos').select('monto_pagado').gte('fecha_pago', inicioMes).neq('anulado', true),
       supabase.from('pagos').select('monto_pagado').gte('fecha_pago', inicioMes).eq('anulado', true),
@@ -201,16 +201,22 @@ function DashboardHome() {
     ] = results
 
     const nivelMap = {}
+    const gradoMap = {}
     for (const e of (estudiantes || [])) {
       if (e.estado !== 'activo') continue
       const n = e.grados?.nivel || 'otro'
       nivelMap[n] = (nivelMap[n] || 0) + 1
+      const gKey = e.grados?.nombre || 'Sin grado'
+      const gOrden = e.grados?.orden ?? 999
+      if (!gradoMap[gKey]) gradoMap[gKey] = { nombre: gKey, nivel: n, orden: gOrden, count: 0 }
+      gradoMap[gKey].count++
     }
     const nivelOrder = ['primera_infancia', 'primaria', 'secundaria', 'bachillerato']
     const porNivel = Object.entries(nivelMap)
       .map(([nivel, count]) => ({ nivel, count }))
       .sort((a, b) => nivelOrder.indexOf(a.nivel) - nivelOrder.indexOf(b.nivel))
     const maxNivel = Math.max(...porNivel.map(p => p.count), 1)
+    const porGrado = Object.values(gradoMap).sort((a, b) => a.orden - b.orden)
 
     let docenteInfo = {}
     if (verDocente && results[8]) {
@@ -229,7 +235,7 @@ function DashboardHome() {
       cobrosVencidos: cobros?.filter(c => c.estado === 'pendiente' && c.fecha_vencimiento && new Date(c.fecha_vencimiento) < new Date()).length || 0,
       totalPendiente: cobros?.filter(c => c.estado === 'pendiente').reduce((a, c) => a + parseFloat(c.monto), 0) || 0,
       pagosRecientes: pagosRecientes || [],
-      porNivel, maxNivel,
+      porNivel, maxNivel, porGrado,
       notasRegistradas: notasCount || 0,
       totalMaterias: materiasGradoCount || 0,
       ...docenteInfo,
@@ -370,6 +376,24 @@ function DashboardHome() {
               ) : null
             }
           />
+        </div>
+      )}
+
+      {/* Distribución por grado — admin, dirección, registro */}
+      {(verAdmin || verFinanzas) && stats.porGrado?.length > 0 && (
+        <div style={{ background: '#fff', borderRadius: 16, padding: '20px 24px', marginBottom: 16, boxShadow: '0 2px 12px rgba(61,31,97,0.06)' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 16 }}>Distribución por grado</div>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
+            {stats.porGrado.map(g => {
+              const cfg = NIVEL_COLOR[g.nivel] || { color: '#6b7280', bg: '#f9fafb', bar: '#6b7280' }
+              return (
+                <div key={g.nombre} style={{ background: cfg.bg, borderRadius: 10, padding: '10px 14px', borderLeft: `3px solid ${cfg.bar}` }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: cfg.color, marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{g.nombre}</div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: cfg.color }}>{g.count}</div>
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
 

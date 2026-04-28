@@ -1378,7 +1378,9 @@ export default function Estudiantes({ estudianteIdInicial, onVolver }) {
             </button>
           )}
           <h1 style={{ color: '#3d1f61', fontSize: 22, fontWeight: 800, marginBottom: 4, letterSpacing: '-0.5px' }}>Estudiantes</h1>
-          <p style={{ color: '#b0a8c0', fontSize: 13, fontWeight: 500 }}>{estudiantes.length} estudiantes registrados</p>
+          <p style={{ color: '#b0a8c0', fontSize: 13, fontWeight: 500 }}>
+            {loading ? '...' : `${activos} activos · ${inactivos} inactivos · ${estudiantes.length} total`}
+          </p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           {!esRecepcion && (
@@ -1436,8 +1438,8 @@ export default function Estudiantes({ estudianteIdInicial, onVolver }) {
           <table style={s.table}>
             <thead>
               <tr style={{ background: '#faf8ff' }}>
-                {['Nombre', 'Apellido', 'Grado', 'NIE', 'Género', 'Estado'].map(h => (
-                  <th key={h} style={s.th}>{h}</th>
+                {['#', 'Nombre', 'Apellido', 'Grado', 'NIE', 'Género', 'Estado'].map(h => (
+                  <th key={h} style={h === '#' ? { ...s.th, width: 40, textAlign: 'center' } : s.th}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -1446,7 +1448,10 @@ export default function Estudiantes({ estudianteIdInicial, onVolver }) {
                 <tr key={e.id} style={{ ...s.tr, cursor: 'pointer', background: idx % 2 === 0 ? '#fff' : '#fdfcff' }} onClick={() => {
                   const puedeVerPerfil = ['admin', 'direccion_academica', 'recepcion', 'registro_academico'].includes(perfil?.rol)
                   if (puedeVerPerfil) setEstudianteDetalle(e)
-}}>
+                }}>
+                  <td style={{ ...s.td, textAlign: 'center', color: '#d1d5db', fontSize: 11, fontWeight: 700, width: 40 }}>
+                    {(paginaEst - 1) * POR_PAGINA_EST + idx + 1}
+                  </td>
                   <td style={s.td}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'linear-gradient(135deg, #3d1f61, #5B2D8E)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 11, flexShrink: 0 }}>

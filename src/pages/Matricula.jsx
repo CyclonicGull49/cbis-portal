@@ -12,6 +12,7 @@ const camposVacios = {
   estudio_parvularia: false, institucion_procedencia: '', diplomado_opcion: '',
   direccion: '', municipio: '', departamento: '', zona: '',
   convivencia: '',
+  proceso_legal_pendiente: false,
   nombre_padre: '', dui_padre: '', trabajo_padre: '', direccion_padre: '', telefono_padre: '', correo_padre: '',
   nombre_madre: '', dui_madre: '', trabajo_madre: '', direccion_madre: '', telefono_madre: '', correo_madre: '',
   nombre_tutor: '', dui_tutor: '', trabajo_tutor: '', direccion_tutor: '', telefono_tutor: '', correo_tutor: '',
@@ -218,6 +219,16 @@ export default function Matricula() {
             <Campo label="Medicamento prescrito permanente">
               <textarea style={{ ...inp, height: 80, resize: 'vertical' }} value={form.medicamento_permanente} onChange={e => set('medicamento_permanente', e.target.value)} placeholder="Describa si aplica, o escriba 'Ninguno'" />
             </Campo>
+            <div style={{ marginTop: 20 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', padding: '14px 16px', background: form.proceso_legal_pendiente ? '#fff7ed' : '#faf8ff', border: `1.5px solid ${form.proceso_legal_pendiente ? '#fed7aa' : '#e9e3ff'}`, borderRadius: 11, transition: 'all 0.15s' }}>
+                <input type="checkbox" checked={form.proceso_legal_pendiente} onChange={e => set('proceso_legal_pendiente', e.target.checked)}
+                  style={{ width: 16, height: 16, accentColor: PURPLE, cursor: 'pointer' }} />
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: form.proceso_legal_pendiente ? '#c2410c' : '#3d1f61' }}>Proceso legal pendiente</div>
+                  <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>Marcar si el estudiante tiene una situación legal activa que requiere seguimiento institucional.</div>
+                </div>
+              </label>
+            </div>
             {error && (<div style={{ background: '#fff0f0', border: '1px solid #fecaca', borderRadius: 10, padding: '12px 16px', marginTop: 16 }}><p style={{ color: '#dc2626', margin: 0, fontSize: 13 }}>{error}</p></div>)}
           </div>
         )}
