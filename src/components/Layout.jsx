@@ -293,7 +293,7 @@ export default function Layout({ pagina, setPagina, children }) {
     direccion_academica: ['dashboard', 'notas', 'asistencia', 'reportes'],
     registro_academico:  ['dashboard', 'notas', 'boletas', 'cobros'],
     recepcion:           ['dashboard', 'estudiantes', 'cobros', 'solicitudes', 'reportes'],
-    docente:             ['dashboard', 'notas', 'asistencia', 'horario'],
+    docente:             ['dashboard', 'notas', 'asistencia', 'solicitudes', 'horario'],
     alumno:              ['mi-perfil', 'mis-notas', 'horario', 'calendario'],
     talento_humano:      ['dashboard', 'estudiantes', 'usuarios', 'reportes'],
   }

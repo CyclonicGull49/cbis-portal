@@ -295,10 +295,18 @@ export default function Asistencia() {
       </div>
 
       {/* Alerta fecha bloqueada */}
-      {gradoId && !puedeEditar && !cargando && (
-        <div style={{ ...s.aviso('#fee2e2', '#dc2626'), marginBottom: 16 }}>
-          <IcoLock />
-          <span>Esta fecha está bloqueada para edición — solo puedes modificar la asistencia del día anterior, hoy o el día siguiente. Para fechas anteriores usa una solicitud de modificación.</span>
+      {gradoId && !puedeEditarFecha(fecha, isAdmin) && !cargando && (
+        <div style={{ ...s.aviso('#fee2e2', '#dc2626'), marginBottom: 16, justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <IcoLock />
+            Fecha fuera del rango de edición. Para fechas anteriores usa una solicitud de modificación.
+          </span>
+          {!isAdmin && (
+            <button onClick={() => navigate('/solicitudes', { state: { tipo: 'modificar_asistencia', grado_id: String(gradoId), fecha_asistencia: fecha, _hint: `${gradoInfo?.nombre} · ${fecha}` } })}
+              style={{ padding: '5px 14px', borderRadius: 8, border: '1.5px solid #dc2626', background: '#fff', color: '#dc2626', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+              Solicitar modificación
+            </button>
+          )}
         </div>
       )}
 
