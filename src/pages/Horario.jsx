@@ -147,7 +147,7 @@ export default function Horario() {
 
   async function cargarHorario() {
     const { data } = await supabase.from('horario')
-      .select('id, hora_inicio, hora_fin, es_receso, es_almuerzo, orden, dia_semana, materia_id, docente_id, materias(nombre), perfiles(nombre, apellido)')
+      .select('id, hora_inicio, hora_fin, es_receso, es_almuerzo, es_rutina, nombre_rutina, nombre_bloque_flexible, orden, dia_semana, materia_id, docente_id, materias(nombre), perfiles(nombre, apellido)')
       .eq('grado_id', parseInt(gradoId))
       .eq('año_escolar', year)
       .order('orden')
@@ -165,16 +165,21 @@ export default function Horario() {
           hora_fin: h.hora_fin || '',
           es_receso: h.es_receso || false,
           es_almuerzo: h.es_almuerzo || false,
+          es_rutina: h.es_rutina || false,
+          nombre_rutina: h.nombre_rutina || '',
+          nombre_bloque_flexible: h.nombre_bloque_flexible || '',
           dias: { 1: null, 2: null, 3: null, 4: null, 5: null },
           dbIds: {},
         }
       }
-      if (!h.es_receso && !h.es_almuerzo) {
+      const esEspecial = h.es_receso || h.es_almuerzo || h.es_rutina
+      if (!esEspecial) {
         filaMap[key].dias[h.dia_semana] = {
           materia_id: h.materia_id || '',
           docente_id: h.docente_id || '',
           materia_nombre: h.materias?.nombre || '',
           docente_nombre: h.perfiles ? `${h.perfiles.nombre} ${h.perfiles.apellido}` : '',
+          nombre_bloque_flexible: h.nombre_bloque_flexible || '',
         }
         filaMap[key].dbIds[h.dia_semana] = h.id
       }
@@ -222,12 +227,14 @@ export default function Horario() {
   }
 
   // ── Edición encargado ─────────────────────────────────────
-  function agregarFila(tipo = 'normal') {
+  function agregarFila(tipo = 'normal', nombreRutina = '') {
     const maxOrden = filas.length > 0 ? Math.max(...filas.map(f => f.orden)) : 0
     setFilas(prev => [...prev, {
       id: tmpId(), orden: maxOrden + 1,
       hora_inicio: '', hora_fin: '',
       es_receso: tipo === 'receso', es_almuerzo: tipo === 'almuerzo',
+      es_rutina: tipo === 'rutina', nombre_rutina: nombreRutina,
+      nombre_bloque_flexible: tipo === 'flexible' ? '' : '',
       dias: { 1: null, 2: null, 3: null, 4: null, 5: null },
       dbIds: {},
     }])
@@ -352,23 +359,29 @@ export default function Horario() {
       for (let fi = 0; fi < filas.length; fi++) {
         const fila = filas[fi]
         const orden = fi + 1
-        if (fila.es_receso || fila.es_almuerzo) {
+        if (fila.es_receso || fila.es_almuerzo || fila.es_rutina) {
           registros.push({
             grado_id: parseInt(gradoId), año_escolar: year,
             hora_inicio: fila.hora_inicio, hora_fin: fila.hora_fin,
             es_receso: fila.es_receso, es_almuerzo: fila.es_almuerzo,
+            es_rutina: fila.es_rutina || false,
+            nombre_rutina: fila.nombre_rutina || null,
+            nombre_bloque_flexible: null,
             orden, dia_semana: 1, materia_id: null, docente_id: null, franja_id: null,
           })
         } else {
           for (let dia = 1; dia <= 5; dia++) {
             const celda = fila.dias[dia]
+            const esFlexible = !!fila.nombre_bloque_flexible
             registros.push({
               grado_id: parseInt(gradoId), año_escolar: year,
               hora_inicio: fila.hora_inicio, hora_fin: fila.hora_fin,
-              es_receso: false, es_almuerzo: false, orden,
+              es_receso: false, es_almuerzo: false, es_rutina: false, orden,
               dia_semana: dia,
               materia_id: celda?.materia_id || null,
-              docente_id: celda?.materia_id ? perfil.id : null,
+              docente_id: celda?.materia_id ? (celda.docente_id || perfil.id) : null,
+              nombre_bloque_flexible: esFlexible ? fila.nombre_bloque_flexible : null,
+              nombre_rutina: null,
               franja_id: null,
             })
           }
@@ -466,7 +479,7 @@ export default function Horario() {
         <div>
           <h1 style={{ color: '#3d1f61', fontSize: 22, fontWeight: 800, marginBottom: 4, letterSpacing: '-0.5px' }}>Horario de Clases</h1>
           <p style={{ color: '#b0a8c0', fontSize: 13 }}>
-            {gradoId ? `${gradoInfo?.nombre} — ${filas.filter(f => !f.es_receso && !f.es_almuerzo).length} bloques` : 'Selecciona un grado'}
+            {gradoId ? `${gradoInfo?.nombre} — ${filas.filter(f => !f.es_receso && !f.es_almuerzo && !f.es_rutina).length} bloques` : 'Selecciona un grado'}
             {esEspecialista && gradoId && <span style={{ marginLeft: 8, color: '#0e9490', fontWeight: 700 }}>· Vista especialista</span>}
           </p>
         </div>
@@ -610,8 +623,11 @@ export default function Horario() {
                 )}
                 {filas.map((fila, fi) => {
                   const esBreak = fila.es_receso || fila.es_almuerzo
+                  const esRutina = fila.es_rutina
+                  const esFlexible = !!fila.nombre_bloque_flexible
+                  const esEspecial = esBreak || esRutina
                   return (
-                    <tr key={fila.id} style={{ background: esBreak ? '#f9fafb' : fi % 2 === 0 ? '#fff' : '#fdfcff' }}>
+                    <tr key={fila.id} style={{ background: esRutina ? '#e0f7f6' : esBreak ? '#f9fafb' : fi % 2 === 0 ? '#fff' : '#fdfcff' }}>
 
                       {/* Botones mover — solo encargado */}
                       {canEditEnc && (
@@ -624,20 +640,35 @@ export default function Horario() {
                       )}
 
                       {/* Hora */}
-                      <td style={{ ...s.td, borderRight: '2px solid #f3eeff', background: esBreak ? '#f9fafb' : undefined, minWidth: 140 }}>
+                      <td style={{ ...s.td, borderRight: '2px solid #f3eeff', background: esRutina ? '#e0f7f6' : esBreak ? '#f9fafb' : undefined, minWidth: 140 }}>
                         {canEditEnc ? (
-                          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                            <input type="time" value={fila.hora_inicio}
-                              onChange={e => actualizarFila(fila.id, 'hora_inicio', e.target.value)}
-                              style={{ ...s.inputSmall, flex: 1 }} />
-                            <span style={{ color: '#b0a8c0', fontSize: 11 }}>–</span>
-                            <input type="time" value={fila.hora_fin}
-                              onChange={e => actualizarFila(fila.id, 'hora_fin', e.target.value)}
-                              style={{ ...s.inputSmall, flex: 1 }} />
+                          <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexDirection: 'column' }}>
+                            <div style={{ display: 'flex', gap: 4, alignItems: 'center', width: '100%' }}>
+                              <input type="time" value={fila.hora_inicio}
+                                onChange={e => actualizarFila(fila.id, 'hora_inicio', e.target.value)}
+                                style={{ ...s.inputSmall, flex: 1 }} />
+                              <span style={{ color: '#b0a8c0', fontSize: 11 }}>–</span>
+                              <input type="time" value={fila.hora_fin}
+                                onChange={e => actualizarFila(fila.id, 'hora_fin', e.target.value)}
+                                style={{ ...s.inputSmall, flex: 1 }} />
+                            </div>
+                            {esRutina && (
+                              <input type="text" value={fila.nombre_rutina}
+                                onChange={e => actualizarFila(fila.id, 'nombre_rutina', e.target.value)}
+                                placeholder="Nombre (ej: Bienvenida)"
+                                style={{ ...s.inputSmall, width: '100%', fontSize: 10 }} />
+                            )}
+                            {esFlexible && (
+                              <input type="text" value={fila.nombre_bloque_flexible}
+                                onChange={e => actualizarFila(fila.id, 'nombre_bloque_flexible', e.target.value)}
+                                placeholder="Nombre bloque (ej: Proyecto)"
+                                style={{ ...s.inputSmall, width: '100%', fontSize: 10 }} />
+                            )}
                           </div>
                         ) : (
-                          <div style={{ fontSize: 11, fontWeight: 700, color: esBreak ? '#9ca3af' : '#5B2D8E' }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: esRutina ? '#0e9490' : esBreak ? '#9ca3af' : '#5B2D8E' }}>
                             {fila.hora_inicio} – {fila.hora_fin}
+                            {esRutina && <div style={{ fontSize: 10, color: '#0e9490', marginTop: 2 }}>{fila.nombre_rutina || 'RUTINA'}</div>}
                             {esBreak && <div style={{ fontSize: 10, color: '#b0a8c0', marginTop: 2 }}>{fila.es_almuerzo ? 'ALMUERZO' : 'RECESO'}</div>}
                           </div>
                         )}
@@ -650,11 +681,32 @@ export default function Horario() {
                         const vacio = esBloqueDisponible(fila, dia)
                         const miCelda = esDocente && esMiCelda(fila, dia)
 
-                        if (esBreak) return (
-                          <td key={dia} style={{ ...s.td, background: '#f9fafb', textAlign: 'center', borderLeft: '1px solid #f3eeff' }}>
-                            <span style={{ fontSize: 10, color: '#d1d5db', fontWeight: 700 }}>
-                              {fila.es_almuerzo ? '— ALMUERZO —' : '— RECESO —'}
+                        if (esEspecial) return (
+                          <td key={dia} style={{ ...s.td, background: esRutina ? '#e0f7f6' : '#f9fafb', textAlign: 'center', borderLeft: '1px solid #f3eeff' }}>
+                            <span style={{ fontSize: 10, color: esRutina ? '#0e9490' : '#d1d5db', fontWeight: 700 }}>
+                              {esRutina ? (fila.nombre_rutina || 'RUTINA') : fila.es_almuerzo ? '— ALMUERZO —' : '— RECESO —'}
                             </span>
+                          </td>
+                        )
+
+                        // Bloque flexible — muestra nombre del bloque + materia asignada si la hay
+                        if (esFlexible) return (
+                          <td key={dia} style={{ ...s.td, borderLeft: '1px solid #f3eeff', verticalAlign: 'top', minWidth: 130, background: '#faf5ff' }}>
+                            <div style={{ fontSize: 9, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', marginBottom: 3 }}>
+                              {fila.nombre_bloque_flexible || 'Bloque flexible'}
+                            </div>
+                            {canEditEnc ? (
+                              <select value={celda?.materia_id || ''}
+                                onChange={e => actualizarCeldaEncargado(fila.id, dia, e.target.value)}
+                                style={{ ...s.inputSmall, color: celda?.materia_id ? '#3d1f61' : '#b0a8c0', width: '100%', fontSize: 11 }}>
+                                <option value="">— Sin asignar —</option>
+                                {misMateriasGrado.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+                              </select>
+                            ) : (
+                              <div style={{ fontSize: 11, fontWeight: 600, color: celda?.materia_id ? '#3d1f61' : '#b0a8c0' }}>
+                                {celda?.materia_nombre || '—'}
+                              </div>
+                            )}
                           </td>
                         )
 
@@ -737,6 +789,30 @@ export default function Horario() {
                 style={{ ...s.btnSecondary, fontSize: 12, padding: '8px 16px', borderColor: '#86efac', color: '#166534' }}>
                 + Almuerzo
               </button>
+              {gradoInfo?.nivel === 'primera_infancia' && (<>
+                <button onClick={() => agregarFila('rutina')}
+                  style={{ ...s.btnSecondary, fontSize: 12, padding: '8px 16px', borderColor: '#5DCAA5', color: '#0e9490' }}>
+                  + Rutina
+                </button>
+                <button onClick={() => {
+                  const nombre = window.prompt('Nombre del bloque flexible (ej: Proyecto, Talleres, Zona de Desarrollo):')
+                  if (nombre) {
+                    const maxOrden = filas.length > 0 ? Math.max(...filas.map(f => f.orden)) : 0
+                    setFilas(prev => [...prev, {
+                      id: `tmp_${Date.now()}`, orden: maxOrden + 1,
+                      hora_inicio: '', hora_fin: '',
+                      es_receso: false, es_almuerzo: false, es_rutina: false,
+                      nombre_rutina: '', nombre_bloque_flexible: nombre,
+                      dias: { 1: null, 2: null, 3: null, 4: null, 5: null },
+                      dbIds: {},
+                    }])
+                    setHayCambios(true)
+                  }
+                }}
+                  style={{ ...s.btnSecondary, fontSize: 12, padding: '8px 16px', borderColor: '#c4b5fd', color: '#5B2D8E' }}>
+                  + Bloque flexible
+                </button>
+              </>)}
               {hayCambios && (
                 <button onClick={guardarTodo} disabled={guardando}
                   style={{ ...s.btnPrimary, fontSize: 12, padding: '8px 20px', marginLeft: 'auto' }}>
