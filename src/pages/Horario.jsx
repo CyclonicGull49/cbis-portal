@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext'
 import { useYearEscolar } from '../hooks/useYearEscolar'
 import toast from 'react-hot-toast'
 
+const RUTINAS_ORDEN = ['Bienvenida','Asamblea','Alimentación','Hábitos Higiénicos','Descanso','Despedida']
+
 // ── Iconos ────────────────────────────────────
 const IcoSave = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -624,7 +626,6 @@ export default function Horario() {
                 {filas.map((fila, fi) => {
                   const esBreak = fila.es_receso || fila.es_almuerzo
                   const esRutina = fila.es_rutina
-                  const esFlexible = !!fila.nombre_bloque_flexible
                   const esEspecial = esBreak || esRutina
                   return (
                     <tr key={fila.id} style={{ background: esRutina ? '#e0f7f6' : esBreak ? '#f9fafb' : fi % 2 === 0 ? '#fff' : '#fdfcff' }}>
@@ -652,18 +653,23 @@ export default function Horario() {
                                 onChange={e => actualizarFila(fila.id, 'hora_fin', e.target.value)}
                                 style={{ ...s.inputSmall, flex: 1 }} />
                             </div>
-                            {esRutina && (
-                              <input type="text" value={fila.nombre_rutina}
-                                onChange={e => actualizarFila(fila.id, 'nombre_rutina', e.target.value)}
-                                placeholder="Nombre (ej: Bienvenida)"
-                                style={{ ...s.inputSmall, width: '100%', fontSize: 10 }} />
-                            )}
-                            {esFlexible && (
-                              <input type="text" value={fila.nombre_bloque_flexible}
-                                onChange={e => actualizarFila(fila.id, 'nombre_bloque_flexible', e.target.value)}
-                                placeholder="Nombre bloque (ej: Proyecto)"
-                                style={{ ...s.inputSmall, width: '100%', fontSize: 10 }} />
-                            )}
+                            {esRutina && (() => {
+                              const rutinasUsadas = filas
+                                .filter(f => f.es_rutina && f.id !== fila.id && f.nombre_rutina)
+                                .map(f => f.nombre_rutina)
+                              const rutinasDisponibles = RUTINAS_ORDEN.filter(r => !rutinasUsadas.includes(r))
+                              return (
+                                <select value={fila.nombre_rutina || ''}
+                                  onChange={e => actualizarFila(fila.id, 'nombre_rutina', e.target.value)}
+                                  style={{ ...s.inputSmall, width: '100%', fontSize: 11, color: fila.nombre_rutina ? '#0e9490' : '#b0a8c0' }}>
+                                  <option value="">— Seleccionar rutina —</option>
+                                  {rutinasDisponibles.map(r => <option key={r} value={r}>{r}</option>)}
+                                  {fila.nombre_rutina && !rutinasDisponibles.includes(fila.nombre_rutina) && (
+                                    <option value={fila.nombre_rutina}>{fila.nombre_rutina}</option>
+                                  )}
+                                </select>
+                              )
+                            })()}
                           </div>
                         ) : (
                           <div style={{ fontSize: 11, fontWeight: 700, color: esRutina ? '#0e9490' : esBreak ? '#9ca3af' : '#5B2D8E' }}>
@@ -684,29 +690,8 @@ export default function Horario() {
                         if (esEspecial) return (
                           <td key={dia} style={{ ...s.td, background: esRutina ? '#e0f7f6' : '#f9fafb', textAlign: 'center', borderLeft: '1px solid #f3eeff' }}>
                             <span style={{ fontSize: 10, color: esRutina ? '#0e9490' : '#d1d5db', fontWeight: 700 }}>
-                              {esRutina ? (fila.nombre_rutina || 'RUTINA') : fila.es_almuerzo ? '— ALMUERZO —' : '— RECESO —'}
+                              {esRutina ? (fila.nombre_rutina || '—') : fila.es_almuerzo ? '— ALMUERZO —' : '— RECESO —'}
                             </span>
-                          </td>
-                        )
-
-                        // Bloque flexible — muestra nombre del bloque + materia asignada si la hay
-                        if (esFlexible) return (
-                          <td key={dia} style={{ ...s.td, borderLeft: '1px solid #f3eeff', verticalAlign: 'top', minWidth: 130, background: '#faf5ff' }}>
-                            <div style={{ fontSize: 9, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', marginBottom: 3 }}>
-                              {fila.nombre_bloque_flexible || 'Bloque flexible'}
-                            </div>
-                            {canEditEnc ? (
-                              <select value={celda?.materia_id || ''}
-                                onChange={e => actualizarCeldaEncargado(fila.id, dia, e.target.value)}
-                                style={{ ...s.inputSmall, color: celda?.materia_id ? '#3d1f61' : '#b0a8c0', width: '100%', fontSize: 11 }}>
-                                <option value="">— Sin asignar —</option>
-                                {misMateriasGrado.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
-                              </select>
-                            ) : (
-                              <div style={{ fontSize: 11, fontWeight: 600, color: celda?.materia_id ? '#3d1f61' : '#b0a8c0' }}>
-                                {celda?.materia_nombre || '—'}
-                              </div>
-                            )}
                           </td>
                         )
 
@@ -785,34 +770,18 @@ export default function Horario() {
                 style={{ ...s.btnSecondary, fontSize: 12, padding: '8px 16px', borderColor: '#fcd34d', color: '#92400e' }}>
                 + Receso
               </button>
-              <button onClick={() => agregarFila('almuerzo')}
-                style={{ ...s.btnSecondary, fontSize: 12, padding: '8px 16px', borderColor: '#86efac', color: '#166534' }}>
-                + Almuerzo
-              </button>
-              {gradoInfo?.nivel === 'primera_infancia' && (<>
+              {gradoInfo?.nivel !== 'primera_infancia' && (
+                <button onClick={() => agregarFila('almuerzo')}
+                  style={{ ...s.btnSecondary, fontSize: 12, padding: '8px 16px', borderColor: '#86efac', color: '#166534' }}>
+                  + Almuerzo
+                </button>
+              )}
+              {gradoInfo?.nivel === 'primera_infancia' && (
                 <button onClick={() => agregarFila('rutina')}
                   style={{ ...s.btnSecondary, fontSize: 12, padding: '8px 16px', borderColor: '#5DCAA5', color: '#0e9490' }}>
                   + Rutina
                 </button>
-                <button onClick={() => {
-                  const nombre = window.prompt('Nombre del bloque flexible (ej: Proyecto, Talleres, Zona de Desarrollo):')
-                  if (nombre) {
-                    const maxOrden = filas.length > 0 ? Math.max(...filas.map(f => f.orden)) : 0
-                    setFilas(prev => [...prev, {
-                      id: `tmp_${Date.now()}`, orden: maxOrden + 1,
-                      hora_inicio: '', hora_fin: '',
-                      es_receso: false, es_almuerzo: false, es_rutina: false,
-                      nombre_rutina: '', nombre_bloque_flexible: nombre,
-                      dias: { 1: null, 2: null, 3: null, 4: null, 5: null },
-                      dbIds: {},
-                    }])
-                    setHayCambios(true)
-                  }
-                }}
-                  style={{ ...s.btnSecondary, fontSize: 12, padding: '8px 16px', borderColor: '#c4b5fd', color: '#5B2D8E' }}>
-                  + Bloque flexible
-                </button>
-              </>)}
+              )}
               {hayCambios && (
                 <button onClick={guardarTodo} disabled={guardando}
                   style={{ ...s.btnPrimary, fontSize: 12, padding: '8px 20px', marginLeft: 'auto' }}>
