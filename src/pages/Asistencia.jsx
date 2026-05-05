@@ -97,12 +97,13 @@ export default function Asistencia() {
   const [observaciones, setObservaciones] = useState({})
   const [permisosMap,   setPermisosMap]   = useState({})
   const [guardando,     setGuardando]     = useState(false)
-  const [cargando,      setCargando]      = useState(false)
-  const [yaGuardado,    setYaGuardado]    = useState(false)
-  const [registradoPor, setRegistradoPor] = useState(null) // nombre del docente que ya guardó
-  const [alertas,       setAlertas]       = useState([]) // estudiantes con 3+ ausencias o tardanzas este mes
+  const [cargando,          setCargando]          = useState(false)
+  const [yaGuardado,        setYaGuardado]         = useState(false)
+  const [registradoPor,     setRegistradoPor]      = useState(null)
+  const [alertas,           setAlertas]            = useState([])
+  const [modificacionAprobada, setModificacionAprobada] = useState(false)
 
-  const puedeEditar = puedeEditarFecha(fecha, isAdmin) && (isAdmin || !yaGuardado)
+  const puedeEditar = puedeEditarFecha(fecha, isAdmin) && (isAdmin || !yaGuardado || modificacionAprobada)
 
   useEffect(() => {
     if (!perfil) return
@@ -123,6 +124,7 @@ export default function Asistencia() {
     setCargando(true)
     setYaGuardado(false)
     setRegistradoPor(null)
+    setModificacionAprobada(false)
     setAlertas([])
 
     Promise.all([
@@ -205,6 +207,19 @@ export default function Asistencia() {
           else if (c.tardanza >= 3) alertasList.push({ estudiante: est, tipo: 'tardanza', count: c.tardanza })
         }
         setAlertas(alertasList)
+      }
+
+      // Verificar si hay solicitud aprobada de modificación para este grado+fecha
+      if (perfil?.id) {
+        const { data: solMod } = await supabase.from('solicitudes')
+          .select('id, estado')
+          .eq('tipo', 'modificar_asistencia')
+          .eq('solicitante_id', perfil.id)
+          .eq('grado_id', parseInt(gradoId))
+          .eq('fecha_asistencia', fecha)
+          .eq('estado', 'aprobado')
+          .limit(1)
+        setModificacionAprobada((solMod || []).length > 0)
       }
 
       setCargando(false)
@@ -349,7 +364,7 @@ export default function Asistencia() {
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <IcoCheck />
                   Asistencia registrada{registradoPor ? ` por ${registradoPor}` : ''}.
-                  {isAdmin ? ' Como administrador puedes modificarla.' : ' Para hacer cambios solicita una modificación.'}
+                  {isAdmin ? ' Como administrador puedes modificarla.' : modificacionAprobada ? ' Modificación aprobada — puedes editar.' : ' Para hacer cambios solicita una modificación.'}
                 </span>
                 {!isAdmin && (
                   <button

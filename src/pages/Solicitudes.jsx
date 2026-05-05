@@ -530,18 +530,28 @@ export default function Solicitudes() {
               </div>
             )}
 
-            <div style={s.field}>
-              <label style={s.label}>Tipo de solicitud</label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
-                {Object.entries(TIPOS).map(([k, v]) => (
-                  <button key={k} onClick={() => setForm(f => ({ ...f, tipo: k }))}
-                    style={{ padding: '10px 12px', borderRadius: 10, border: `2px solid ${form.tipo === k ? v.color : '#e5e7eb'}`, background: form.tipo === k ? v.bg : '#fff', color: form.tipo === k ? v.color : '#6b7280', fontWeight: form.tipo === k ? 700 : 500, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                    <span style={{ color: form.tipo === k ? v.color : '#b0a8c0' }}><TipoIcono tipo={k} size={18} /></span>
-                    {v.label}
-                  </button>
-                ))}
+            {/* Selector de tipo — oculto si viene pre-llenado desde otra página */}
+            {!location.state?.tipo && (
+              <div style={s.field}>
+                <label style={s.label}>Tipo de solicitud</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
+                  {Object.entries(TIPOS).map(([k, v]) => (
+                    <button key={k} onClick={() => setForm(f => ({ ...f, tipo: k }))}
+                      style={{ padding: '10px 12px', borderRadius: 10, border: `2px solid ${form.tipo === k ? v.color : '#e5e7eb'}`, background: form.tipo === k ? v.bg : '#fff', color: form.tipo === k ? v.color : '#6b7280', fontWeight: form.tipo === k ? 700 : 500, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                      <span style={{ color: form.tipo === k ? v.color : '#b0a8c0' }}><TipoIcono tipo={k} size={18} /></span>
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+            {location.state?.tipo && (
+              <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 10, background: TIPOS[form.tipo]?.bg || '#f3eeff', border: `1.5px solid ${TIPOS[form.tipo]?.color || '#5B2D8E'}` }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: TIPOS[form.tipo]?.color || '#5B2D8E' }}>
+                  {TIPOS[form.tipo]?.label || form.tipo}
+                </span>
+              </div>
+            )}
 
             {form.tipo === 'desbloqueo_notas' && (
               <>
