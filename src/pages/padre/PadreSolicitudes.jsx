@@ -117,8 +117,14 @@ export default function PadreSolicitudes() {
 
     // Routing notificaciones
     if (['permiso_ausencia','llegada_tardia','retiro_anticipado','reunion_encargado'].includes(form.tipo)) {
-      // → docente encargado (+ recepción para llegada tardía)
-      const ids = encargadoId ? [encargadoId] : []
+      const ids = []
+      if (encargadoId) {
+        ids.push(encargadoId)
+      } else {
+        // Sin encargado asignado → notificar a dirección como fallback
+        const { data: dir } = await supabase.from('perfiles').select('id').in('rol', ['direccion_academica','admin'])
+        ids.push(...(dir || []).map(p => p.id))
+      }
       if (form.tipo === 'llegada_tardia') {
         const { data: recep } = await supabase.from('perfiles').select('id').eq('rol', 'recepcion')
         ids.push(...(recep || []).map(p => p.id))

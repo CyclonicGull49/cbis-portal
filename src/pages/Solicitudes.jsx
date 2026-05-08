@@ -201,7 +201,8 @@ export default function Solicitudes() {
       if (gradoEnc) {
         const { data: ests } = await supabase.from('estudiantes').select('id, nombre, apellido').eq('grado_id', gradoEnc.id).eq('estado', 'activo').order('apellido')
         setEstudiantes(ests || [])
-        setForm(f => ({ ...f, grado_id: String(gradoEnc.id) }))
+        // Solo pre-llenar grado si no viene ya desde navigate (location.state)
+        setForm(f => ({ ...f, grado_id: f.grado_id || String(gradoEnc.id) }))
       }
       const { data: asigs } = await supabase.from('asignaciones').select('materia_id, materias(id, nombre)').eq('docente_id', perfil.id).eq('año_escolar', year)
       const unicas = [...new Map((asigs || []).map(a => [a.materia_id, { id: a.materia_id, nombre: a.materias?.nombre }])).values()]
