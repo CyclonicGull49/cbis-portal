@@ -183,6 +183,8 @@ export default function Solicitudes() {
       .eq('año_escolar', year).order('creado_en', { ascending: false })
     if (esDocente)   q = q.eq('solicitante_id', perfil.id)
     if (esRecepcion) q = q.in('tipo', TIPOS_RECEPCION)
+    // Dirección y registro ven solicitudes de otros, no las propias (para evitar auto-aprobación)
+    // Las propias (permiso personal) se filtran aparte si las necesitan ver
     const { data } = await q
     setSolicitudes(data || [])
     setLoading(false)
@@ -229,9 +231,26 @@ export default function Solicitudes() {
     })
     if (error) { toast.error('Error al crear solicitud'); setGuardando(false); return }
 
-    // Notificar a dirección y registro
+    // Notificar según tipo — routing correcto por destinatario
+    let rolesDestino = []
+    if (form.tipo === 'desbloqueo_notas') {
+      // Va a dirección académica para aprobación
+      rolesDestino = ['admin', 'direccion_academica']
+    } else if (form.tipo === 'modificar_asistencia') {
+      // Va a dirección académica
+      rolesDestino = ['admin', 'direccion_academica']
+    } else if (form.tipo === 'permiso_personal') {
+      // Va a dirección académica
+      rolesDestino = ['admin', 'direccion_academica']
+    } else if (form.tipo === 'cita_padres') {
+      // Va a dirección académica
+      rolesDestino = ['admin', 'direccion_academica']
+    } else {
+      // Default: dirección y registro
+      rolesDestino = ['admin', 'direccion_academica', 'registro_academico']
+    }
     const { data: gestores } = await supabase.from('perfiles')
-      .select('id').in('rol', ['admin', 'direccion_academica', 'registro_academico'])
+      .select('id').in('rol', rolesDestino)
     const idsGestores = (gestores || []).map(p => p.id).filter(id => id !== perfil.id)
     const tipoLabel = TIPOS[form.tipo]?.label || form.tipo
     await notificar(idsGestores, 'solicitud',
@@ -436,7 +455,7 @@ export default function Solicitudes() {
 
           {/* Acciones rápidas */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-            {(esDireccion || (esRecepcion && TIPOS_RECEPCION.includes(s.tipo))) && s.estado === 'pendiente' && (
+            {(esDireccion || (esRecepcion && TIPOS_RECEPCION.includes(s.tipo))) && s.estado === 'pendiente' && s.solicitante_id !== perfil?.id && (
               <div style={{ display: 'flex', gap: 6 }}>
                 <button onClick={() => { setModalRespuesta({ solicitud: s, accion: 'aprobar' }); setRespuesta('') }} disabled={procesando === s.id}
                   style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 12px', borderRadius: 8, border: 'none', background: '#dcfce7', color: '#16a34a', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
@@ -702,7 +721,7 @@ export default function Solicitudes() {
 
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                     <button onClick={() => setModalDetalle(null)} style={s.btnSecondary}>Cerrar</button>
-                    {(esDireccion || (esRecepcion && TIPOS_RECEPCION.includes(modalDetalle.tipo))) && modalDetalle.estado === 'pendiente' && (
+                    {(esDireccion || (esRecepcion && TIPOS_RECEPCION.includes(modalDetalle.tipo))) && modalDetalle.estado === 'pendiente' && modalDetalle.solicitante_id !== perfil?.id && (
                       <>
                         <button onClick={() => { setModalRespuesta({ solicitud: modalDetalle, accion: 'aprobar' }); setRespuesta('') }}
                           style={{ ...s.btnSecondary, color: '#16a34a', borderColor: '#86efac', display: 'flex', alignItems: 'center', gap: 4 }}>

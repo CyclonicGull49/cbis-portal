@@ -161,6 +161,7 @@ export default function Notas({ onVerEstudiante }) {
   const [guardando, setGuardando]   = useState(false)
   const [busqueda, setBusqueda]     = useState('')
   const [periodoMovil, setPeriodoMovil] = useState(1)
+  const [periodoTab, setPeriodoTab]     = useState(1)
 
   const [pendingNotas, setPendingNotas] = useState({})
   const [pendingActs, setPendingActs]   = useState({})
@@ -650,7 +651,6 @@ export default function Notas({ onVerEstudiante }) {
   // ── Tabla materia ─────────────────────────────────────────
   function TablaMateria() {
     const materia = materias.find(m => m.id === materiaId)
-    const [periodoTab, setPeriodoTab] = React.useState(1)
     const abierto = isPeriodoAbierto(gradoInfo?.nivel, periodoTab)
     const hayPendientesPeriodo = Object.keys(pendingNotas).some(k => k.includes(`|${periodoTab}|`)) ||
                                  Object.keys(pendingActs).some(k => k.includes(`|${periodoTab}|`))
@@ -1341,7 +1341,7 @@ export default function Notas({ onVerEstudiante }) {
             )}
             <div style={{ flex: 1, minWidth: 160 }}>
               <label style={s.label}>Materia</label>
-              <select style={s.select} value={materiaId} onChange={e => { setMateriaId(e.target.value); setBusqueda('') }} disabled={!gradoId}>
+              <select style={s.select} value={materiaId} onChange={e => { setMateriaId(e.target.value); setBusqueda(''); setPeriodoTab(1) }} disabled={!gradoId}>
                 {!isMobile && <option value="todas">Ver todas las materias</option>}
                 {!isMobile && tieneCompetencias && <option value="competencias">⊕ Competencias Ciudadanas</option>}
                 {materias.map(m => (
