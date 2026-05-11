@@ -78,7 +78,7 @@ function puedeEditarFecha(fecha, esAdmin) {
   return diffDias >= -1 && diffDias <= 1
 }
 
-export default function Asistencia() {
+export default function Asistencia({ onIrASolicitudes }) {
   const { perfil } = useAuth()
   const navigate = useNavigate()
   const { yearEscolar } = useYearEscolar()
@@ -226,7 +226,13 @@ export default function Asistencia() {
     })
   }, [gradoId, fecha, year])
 
-  function marcarTodos(estado) {
+  function irASolicitudes(state) {
+    if (onIrASolicitudes) {
+      onIrASolicitudes(state)
+    } else {
+      navigate('/solicitudes', { state })
+    }
+  }
     const nuevo = {}
     for (const e of estudiantes) nuevo[e.id] = estado
     setAsistencia(nuevo)
@@ -317,7 +323,7 @@ export default function Asistencia() {
             Fecha fuera del rango de edición. Para fechas anteriores usa una solicitud de modificación.
           </span>
           {!isAdmin && (
-            <button onClick={() => navigate('/solicitudes', { state: { tipo: 'modificar_asistencia', grado_id: String(gradoId), fecha_asistencia: fecha, _hint: `${gradoInfo?.nombre} · ${fecha}` } })}
+            <button onClick={() => irASolicitudes({ tipo: 'modificar_asistencia', grado_id: String(gradoId), fecha_asistencia: fecha, _hint: `${gradoInfo?.nombre} · ${fecha}` })}
               style={{ padding: '5px 14px', borderRadius: 8, border: '1.5px solid #dc2626', background: '#fff', color: '#dc2626', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
               Solicitar modificación
             </button>
@@ -368,13 +374,11 @@ export default function Asistencia() {
                 </span>
                 {!isAdmin && (
                   <button
-                    onClick={() => navigate('/solicitudes', {
-                      state: {
-                        tipo: 'modificar_asistencia',
-                        grado_id: String(gradoId),
-                        fecha_asistencia: fecha,
-                        _hint: `${gradoInfo?.nombre} · ${fecha}`,
-                      }
+                    onClick={() => irASolicitudes({
+                      tipo: 'modificar_asistencia',
+                      grado_id: String(gradoId),
+                      fecha_asistencia: fecha,
+                      _hint: `${gradoInfo?.nombre} · ${fecha}`,
                     })}
                     style={{ padding: '5px 14px', borderRadius: 8, border: '1.5px solid #1e40af', background: '#fff', color: '#1e40af', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
                     Solicitar modificación

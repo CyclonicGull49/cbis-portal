@@ -611,7 +611,7 @@ export default function Dashboard() {
       case 'reportes':      return <Reportes />
       case 'solicitudes':   return <Solicitudes />
       case 'boletas':       return <Boletas />
-      case 'asistencia':    return <Asistencia />
+      case 'asistencia':    return <Asistencia onIrASolicitudes={(state) => { setPagina('solicitudes'); sessionStorage.setItem('solicitudes_state', JSON.stringify(state)) }} />
       case 'dashboard':     return <DashboardHome />
       case 'estudiantes':   return <Estudiantes />
       case 'cobros':        return <Cobros />

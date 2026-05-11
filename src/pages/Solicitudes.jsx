@@ -160,8 +160,15 @@ export default function Solicitudes() {
 
   // Pre-llenar form y abrir modal si viene state desde Notas o Asistencia
   useEffect(() => {
-    if (!location.state || !perfil) return
-    const st = location.state
+    // Leer desde location.state (navigate normal) o sessionStorage (navegación interna del dashboard)
+    const st = location.state || (() => {
+      try {
+        const s = sessionStorage.getItem('solicitudes_state')
+        if (s) { sessionStorage.removeItem('solicitudes_state'); return JSON.parse(s) }
+      } catch {}
+      return null
+    })()
+    if (!st || !perfil) return
     setForm(f => ({
       ...f,
       tipo:             st.tipo             || 'desbloqueo_notas',
@@ -171,9 +178,9 @@ export default function Solicitudes() {
       estudiante_id:    st.estudiante_id    || '',
       fecha_asistencia: st.fecha_asistencia || '',
     }))
+    if (st._hint) sessionStorage.setItem('solicitudes_hint', st._hint)
     setModalNueva(true)
-    // Limpiar state para que no re-abra si el usuario recarga
-    window.history.replaceState({}, '', window.location.pathname)
+    if (location.state) window.history.replaceState({}, '', window.location.pathname)
   }, [location.state, perfil])
 
   async function cargar() {
@@ -429,6 +436,7 @@ export default function Solicitudes() {
                 {s.motivo?.includes('[RETIRO]') && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, color: '#c2410c', background: '#fff7ed', padding: '1px 7px', borderRadius: 6 }}>Retiro</span>}
               </div>
             )}
+            {s.tipo === 'cita_padres' && (
               <div style={{ fontSize: 13, fontWeight: 700, color: '#3d1f61', marginBottom: 4 }}>
                 {s.estudiantes ? `${s.estudiantes.apellido}, ${s.estudiantes.nombre}` : 'Cita con padres'}
                 {s.grados && <span style={{ fontWeight: 500, color: '#6b7280' }}> · {s.grados.nombre}</span>}
@@ -540,13 +548,13 @@ export default function Solicitudes() {
 
       {/* Modal nueva solicitud */}
       {modalNueva && (
-        <div style={s.modalBg} onClick={() => { setModalNueva(false); resetForm() }}>
+        <div style={s.modalBg} onClick={() => { setModalNueva(false); resetForm(); sessionStorage.removeItem('solicitudes_hint') }}>
           <div style={{ ...s.modalBox, maxWidth: 520 }} onClick={e => e.stopPropagation()}>
             <h2 style={{ color: '#3d1f61', fontSize: 17, fontWeight: 800, marginBottom: location.state?._hint ? 8 : 20 }}>Nueva solicitud</h2>
 
-            {location.state?._hint && (
+            {(location.state?._hint || sessionStorage.getItem('solicitudes_hint')) && (
               <div style={{ background: '#f3eeff', borderRadius: 8, padding: '7px 12px', marginBottom: 16, fontSize: 12, fontWeight: 600, color: '#5B2D8E' }}>
-                {location.state._hint}
+                {location.state?._hint || sessionStorage.getItem('solicitudes_hint')}
               </div>
             )}
 
