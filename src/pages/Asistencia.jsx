@@ -210,9 +210,10 @@ export default function Asistencia({ onIrASolicitudes }) {
       }
 
       // Verificar si hay solicitud aprobada de modificación para este grado+fecha
-      if (perfil?.id) {
+      // Solo relevante cuando ya hay asistencia guardada (yaGuardado se setea arriba)
+      if (perfil?.id && gradoId) {
         const { data: solMod } = await supabase.from('solicitudes')
-          .select('id, estado')
+          .select('id')
           .eq('tipo', 'modificar_asistencia')
           .eq('solicitante_id', perfil.id)
           .eq('grado_id', parseInt(gradoId))
