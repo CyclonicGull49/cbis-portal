@@ -71,11 +71,9 @@ function hoy() { return new Date().toISOString().split('T')[0] }
 
 // ── Regla ±1 día ──────────────────────────────
 function puedeEditarFecha(fecha, esAdmin) {
-  if (esAdmin) return true
-  const hoyDate = new Date(); hoyDate.setHours(0,0,0,0)
-  const fechaDate = new Date(fecha + 'T12:00:00')
-  const diffDias = Math.round((fechaDate - hoyDate) / 86400000)
-  return diffDias >= -1 && diffDias <= 1
+  // [TEMPORAL hasta junio 2026] Apertura solicitada por dirección — sin bloqueo por fecha
+  // Restaurar después: if (esAdmin) return true; const hoyDate = new Date(); ...
+  return true
 }
 
 export default function Asistencia({ onIrASolicitudes }) {
@@ -103,7 +101,9 @@ export default function Asistencia({ onIrASolicitudes }) {
   const [alertas,           setAlertas]            = useState([])
   const [modificacionAprobada, setModificacionAprobada] = useState(false)
 
-  const puedeEditar = puedeEditarFecha(fecha, isAdmin) && (isAdmin || !yaGuardado || modificacionAprobada)
+  // [TEMPORAL hasta junio 2026] Apertura — todos pueden editar siempre
+  // Restaurar después: (puedeEditarFecha(fecha, isAdmin) || modificacionAprobada) && (isAdmin || !yaGuardado || modificacionAprobada)
+  const puedeEditar = true
 
   useEffect(() => {
     if (!perfil) return
@@ -367,24 +367,11 @@ export default function Asistencia({ onIrASolicitudes }) {
           <>
             {/* Avisos */}
             {yaGuardado && (
-              <div style={{ ...s.aviso('#dbeafe', '#1e40af'), marginBottom: 12, justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <IcoCheck />
-                  Asistencia registrada{registradoPor ? ` por ${registradoPor}` : ''}.
-                  {isAdmin ? ' Como administrador puedes modificarla.' : modificacionAprobada ? ' Modificación aprobada — puedes editar.' : ' Para hacer cambios solicita una modificación.'}
+              <div style={{ ...s.aviso('#dbeafe', '#1e40af'), marginBottom: 12 }}>
+                <IcoCheck />
+                <span>
+                  Asistencia registrada{registradoPor ? ` por ${registradoPor}` : ''}. Puedes modificarla directamente.
                 </span>
-                {!isAdmin && (
-                  <button
-                    onClick={() => irASolicitudes({
-                      tipo: 'modificar_asistencia',
-                      grado_id: String(gradoId),
-                      fecha_asistencia: fecha,
-                      _hint: `${gradoInfo?.nombre} · ${fecha}`,
-                    })}
-                    style={{ padding: '5px 14px', borderRadius: 8, border: '1.5px solid #1e40af', background: '#fff', color: '#1e40af', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
-                    Solicitar modificación
-                  </button>
-                )}
               </div>
             )}
             {permisosHoy > 0 && !yaGuardado && (
