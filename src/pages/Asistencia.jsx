@@ -234,6 +234,8 @@ export default function Asistencia({ onIrASolicitudes }) {
       navigate('/solicitudes', { state })
     }
   }
+
+  function marcarTodos(estado) {
     const nuevo = {}
     for (const e of estudiantes) nuevo[e.id] = estado
     setAsistencia(nuevo)
