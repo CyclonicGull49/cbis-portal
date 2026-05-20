@@ -6,7 +6,7 @@
 // - surface.page → #F8FAFC (fondo neutro limpio, cards "flotan")
 // - Sombras recalibradas con 2 capas (cercana + difusa) + tinted por variante
 // - Gradient botón primario con stops más separados
-// - Tracking negativo en titulares (premium feel)
+// - Tracking neutro para mantener lectura estable en UI densa
 
 export const tokens = {
   // ─── COLOR ───────────────────────────────────────────────
@@ -34,10 +34,11 @@ export const tokens = {
       info:    { solid: '#2563EB', soft: '#DBEAFE', softer: '#EFF6FF', text: '#1E40AF' },
     },
     surface: {
-      page:   '#F8FAFC', // ★ fondo base, neutro frío
+      page:   '#F4F7FC',
       card:   '#FFFFFF',
       raised: '#FCFDFE',
-      sunken: '#F1F5F9',
+      sunken: '#EEF4FB',
+      mist:   '#F8FBFF',
     },
     border: {
       subtle: 'rgba(15, 23, 42, 0.05)',
@@ -81,7 +82,7 @@ export const tokens = {
     weight: { regular: 400, medium: 500, semibold: 600, bold: 700, extrabold: 800 },
     leading: { tight: 1.15, snug: 1.35, normal: 1.5, relaxed: 1.65 },
     tracking: {
-      tighter: '-0.03em', tight: '-0.02em', normal: '0',
+      tighter: '0', tight: '0', normal: '0',
       wide: '0.02em', wider: '0.06em', widest: '0.12em',
     },
   },
@@ -92,8 +93,8 @@ export const tokens = {
     xs:  '0 1px 2px rgba(15, 23, 42, 0.04)',
     sm:  '0 2px 4px rgba(15, 23, 42, 0.04), 0 4px 8px rgba(15, 23, 42, 0.03)',
     // ★ card estándar — exacta como Julio pidió
-    card:      '0 4px 6px -1px rgba(15, 23, 42, 0.04), 0 10px 15px -3px rgba(15, 23, 42, 0.05)',
-    cardHover: '0 8px 12px -2px rgba(15, 23, 42, 0.06), 0 16px 24px -4px rgba(15, 23, 42, 0.08)',
+    card:      '0 16px 42px rgba(26, 13, 48, 0.07), 0 2px 8px rgba(26, 13, 48, 0.04)',
+    cardHover: '0 22px 56px rgba(26, 13, 48, 0.10), 0 4px 14px rgba(26, 13, 48, 0.06)',
     md:  '0 4px 8px rgba(15, 23, 42, 0.05), 0 12px 24px rgba(15, 23, 42, 0.06)',
     lg:  '0 10px 15px -3px rgba(15, 23, 42, 0.05), 0 20px 35px -5px rgba(15, 23, 42, 0.08)',
     xl:  '0 15px 25px -5px rgba(15, 23, 42, 0.08), 0 30px 50px -10px rgba(15, 23, 42, 0.12)',

@@ -231,7 +231,7 @@ function SidebarContent({ onNav, sidebarOpen, setSidebarOpen, isTablet }) {
       <div style={{ position:'absolute', borderRadius:'50%', pointerEvents:'none', width:200, height:200, background:'radial-gradient(circle,rgba(255,255,255,0.05) 0%,transparent 70%)', filter:'blur(45px)', bottom:120, left:-30 }} />
       <div style={{ position:'absolute', borderRadius:'50%', pointerEvents:'none', width:220, height:220, background:'radial-gradient(circle,rgba(212,160,23,0.10) 0%,transparent 70%)', filter:'blur(50px)', bottom:-40, right:-40 }} />
       {/* grid pattern */}
-      <div style={{ position:'absolute', inset:0, pointerEvents:'none', backgroundImage:'linear-gradient(rgba(255,255,255,0.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.015) 1px,transparent 1px)', backgroundSize:'28px 28px' }} />
+      <div style={{ position:'absolute', inset:0, pointerEvents:'none', backgroundImage:'radial-gradient(circle,rgba(255,255,255,0.08) 1px,transparent 1.6px)', backgroundSize:'22px 22px', maskImage:'linear-gradient(180deg,rgba(0,0,0,0.92),rgba(0,0,0,0.18))' }} />
 
       {/* Header */}
       <div style={{ padding:'20px 16px 14px', borderBottom:'1px solid rgba(255,255,255,0.08)', position:'relative', zIndex:1, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
@@ -244,7 +244,7 @@ function SidebarContent({ onNav, sidebarOpen, setSidebarOpen, isTablet }) {
               CBIS
               <svg width="13" height="13" viewBox="0 0 28 28" fill="none"><rect x="11" y="2" width="6" height="24" rx="3" fill="#D4A017"/><rect x="2" y="11" width="24" height="6" rx="3" fill="#D4A017"/></svg>
             </div>
-            <div style={{ color:'rgba(255,255,255,0.3)', fontSize:9, fontStyle:'italic', lineHeight:1.3 }}>Portal de Padres</div>
+            <div style={{ color:'rgba(255,255,255,0.62)', fontSize:9, fontWeight:700, lineHeight:1.3 }}>Fe, Innovación, Cultura y Disciplina</div>
           </div>
         </div>
         {isTablet && (
@@ -257,21 +257,21 @@ function SidebarContent({ onNav, sidebarOpen, setSidebarOpen, isTablet }) {
 
       {/* Hijo selector */}
       <div style={{ padding:'12px 10px', borderBottom:'1px solid rgba(255,255,255,0.08)', position:'relative', zIndex:1 }}>
-        <div style={{ fontSize:9, fontWeight:700, color:'rgba(255,255,255,0.25)', textTransform:'uppercase', letterSpacing:'1px', marginBottom:6, paddingLeft:2 }}>Alumno vinculado</div>
+        <div style={{ fontSize:9, fontWeight:800, color:'rgba(255,255,255,0.34)', textTransform:'uppercase', letterSpacing:'1px', marginBottom:6, paddingLeft:2 }}>Alumno vinculado</div>
         <HijoSelector />
       </div>
 
       {/* Nav */}
       <nav style={{ flex:1, padding:'8px 8px 4px', overflowY:'auto', position:'relative', zIndex:1 }}>
-        <div style={{ fontSize:9, fontWeight:700, color:'rgba(255,255,255,0.2)', textTransform:'uppercase', letterSpacing:'1.2px', padding:'8px 10px 4px' }}>Menú</div>
+        <div style={{ fontSize:9, fontWeight:800, color:'rgba(255,255,255,0.33)', textTransform:'uppercase', letterSpacing:'1.2px', padding:'8px 10px 4px' }}>Menú</div>
         {NAV.map(item => {
           const activo = current === item.id
           return (
             <button key={item.id}
               onClick={() => { navigate(item.path); onNav?.() }}
-              style={{ width:'100%', display:'flex', alignItems:'center', gap:9, padding:'7px 8px', borderRadius:10, border:'none', background: activo ? 'rgba(255,255,255,0.11)' : 'transparent', color: activo ? '#fff' : 'rgba(255,255,255,0.48)', fontSize:12.5, fontWeight: activo ? 700 : 500, cursor:'pointer', textAlign:'left', fontFamily:'Plus Jakarta Sans,system-ui,sans-serif', transition:'all 0.15s', marginBottom:1 }}
+              style={{ width:'100%', display:'flex', alignItems:'center', gap:9, padding:'8px 8px', borderRadius:12, border: activo ? '1px solid rgba(255,255,255,0.12)' : '1px solid transparent', background: activo ? 'linear-gradient(135deg, rgba(255,255,255,0.16), rgba(255,255,255,0.08))' : 'transparent', color: activo ? '#fff' : 'rgba(255,255,255,0.58)', fontSize:12.5, fontWeight: activo ? 800 : 600, cursor:'pointer', textAlign:'left', fontFamily:'Plus Jakarta Sans,system-ui,sans-serif', transition:'transform 180ms ease, background 180ms ease, color 180ms ease, border-color 180ms ease', marginBottom:2 }}
               className="padre-nav-btn">
-              <div style={{ width:28, height:28, borderRadius:8, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background: activo ? 'rgba(212,160,23,0.18)' : 'rgba(255,255,255,0.06)', border: activo ? '1px solid rgba(212,160,23,0.28)' : '1px solid rgba(255,255,255,0.06)', color: activo ? '#D4A017' : 'rgba(255,255,255,0.4)', transition:'all 0.15s' }}>
+              <div style={{ width:30, height:30, borderRadius:10, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background: activo ? 'rgba(212,160,23,0.20)' : 'rgba(255,255,255,0.07)', border: activo ? '1px solid rgba(212,160,23,0.34)' : '1px solid rgba(255,255,255,0.08)', color: activo ? '#F5D46E' : 'rgba(255,255,255,0.52)', transition:'all 0.15s' }}>
                 {Icons[item.id]}
               </div>
               <span style={{ flex:1, letterSpacing:'-0.1px' }}>{item.label}</span>
@@ -321,10 +321,10 @@ function PadreLayoutInner() {
   const masItems   = NAV.filter(n => !PRIORIDAD_MOVIL.includes(n.id))
 
   const sidebarStyle = {
-    width:228, flexShrink:0,
-    background:'linear-gradient(180deg,#1a0d30 0%,#2d1554 45%,#5B2D8E 100%)',
+    width:238, flexShrink:0,
+    background:'linear-gradient(165deg,#1a0d30 0%,#2d1554 42%,#5B2D8E 100%)',
     display:'flex', flexDirection:'column',
-    boxShadow:'4px 0 24px rgba(61,31,97,0.35)',
+    boxShadow:'14px 0 40px rgba(26,13,48,0.20)',
     position:'relative', overflow:'hidden',
   }
 
@@ -333,13 +333,30 @@ function PadreLayoutInner() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
-        .padre-nav-btn:hover{background:rgba(255,255,255,0.1)!important;color:#fff!important;}
+        .padre-shell::before{
+          content:'';
+          position:fixed;
+          inset:0;
+          pointer-events:none;
+          background:
+            radial-gradient(circle at 13% 6%, rgba(212,160,23,0.12), transparent 24rem),
+            radial-gradient(circle at 92% 20%, rgba(14,148,144,0.10), transparent 22rem),
+            radial-gradient(circle, rgba(91,45,142,0.08) 1px, transparent 1.6px);
+          background-size:auto, auto, 34px 34px;
+          opacity:.9;
+        }
+        .padre-topbar{
+          background:rgba(255,255,255,.82)!important;
+          backdrop-filter:blur(18px);
+          -webkit-backdrop-filter:blur(18px);
+        }
+        .padre-nav-btn:hover{background:rgba(255,255,255,0.12)!important;color:#fff!important;transform:translateX(2px);}
         .padre-logout-btn:hover{background:rgba(239,68,68,0.12)!important;color:#fca5a5!important;border-color:rgba(239,68,68,0.2)!important;}
         .padre-bottom-btn:hover{background:rgba(91,45,142,0.08)!important;}
         :root{--sab:env(safe-area-inset-bottom,0px);--sat:env(safe-area-inset-top,0px);}
       `}</style>
 
-      <div style={{ display:'flex', minHeight:'100vh', width:'100vw', background:'#F4F7FC', fontFamily:'Plus Jakarta Sans,system-ui,sans-serif' }}>
+      <div className="padre-shell" style={{ display:'flex', minHeight:'100vh', width:'100vw', background:'linear-gradient(180deg, #fff 0%, #F4F7FC 46%, #EEF4FB 100%)', fontFamily:'Plus Jakarta Sans,system-ui,sans-serif', position:'relative' }}>
 
         {/* Desktop sidebar */}
         {isDesktop && (
@@ -364,7 +381,7 @@ function PadreLayoutInner() {
           {/* Topbar */}
           <div style={{ position:'sticky', top:0, zIndex:50 }}>
             {isMobile && <div style={{ height:'env(safe-area-inset-top,44px)', background:'#1a0d30', minHeight:44 }} />}
-            <div style={{ background:'#fff', padding:'0 20px', height:56, display:'flex', alignItems:'center', justifyContent:'space-between', boxShadow:'0 2px 12px rgba(91,45,142,0.07)', borderBottom:'3px solid transparent', backgroundImage:'linear-gradient(#fff,#fff),linear-gradient(90deg,#7B3FE4,#EA580C,#D4A017,#16A34A)', backgroundOrigin:'border-box', backgroundClip:'padding-box,border-box' }}>
+            <div className="padre-topbar" style={{ padding:'0 24px', height:64, display:'flex', alignItems:'center', justifyContent:'space-between', boxShadow:'0 14px 34px rgba(26,13,48,0.08)', borderBottom:'3px solid transparent', backgroundImage:'linear-gradient(rgba(255,255,255,0.86),rgba(255,255,255,0.86)),linear-gradient(90deg,#5B2D8E,#0e9490,#D4A017)', backgroundOrigin:'border-box', backgroundClip:'padding-box,border-box' }}>
               <div style={{ display:'flex', alignItems:'center', gap:12 }}>
                 {isTablet && (
                   <button onClick={() => setSidebarOpen(true)} style={{ background:'none', border:'none', cursor:'pointer', color:'#3d1f61', display:'flex', padding:4 }}>
@@ -373,7 +390,7 @@ function PadreLayoutInner() {
                 )}
                 {isMobile && <img src="/logo.png" alt="CBIS" style={{ width:28, height:28, objectFit:'cover', borderRadius:8 }} />}
                 <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                  <div style={{ width:4, height:20, borderRadius:2, background:'linear-gradient(180deg,#3d1f61,#5B2D8E)', flexShrink:0 }} />
+                  <div style={{ width:5, height:26, borderRadius:999, background:'linear-gradient(180deg,#D4A017,#5B2D8E)', flexShrink:0, boxShadow:'0 6px 18px rgba(91,45,142,0.22)' }} />
                   <span style={{ color:'#3d1f61', fontWeight:800, fontSize: isMobile ? 14 : 15, letterSpacing:'-0.3px' }}>
                     {current?.label || 'Portal de Padres'}
                   </span>
@@ -398,7 +415,7 @@ function PadreLayoutInner() {
           </div>
 
           {/* Outlet */}
-          <div style={{ flex:1, padding: isMobile ? 16 : 28, overflowY:'auto', paddingBottom: isMobile ? 'calc(76px + env(safe-area-inset-bottom,0px))' : 28 }}>
+          <div style={{ flex:1, padding: isMobile ? 16 : 30, overflowY:'auto', paddingBottom: isMobile ? 'calc(76px + env(safe-area-inset-bottom,0px))' : 30, position:'relative', zIndex:1, animation:'cbis-fade-up 360ms ease both' }}>
             <Outlet />
           </div>
         </div>

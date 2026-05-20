@@ -18,17 +18,27 @@ const DesignPreview   = lazy(() => import('./pages/DesignPreview'))
 
 function Spinner() {
   return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh', background:'#f4f0fa' }}>
-      <div style={{ textAlign:'center' }}>
+    <div style={{
+      display:'flex',
+      alignItems:'center',
+      justifyContent:'center',
+      minHeight:'100vh',
+      background:'linear-gradient(135deg, #f8fbff 0%, #f4f7fc 48%, #fff8e3 100%)',
+      position:'relative',
+      overflow:'hidden',
+    }}>
+      <div style={{ position:'absolute', inset:0, opacity:0.42, backgroundImage:'radial-gradient(circle, rgba(212,160,23,0.28) 1px, transparent 1.5px)', backgroundSize:'34px 34px', transform:'rotate(-3deg) scale(1.08)' }} />
+      <div style={{ textAlign:'center', position:'relative', zIndex:1, animation:'cbis-fade-up 420ms ease both' }}>
         <div style={{
-          width: 44, height: 44, margin: '0 auto 14px',
-          border: '3px solid rgba(91, 45, 142, 0.15)',
+          width: 52, height: 52, margin: '0 auto 16px',
+          border: '4px solid rgba(91, 45, 142, 0.14)',
           borderTopColor: '#5B2D8E',
           borderRadius: '50%',
-          animation: 'cbisSpin 0.8s linear infinite',
+          animation: 'cbis-spin 0.8s linear infinite',
+          boxShadow:'0 14px 34px rgba(91,45,142,0.15)',
         }} />
-        <p style={{ color:'#5B2D8E', fontWeight:700, fontFamily:"'Plus Jakarta Sans', sans-serif" }}>Cargando CBIS+...</p>
-        <style>{`@keyframes cbisSpin { to { transform: rotate(360deg); } }`}</style>
+        <p style={{ color:'#1a0d30', fontWeight:800, fontFamily:"'Plus Jakarta Sans', sans-serif" }}>Cargando CBIS+...</p>
+        <p style={{ color:'#6d6480', fontWeight:600, fontSize:12, marginTop:4, fontFamily:"'Plus Jakarta Sans', sans-serif" }}>Fe, Innovación, Cultura y Disciplina</p>
       </div>
     </div>
   )

@@ -4,10 +4,6 @@ import { useAuth } from '../context/AuthContext'
 import { supabase } from '../supabase'
 import toast from 'react-hot-toast'
 
-function FloatingOrb({ style }) {
-  return <div style={{ position: 'absolute', borderRadius: '50%', pointerEvents: 'none', ...style }} />
-}
-
 export default function Login() {
   const navigate = useNavigate()
   const { login } = useAuth()
@@ -82,28 +78,126 @@ export default function Login() {
         .login-page {
           min-height: 100vh;
           font-family: 'Plus Jakarta Sans', sans-serif;
-          background: radial-gradient(ellipse at top left, #2d1554 0%, #1a0d30 50%, #0f0720 100%);
+          background:
+            radial-gradient(circle at 7% 0%, rgba(212,160,23,0.16), transparent 26rem),
+            radial-gradient(circle at 95% 18%, rgba(14,148,144,0.12), transparent 24rem),
+            linear-gradient(135deg, #fff 0%, #f4f7fc 45%, #eef4fb 100%);
           display: flex; align-items: center; justify-content: center;
-          padding: 24px; position: relative; overflow: hidden;
+          padding: 28px; position: relative; overflow: hidden;
         }
-        .login-blob {
-          position: absolute; border-radius: 50%; filter: blur(80px);
-          opacity: .35; pointer-events: none; animation: loginFloat 12s ease-in-out infinite;
+        .login-page::before {
+          content: '';
+          position: absolute;
+          inset: -10%;
+          background-image: radial-gradient(circle, rgba(91,45,142,0.08) 1px, transparent 1.6px);
+          background-size: 34px 34px;
+          transform: rotate(-3deg);
+          pointer-events: none;
         }
-        .login-blob-1 { width: 480px; height: 480px; background: #5B2D8E; top: -160px; left: -160px; }
-        .login-blob-2 { width: 420px; height: 420px; background: #D4A017; bottom: -140px; right: -140px; animation-delay: 3s; }
-        .login-blob-3 { width: 340px; height: 340px; background: #3d1f61; top: 35%; right: 8%; animation-delay: 6s; }
-        @keyframes loginFloat {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50%      { transform: translate(40px, -30px) scale(1.08); }
+        .login-shell {
+          width: min(1040px, 100%);
+          min-height: 640px;
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 460px;
+          border-radius: 32px;
+          background: rgba(255,255,255,0.78);
+          border: 1px solid rgba(26,13,48,0.08);
+          box-shadow: 0 28px 80px rgba(26,13,48,0.14);
+          overflow: hidden;
+          position: relative;
+          z-index: 1;
+          backdrop-filter: blur(18px);
+          -webkit-backdrop-filter: blur(18px);
+          animation: cbis-fade-up 460ms ease both;
+        }
+        .login-brand {
+          position: relative;
+          padding: 46px;
+          background:
+            linear-gradient(145deg, rgba(26,13,48,0.97), rgba(91,45,142,0.94)),
+            radial-gradient(circle at 85% 12%, rgba(212,160,23,0.34), transparent 18rem);
+          color: #fff;
+          overflow: hidden;
+        }
+        .login-brand::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background-image: radial-gradient(circle, rgba(255,255,255,0.10) 1px, transparent 1.7px);
+          background-size: 28px 28px;
+          opacity: .45;
+        }
+        .login-brand::after {
+          content: '';
+          position: absolute;
+          width: 360px;
+          height: 360px;
+          border: 34px solid rgba(212,160,23,0.24);
+          border-radius: 76px;
+          right: -132px;
+          bottom: -112px;
+          transform: rotate(-9deg);
+        }
+        .login-brand-inner {
+          position: relative;
+          z-index: 1;
+          min-height: 100%;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          gap: 40px;
+        }
+        .login-logo-row {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+        }
+        .login-logo {
+          width: 64px;
+          height: 64px;
+          border-radius: 18px;
+          object-fit: cover;
+          box-shadow: 0 18px 36px rgba(0,0,0,0.24);
+        }
+        .login-brand-title {
+          font-size: 54px;
+          line-height: 1.04;
+          font-weight: 800;
+          margin: 0 0 18px;
+          letter-spacing: 0;
+        }
+        .login-brand-copy {
+          max-width: 460px;
+          color: rgba(255,255,255,0.72);
+          font-size: 17px;
+          line-height: 1.7;
+          font-weight: 500;
+        }
+        .login-motto {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+        .login-motto span {
+          padding: 10px 14px;
+          border-radius: 999px;
+          background: rgba(255,255,255,0.10);
+          border: 1px solid rgba(255,255,255,0.14);
+          color: #fff;
+          font-size: 12px;
+          font-weight: 800;
+        }
+        .login-form-side {
+          display: flex;
+          align-items: center;
+          padding: 38px;
         }
         .login-card {
-          position: relative; width: 100%; max-width: 460px;
-          background: rgba(255, 255, 255, 0.04);
-          backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 20px; padding: 44px 40px;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+          position: relative; width: 100%;
+          background: #fff;
+          border: 1px solid rgba(26,13,48,0.08);
+          border-radius: 24px; padding: 38px;
+          box-shadow: 0 16px 42px rgba(26,13,48,0.08);
           opacity: 0; transform: translateY(12px);
           transition: opacity .5s ease, transform .5s ease;
         }
@@ -111,20 +205,20 @@ export default function Login() {
         .login-eyebrow {
           display: inline-flex; align-items: center; gap: 8px;
           font-size: 11px; font-weight: 700; letter-spacing: 2px;
-          color: #D4A017; text-transform: uppercase; margin-bottom: 12px;
+          color: #5B2D8E; text-transform: uppercase; margin-bottom: 12px;
         }
-        .login-eyebrow::before { content: ''; width: 24px; height: 2px; background: #D4A017; }
+        .login-eyebrow::before { content: ''; width: 24px; height: 3px; border-radius: 999px; background: #D4A017; }
         .login-title {
-          font-size: 28px; font-weight: 700; color: #fff;
-          margin-bottom: 8px; letter-spacing: -0.02em;
+          font-size: 32px; font-weight: 800; color: #1a0d30;
+          margin-bottom: 8px; letter-spacing: 0;
         }
         .login-subtitle {
-          font-size: 14px; color: rgba(255, 255, 255, 0.6);
+          font-size: 14px; color: #625878;
           margin-bottom: 28px; line-height: 1.5;
         }
         .login-label {
           display: block; font-size: 11px; font-weight: 700;
-          color: rgba(255, 255, 255, 0.7); letter-spacing: 1.2px;
+          color: #1a0d30; letter-spacing: 1.2px;
           text-transform: uppercase; margin-bottom: 8px;
         }
         .login-input-wrap {
@@ -132,28 +226,29 @@ export default function Login() {
         }
         .login-input {
           width: 100%; padding: 14px 44px 14px 16px;
-          background: rgba(255, 255, 255, 0.06);
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          border-radius: 12px; color: #fff;
+          background: #f8fbff;
+          border: 1px solid rgba(26,13,48,0.10);
+          border-radius: 16px; color: #1a0d30;
           font-family: inherit; font-size: 15px; font-weight: 500;
-          transition: border-color .2s, background .2s;
+          transition: border-color .2s, background .2s, box-shadow .2s;
         }
         .login-input:focus {
           outline: none; border-color: #D4A017;
-          background: rgba(255, 255, 255, 0.08);
+          background: #fff;
+          box-shadow: 0 0 0 4px rgba(212,160,23,0.14);
         }
-        .login-input::placeholder { color: rgba(255, 255, 255, 0.3); }
+        .login-input::placeholder { color: rgba(26,13,48,0.36); }
         .login-eye {
           position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
           background: none; border: none; cursor: pointer;
-          color: rgba(255, 255, 255, 0.5); padding: 6px;
+          color: rgba(26,13,48,0.48); padding: 6px;
           display: flex; align-items: center; justify-content: center;
         }
-        .login-eye:hover { color: rgba(255, 255, 255, 0.9); }
+        .login-eye:hover { color: #5B2D8E; }
         .login-btn {
           width: 100%; padding: 14px;
           background: linear-gradient(135deg, #5B2D8E 0%, #3d1f61 100%);
-          border: none; border-radius: 12px; color: #fff;
+          border: none; border-radius: 16px; color: #fff;
           font-family: inherit; font-size: 15px; font-weight: 700;
           cursor: pointer; transition: transform .15s, box-shadow .2s;
           box-shadow: 0 10px 30px rgba(91, 45, 142, 0.35);
@@ -163,12 +258,12 @@ export default function Login() {
         }
         .login-btn:disabled { opacity: .6; cursor: not-allowed; }
         .login-btn-ghost {
-          background: none; border: none; color: rgba(255, 255, 255, 0.6);
+          background: none; border: none; color: #625878;
           font-family: inherit; font-size: 13px; font-weight: 600;
           cursor: pointer; margin-top: 16px; text-align: center; width: 100%;
           padding: 8px; transition: color .2s;
         }
-        .login-btn-ghost:hover { color: #D4A017; }
+        .login-btn-ghost:hover { color: #5B2D8E; }
         .login-error {
           background: rgba(220, 38, 38, 0.12);
           border: 1px solid rgba(220, 38, 38, 0.3);
@@ -187,27 +282,73 @@ export default function Login() {
         }
         .login-divider {
           display: flex; align-items: center; gap: 12px; margin: 24px 0;
-          color: rgba(255, 255, 255, 0.3);
+          color: #8d849e;
           font-size: 12px;
         }
         .login-divider::before,
         .login-divider::after {
           content: ''; flex: 1; height: 1px;
-          background: rgba(255, 255, 255, 0.1);
+          background: rgba(26,13,48,0.08);
         }
         .login-link {
           color: #D4A017; text-decoration: none; font-weight: 600;
           transition: color .2s;
         }
         .login-link:hover { color: #e6b829; }
+        @media (max-width: 900px) {
+          .login-shell { grid-template-columns: minmax(280px, 1fr) minmax(360px, 420px); min-height: auto; }
+          .login-brand { padding: 32px; }
+          .login-brand-title { font-size: 40px; }
+          .login-brand-copy { font-size: 15px; }
+          .login-form-side { padding: 24px; }
+          .login-card { padding: 28px; }
+        }
+        @media (max-width: 720px) {
+          .login-shell { grid-template-columns: 1fr; }
+          .login-brand { padding: 28px; }
+          .login-brand-title { font-size: 34px; }
+          .login-form-side { padding: 16px; }
+        }
+        @media (max-width: 560px) {
+          .login-page { padding: 14px; align-items: stretch; }
+          .login-shell { border-radius: 24px; }
+          .login-brand { padding: 26px; }
+          .login-card { padding: 24px; }
+          .login-form-side { padding: 14px; }
+          .login-motto span { padding: 8px 11px; font-size: 11px; }
+        }
       `}</style>
 
       <div className="login-page">
-        <div className="login-blob login-blob-1" />
-        <div className="login-blob login-blob-2" />
-        <div className="login-blob login-blob-3" />
+        <section className="login-shell" aria-label="Acceso CBIS+">
+          <aside className="login-brand">
+            <div className="login-brand-inner">
+              <div className="login-logo-row">
+                <img src="/logo.png" alt="CBIS" className="login-logo" />
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: 24 }}>CBIS+</div>
+                  <div style={{ color: 'rgba(255,255,255,0.64)', fontSize: 13, fontWeight: 700 }}>Colegio Bautista Internacional</div>
+                </div>
+              </div>
 
-        <div className={`login-card ${mounted ? 'mounted' : ''}`}>
+              <div>
+                <h1 className="login-brand-title">Portal académico con identidad CBIS.</h1>
+                <p className="login-brand-copy">
+                  Un espacio para acompañar la gestión escolar con claridad, orden y cercanía.
+                </p>
+              </div>
+
+              <div className="login-motto" aria-label="Lema institucional">
+                <span>Fe</span>
+                <span>Innovación</span>
+                <span>Cultura</span>
+                <span>Disciplina</span>
+              </div>
+            </div>
+          </aside>
+
+          <div className="login-form-side">
+            <div className={`login-card ${mounted ? 'mounted' : ''}`}>
           {!resetMode ? (
             <>
               <span className="login-eyebrow">Portal Académico 2026</span>
@@ -299,7 +440,7 @@ export default function Login() {
                 </div>
 
                 <button type="submit" className="login-btn" disabled={resetLoading || resetSent} style={{ marginTop: 24 }}>
-                  {resetLoading ? 'Enviando...' : resetSent ? 'Correo enviado ✓' : 'Enviar enlace'}
+                  {resetLoading ? 'Enviando...' : resetSent ? 'Correo enviado' : 'Enviar enlace'}
                 </button>
               </form>
 
@@ -308,7 +449,9 @@ export default function Login() {
               </button>
             </>
           )}
-        </div>
+            </div>
+          </div>
+        </section>
       </div>
     </>
   )

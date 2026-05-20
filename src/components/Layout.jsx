@@ -158,7 +158,7 @@ const Icons = {
 function LogoCBIS({ size = 36 }) {
   return (
     <img src="/logo.png" alt="CBIS"
-      style={{ width: size, height: size, objectFit: 'cover', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }} />
+      style={{ width: size, height: size, objectFit: 'cover', borderRadius: Math.max(10, size * 0.28), boxShadow: '0 10px 24px rgba(26,13,48,0.22)' }} />
   )
 }
 
@@ -321,11 +321,12 @@ export default function Layout({ pagina, setPagina, children }) {
       <div className="sb-blob-g" />
       <div className="sb-blob-d" />
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none',
-        backgroundImage: 'linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)',
-        backgroundSize: '28px 28px' }} />
+        backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1.6px)',
+        backgroundSize: '22px 22px',
+        maskImage: 'linear-gradient(180deg, rgba(0,0,0,0.92), rgba(0,0,0,0.18))' }} />
 
       {/* Header */}
-      <div style={{ padding: '20px 16px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)', position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ padding: '20px 16px 16px', borderBottom: '1px solid rgba(255,255,255,0.10)', position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 38, height: 38, borderRadius: 11, overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', flexShrink: 0 }}>
             <LogoCBIS size={38} />
@@ -335,7 +336,7 @@ export default function Layout({ pagina, setPagina, children }) {
               CBIS
               <svg width="13" height="13" viewBox="0 0 28 28" fill="none"><rect x="11" y="2" width="6" height="24" rx="3" fill="#D4A017"/><rect x="2" y="11" width="24" height="6" rx="3" fill="#D4A017"/></svg>
             </div>
-            <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9, fontStyle: 'italic', lineHeight: 1.3 }}>Fe, Innovación, Cultura y Disciplina</div>
+            <div style={{ color: 'rgba(255,255,255,0.62)', fontSize: 9, fontWeight: 700, lineHeight: 1.3 }}>Fe, Innovación, Cultura y Disciplina</div>
           </div>
         </div>
         {isTablet && (
@@ -354,7 +355,7 @@ export default function Layout({ pagina, setPagina, children }) {
           return (
             <div key={gi} style={{ marginBottom: 4 }}>
               {grupo.label && (
-                <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '1.2px', padding: '8px 10px 4px' }}>
+                <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.33)', textTransform: 'uppercase', letterSpacing: '1.2px', padding: '8px 10px 4px' }}>
                   {grupo.label}
                 </div>
               )}
@@ -362,8 +363,8 @@ export default function Layout({ pagina, setPagina, children }) {
                 const activo = pagina === item.id
                 return (
                   <button key={item.id} onClick={() => navegar(item.id)} className="nav-btn"
-                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 9, padding: '7px 8px', borderRadius: 10, border: 'none', background: activo ? 'rgba(255,255,255,0.11)' : 'transparent', color: activo ? '#fff' : 'rgba(255,255,255,0.48)', fontSize: 12.5, fontWeight: activo ? 700 : 500, cursor: 'pointer', textAlign: 'left', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', transition: 'all 0.15s', marginBottom: 1 }}>
-                    <div style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: activo ? 'rgba(212,160,23,0.18)' : 'rgba(255,255,255,0.06)', border: activo ? '1px solid rgba(212,160,23,0.28)' : '1px solid rgba(255,255,255,0.06)', color: activo ? '#D4A017' : 'rgba(255,255,255,0.4)', transition: 'all 0.15s' }}>
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 9, padding: '8px 8px', borderRadius: 12, border: activo ? '1px solid rgba(255,255,255,0.12)' : '1px solid transparent', background: activo ? 'linear-gradient(135deg, rgba(255,255,255,0.16), rgba(255,255,255,0.08))' : 'transparent', color: activo ? '#fff' : 'rgba(255,255,255,0.58)', fontSize: 12.5, fontWeight: activo ? 800 : 600, cursor: 'pointer', textAlign: 'left', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', transition: 'transform 180ms ease, background 180ms ease, color 180ms ease, border-color 180ms ease', marginBottom: 2 }}>
+                    <div style={{ width: 30, height: 30, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: activo ? 'rgba(212,160,23,0.20)' : 'rgba(255,255,255,0.07)', border: activo ? '1px solid rgba(212,160,23,0.34)' : '1px solid rgba(255,255,255,0.08)', color: activo ? '#F5D46E' : 'rgba(255,255,255,0.52)', transition: 'all 0.15s' }}>
                       {item.icon}
                     </div>
                     <span style={{ flex: 1, letterSpacing: '-0.1px' }}>{item.label}</span>
@@ -403,10 +404,10 @@ export default function Layout({ pagina, setPagina, children }) {
   )
 
   const sidebarStyle = {
-    width: 228, flexShrink: 0,
-    background: 'linear-gradient(180deg, #1a0d30 0%, #2d1554 45%, #5B2D8E 100%)',
+    width: 238, flexShrink: 0,
+    background: 'linear-gradient(165deg, #1a0d30 0%, #2d1554 42%, #5B2D8E 100%)',
     display: 'flex', flexDirection: 'column',
-    boxShadow: '4px 0 24px rgba(61,31,97,0.35)',
+    boxShadow: '14px 0 40px rgba(26,13,48,0.20)',
     position: 'relative', overflow: 'hidden',
   }
 
@@ -420,8 +421,20 @@ export default function Layout({ pagina, setPagina, children }) {
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         .layout-root { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
-        .nav-btn:hover { background: rgba(255,255,255,0.1) !important; color: #fff !important; }
-        .nav-btn:hover > div:first-child { background: rgba(255,255,255,0.1) !important; }
+        .layout-shell::before {
+          content: '';
+          position: fixed;
+          inset: 0;
+          pointer-events: none;
+          background:
+            radial-gradient(circle at 13% 6%, rgba(212,160,23,0.12), transparent 24rem),
+            radial-gradient(circle at 92% 20%, rgba(14,148,144,0.10), transparent 22rem),
+            radial-gradient(circle, rgba(91,45,142,0.08) 1px, transparent 1.6px);
+          background-size: auto, auto, 34px 34px;
+          opacity: 0.9;
+        }
+        .nav-btn:hover { background: rgba(255,255,255,0.12) !important; color: #fff !important; transform: translateX(2px); }
+        .nav-btn:hover > div:first-child { background: rgba(255,255,255,0.12) !important; }
         .logout-btn:hover { background: rgba(239,68,68,0.12) !important; color: #fca5a5 !important; border-color: rgba(239,68,68,0.2) !important; }
         .bottom-btn:hover { background: rgba(91,45,142,0.08) !important; }
         :root {
@@ -430,13 +443,18 @@ export default function Layout({ pagina, setPagina, children }) {
           --sab: env(safe-area-inset-bottom, 0px);
           --sal: env(safe-area-inset-left, 0px);
         }
-        .sb-blob-v { position: absolute; border-radius: 50%; pointer-events: none; width: 280px; height: 280px; background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 50%, transparent 100%); filter: blur(50px); top: -60px; left: -60px; }
-        .sb-blob-o { position: absolute; border-radius: 50%; pointer-events: none; width: 180px; height: 180px; background: radial-gradient(circle, rgba(212,160,23,0.12) 0%, transparent 70%); filter: blur(40px); top: 120px; right: -40px; }
-        .sb-blob-g { position: absolute; border-radius: 50%; pointer-events: none; width: 200px; height: 200px; background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%); filter: blur(45px); bottom: 120px; left: -30px; }
-        .sb-blob-d { position: absolute; border-radius: 50%; pointer-events: none; width: 220px; height: 220px; background: radial-gradient(circle, rgba(212,160,23,0.10) 0%, transparent 70%); filter: blur(50px); bottom: -40px; right: -40px; }
+        .topbar-shell {
+          background: rgba(255,255,255,0.82) !important;
+          backdrop-filter: blur(18px);
+          -webkit-backdrop-filter: blur(18px);
+        }
+        .sb-blob-v { position: absolute; pointer-events: none; width: 220px; height: 220px; border-radius: 42px; background: rgba(255,255,255,0.08); filter: blur(36px); top: -54px; left: -80px; transform: rotate(18deg); }
+        .sb-blob-o { position: absolute; pointer-events: none; width: 150px; height: 150px; border-radius: 36px; background: rgba(212,160,23,0.13); filter: blur(34px); top: 118px; right: -48px; transform: rotate(-16deg); }
+        .sb-blob-g { position: absolute; pointer-events: none; width: 178px; height: 178px; border-radius: 46px; background: rgba(255,255,255,0.06); filter: blur(38px); bottom: 124px; left: -42px; transform: rotate(-10deg); }
+        .sb-blob-d { position: absolute; pointer-events: none; width: 190px; height: 190px; border-radius: 52px; background: rgba(212,160,23,0.10); filter: blur(44px); bottom: -54px; right: -52px; transform: rotate(20deg); }
       `}</style>
 
-      <div className="layout-root" style={{ display: 'flex', minHeight: '100vh', width: '100vw', background: '#F4F7FC' }}>
+      <div className="layout-root layout-shell" style={{ display: 'flex', minHeight: '100vh', width: '100vw', background: 'linear-gradient(180deg, #fff 0%, #F4F7FC 46%, #EEF4FB 100%)', position: 'relative' }}>
 
         {/* Desktop sidebar */}
         {isDesktop && (
@@ -466,7 +484,7 @@ export default function Layout({ pagina, setPagina, children }) {
             {isMobile && (
               <div style={{ height: 'env(safe-area-inset-top, 44px)', background: '#1a0d30', minHeight: 44 }} />
             )}
-            <div style={{ background: '#fff', padding: '0 20px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 2px 12px rgba(91,45,142,0.07)', borderBottom: '3px solid transparent', backgroundImage: 'linear-gradient(#fff, #fff), linear-gradient(90deg, #7B3FE4, #EA580C, #D4A017, #16A34A)', backgroundOrigin: 'border-box', backgroundClip: 'padding-box, border-box' }}>
+            <div className="topbar-shell" style={{ padding: '0 24px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 14px 34px rgba(26,13,48,0.08)', borderBottom: '3px solid transparent', backgroundImage: 'linear-gradient(rgba(255,255,255,0.86), rgba(255,255,255,0.86)), linear-gradient(90deg, #5B2D8E, #0e9490, #D4A017)', backgroundOrigin: 'border-box', backgroundClip: 'padding-box, border-box' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 {isTablet && (
                   <button onClick={() => setSidebarOpen(true)}
@@ -476,7 +494,7 @@ export default function Layout({ pagina, setPagina, children }) {
                 )}
                 {isMobile && <LogoCBIS size={28} />}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 4, height: 20, borderRadius: 2, background: `linear-gradient(180deg, ${CBIS_COLORS.purpleDark}, ${CBIS_COLORS.purple})`, flexShrink: 0 }} />
+                  <div style={{ width: 5, height: 26, borderRadius: 999, background: `linear-gradient(180deg, ${CBIS_COLORS.gold}, ${CBIS_COLORS.purple})`, flexShrink: 0, boxShadow: '0 6px 18px rgba(91,45,142,0.22)' }} />
                   <span style={{ color: CBIS_COLORS.purpleDark, fontWeight: 800, fontSize: isMobile ? 14 : 15, letterSpacing: '-0.3px' }}>
                     {paginaLabel}
                   </span>
@@ -498,7 +516,7 @@ export default function Layout({ pagina, setPagina, children }) {
           </div>
 
           {/* Página */}
-          <div style={{ flex: 1, padding: isMobile ? 16 : 28, overflowY: 'auto', paddingBottom: isMobile ? 'calc(76px + env(safe-area-inset-bottom, 0px))' : 28 }}>
+          <div style={{ flex: 1, padding: isMobile ? 16 : 30, overflowY: 'auto', paddingBottom: isMobile ? 'calc(76px + env(safe-area-inset-bottom, 0px))' : 30, position: 'relative', zIndex: 1, animation: 'cbis-fade-up 360ms ease both' }}>
             {children}
           </div>
         </div>
