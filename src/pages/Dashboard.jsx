@@ -82,7 +82,7 @@ const NIVEL_COLOR = {
 const TIPO_COLOR = { examen: '#dc2626', excursion: '#0e9490', feriado: '#d97706', actividad: '#5B2D8E', otro: '#6b7280' }
 const TIPO_BG    = { examen: '#fef2f2', excursion: '#e0f7f6', feriado: '#fffbeb', actividad: '#f3eeff', otro: '#f9fafb' }
 
-function DashboardHome() {
+function DashboardHome({ onNavigate = () => {} }) {
   const { perfil } = useAuth()
   const rol = perfil?.rol
   const isMobile = window.innerWidth < 768
@@ -304,21 +304,85 @@ function DashboardHome() {
 
   const hora = new Date().getHours()
   const saludo = hora < 12 ? 'Buenos días' : hora < 18 ? 'Buenas tardes' : 'Buenas noches'
+  const rolLabel = {
+    admin: 'Administrador',
+    direccion_academica: 'Dirección Académica',
+    registro_academico: 'Registro Académico',
+    recepcion: 'Recepción',
+    docente: 'Docente',
+    alumno: 'Alumno',
+    talento_humano: 'Talento Humano',
+  }[rol] || rol
+
+  const actionMap = {
+    admin: [
+      { id: 'estudiantes', title: 'Estudiantes', meta: 'Expedientes y grados', icon: <IcoEstudiantes />, tone: '#CDEEEA' },
+      { id: 'notas', title: 'Notas', meta: 'Registro académico', icon: <IcoNotas />, tone: '#FFE7A8' },
+      { id: 'cobros', title: 'Cobros', meta: 'Pagos y pendientes', icon: <IcoCobradoHoy />, tone: '#F9C8DC' },
+      { id: 'solicitudes', title: 'Solicitudes', meta: 'Permisos y gestión', icon: <IcoPendiente />, tone: '#CDE7FF' },
+      { id: 'reportes', title: 'Reportes', meta: 'Indicadores clave', icon: <IcoMaterias />, tone: '#D8CCFF' },
+      { id: 'calendario', title: 'Calendario', meta: 'Eventos escolares', icon: <IcoMes />, tone: '#DDF7BF' },
+    ],
+    direccion_academica: [
+      { id: 'notas', title: 'Notas', meta: 'Seguimiento académico', icon: <IcoNotas />, tone: '#FFE7A8' },
+      { id: 'asistencia', title: 'Asistencia', meta: 'Control diario', icon: <IcoDocente />, tone: '#CDEEEA' },
+      { id: 'reportes', title: 'Reportes', meta: 'Lectura institucional', icon: <IcoMaterias />, tone: '#D8CCFF' },
+      { id: 'solicitudes', title: 'Solicitudes', meta: 'Casos pendientes', icon: <IcoPendiente />, tone: '#CDE7FF' },
+    ],
+    registro_academico: [
+      { id: 'estudiantes', title: 'Estudiantes', meta: 'Expedientes activos', icon: <IcoEstudiantes />, tone: '#CDEEEA' },
+      { id: 'matricula', title: 'Matrícula', meta: 'Ingreso escolar', icon: <IcoDocente />, tone: '#DDF7BF' },
+      { id: 'notas', title: 'Notas', meta: 'Registro por período', icon: <IcoNotas />, tone: '#FFE7A8' },
+      { id: 'boletas', title: 'Boletas', meta: 'Documentos académicos', icon: <IcoMaterias />, tone: '#F9C8DC' },
+    ],
+    recepcion: [
+      { id: 'estudiantes', title: 'Estudiantes', meta: 'Consulta rápida', icon: <IcoEstudiantes />, tone: '#CDEEEA' },
+      { id: 'cobros', title: 'Cobros', meta: 'Pagos y saldos', icon: <IcoCobradoHoy />, tone: '#FFE7A8' },
+      { id: 'solicitudes', title: 'Solicitudes', meta: 'Atención a familias', icon: <IcoPendiente />, tone: '#CDE7FF' },
+      { id: 'calendario', title: 'Calendario', meta: 'Próximas fechas', icon: <IcoMes />, tone: '#DDF7BF' },
+    ],
+    docente: [
+      { id: 'notas', title: 'Notas', meta: 'Evaluaciones y períodos', icon: <IcoNotas />, tone: '#FFE7A8' },
+      { id: 'asistencia', title: 'Asistencia', meta: 'Control de clase', icon: <IcoDocente />, tone: '#CDEEEA' },
+      { id: 'anecdotario', title: 'Anecdotario', meta: 'Seguimiento formativo', icon: <IcoMaterias />, tone: '#F9C8DC' },
+      { id: 'solicitudes', title: 'Solicitudes', meta: 'Permisos y salidas', icon: <IcoPendiente />, tone: '#CDE7FF' },
+      { id: 'horario', title: 'Horario', meta: 'Clases del día', icon: <IcoMes />, tone: '#D8CCFF' },
+    ],
+    alumno: [
+      { id: 'mis-notas', title: 'Mis notas', meta: 'Resultados recientes', icon: <IcoNotas />, tone: '#FFE7A8' },
+      { id: 'mis-cobros', title: 'Mis cobros', meta: 'Estado de pagos', icon: <IcoCobradoHoy />, tone: '#F9C8DC' },
+      { id: 'horario', title: 'Horario', meta: 'Clases y materias', icon: <IcoMes />, tone: '#D8CCFF' },
+      { id: 'calendario', title: 'Calendario', meta: 'Eventos próximos', icon: <IcoMaterias />, tone: '#CDE7FF' },
+    ],
+    talento_humano: [
+      { id: 'usuarios', title: 'Usuarios', meta: 'Accesos del sistema', icon: <IcoDocente />, tone: '#D8CCFF' },
+      { id: 'estudiantes', title: 'Estudiantes', meta: 'Consulta institucional', icon: <IcoEstudiantes />, tone: '#CDEEEA' },
+      { id: 'reportes', title: 'Reportes', meta: 'Datos operativos', icon: <IcoMaterias />, tone: '#FFE7A8' },
+      { id: 'calendario', title: 'Calendario', meta: 'Planificación', icon: <IcoMes />, tone: '#DDF7BF' },
+    ],
+  }
+  const quickActions = actionMap[rol] || actionMap.recepcion
 
   return (
     <div style={{ maxWidth: '100%', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
-      <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
+      <style>{`
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        .management-action:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 18px 38px rgba(26,13,48,0.11) !important;
+          border-color: rgba(91,45,142,0.18) !important;
+        }
+      `}</style>
 
       {/* Header */}
       <div style={{
-        background: 'linear-gradient(135deg, #1a0d30 0%, #2d1554 50%, #5B2D8E 100%)',
-        borderRadius: 20, padding: isMobile ? '20px 20px' : '28px 32px', marginBottom: 16,
+        background: 'linear-gradient(135deg, #1a0d30 0%, #2d1554 48%, #5B2D8E 100%)',
+        borderRadius: 24, padding: isMobile ? '22px 20px' : '30px 34px', marginBottom: 16,
         position: 'relative', overflow: 'hidden',
-        boxShadow: '0 8px 32px rgba(61,31,97,0.35)',
+        boxShadow: '0 22px 60px rgba(26,13,48,0.22)',
       }}>
-        <div style={{ position: 'absolute', width: 320, height: 320, borderRadius: '50%', background: 'radial-gradient(circle, rgba(112,60,220,0.45) 0%, transparent 70%)', filter: 'blur(55px)', top: -100, right: 180, pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(234,88,12,0.3) 0%, transparent 70%)', filter: 'blur(40px)', top: -30, right: 30, pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', width: 180, height: 180, borderRadius: '50%', background: 'radial-gradient(circle, rgba(212,160,23,0.22) 0%, transparent 70%)', filter: 'blur(40px)', bottom: -50, right: 350, pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(118deg, transparent 0 52%, rgba(255,255,255,0.08) 52% 66%, transparent 66%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', width: 240, height: 240, borderRadius: 56, background: 'rgba(212,160,23,0.16)', filter: 'blur(42px)', bottom: -70, right: 80, transform: 'rotate(-14deg)', pointerEvents: 'none' }} />
         <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
@@ -332,27 +396,60 @@ function DashboardHome() {
                 border: '1px solid rgba(212,160,23,0.25)',
                 padding: '2px 8px', borderRadius: 100, textTransform: 'uppercase', letterSpacing: '0.8px',
               }}>
-                {{
-                  admin: 'Administrador',
-                  direccion_academica: 'Dirección Académica',
-                  registro_academico: 'Registro',
-                  recepcion: 'Recepción',
-                  docente: 'Docente',
-                  alumno: 'Alumno',
-                  talento_humano: 'Talento Humano',
-                }[perfil?.rol] || perfil?.rol}
+                {rolLabel}
               </span>
             </div>
-            <h1 style={{ color: '#fff', fontSize: isMobile ? 22 : 26, fontWeight: 800, letterSpacing: '-0.8px', margin: 0, marginBottom: 4, lineHeight: 1.1 }}>
-              {saludo}, {perfil?.nombre}
+            <h1 style={{ color: '#fff', fontSize: isMobile ? 26 : 34, fontWeight: 800, letterSpacing: 0, margin: 0, marginBottom: 8, lineHeight: 1.08 }}>
+              {saludo}, {perfil?.nombre}.
             </h1>
-            <p style={{ color: 'rgba(255,255,255,0.38)', fontSize: 12, margin: 0, fontWeight: 400 }}>
-              Colegio Bautista Internacional de Sonsonate
+            <p style={{ color: 'rgba(255,255,255,0.68)', fontSize: isMobile ? 13 : 14, margin: 0, fontWeight: 500, maxWidth: 620, lineHeight: 1.6 }}>
+              Centro de gestión CBIS+: accesos rápidos, seguimiento académico y tareas del día en un solo lugar.
             </p>
           </div>
           <Campanita onNavegar={pagina => setPagina(pagina)} />
         </div>
       </div>
+
+      {/* Centro de gestión por rol */}
+      <section style={{ background: '#fff', borderRadius: 24, padding: isMobile ? 16 : 22, marginBottom: 16, boxShadow: '0 16px 42px rgba(26,13,48,0.07), 0 0 0 1px rgba(26,13,48,0.05)' }}>
+        <div style={{ display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16, flexDirection: isMobile ? 'column' : 'row' }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#D4A017', textTransform: 'uppercase', letterSpacing: '1.3px', marginBottom: 4 }}>Centro de gestión</div>
+            <h2 style={{ margin: 0, color: '#1a0d30', fontSize: isMobile ? 20 : 24, fontWeight: 800, letterSpacing: 0 }}>¿Qué necesitas hacer ahora?</h2>
+          </div>
+          <span style={{ color: '#6b647c', fontSize: 12, fontWeight: 700, background: '#F8FBFF', border: '1px solid rgba(26,13,48,0.07)', borderRadius: 999, padding: '8px 12px' }}>
+            {quickActions.length} accesos para {rolLabel}
+          </span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(auto-fit, minmax(150px, 1fr))', gap: isMobile ? 10 : 14 }}>
+          {quickActions.map(action => (
+            <button key={action.id} onClick={() => onNavigate(action.id)} className="management-action" style={{
+              minHeight: isMobile ? 132 : 150,
+              border: '1px solid rgba(26,13,48,0.07)',
+              background: '#fff',
+              borderRadius: 22,
+              padding: isMobile ? 12 : 16,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              textAlign: 'left',
+              boxShadow: '0 10px 24px rgba(26,13,48,0.06)',
+              transition: 'transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              gap: 14,
+            }}>
+              <span style={{ width: 58, height: 58, borderRadius: 18, background: action.tone, color: '#1a0d30', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.58)' }}>
+                {action.icon}
+              </span>
+              <span>
+                <span style={{ display: 'block', color: '#1a0d30', fontSize: isMobile ? 14 : 15, fontWeight: 800, lineHeight: 1.16 }}>{action.title}</span>
+                <span style={{ display: 'block', color: '#706882', fontSize: 11.5, fontWeight: 600, lineHeight: 1.35, marginTop: 5 }}>{action.meta}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      </section>
 
       {/* Fila 1: Estudiantes + distribución unificados — NUEVO sistema */}
       {verDistribucion && (
@@ -612,7 +709,7 @@ export default function Dashboard() {
       case 'solicitudes':   return <Solicitudes />
       case 'boletas':       return <Boletas />
       case 'asistencia':    return <Asistencia onIrASolicitudes={(state) => { setPagina('solicitudes'); sessionStorage.setItem('solicitudes_state', JSON.stringify(state)) }} />
-      case 'dashboard':     return <DashboardHome />
+      case 'dashboard':     return <DashboardHome onNavigate={setPagina} />
       case 'estudiantes':   return <Estudiantes />
       case 'cobros':        return <Cobros />
       case 'notas':         return <Notas onVerEstudiante={id => setPagina(`perfil-estudiante-${id}`)} />
@@ -629,7 +726,7 @@ export default function Dashboard() {
       case 'mis-docs':      return <PerfilAlumno seccion="docs" />
       case 'mis-notas':     return <PerfilAlumno seccion="notas" />
       case 'mi-config':     return <PerfilAlumno seccion="config" />
-      default:              return esAlumno ? <PerfilAlumno seccion="perfil" /> : <DashboardHome />
+      default:              return esAlumno ? <PerfilAlumno seccion="perfil" /> : <DashboardHome onNavigate={setPagina} />
     }
   }
 
