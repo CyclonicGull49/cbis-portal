@@ -89,9 +89,9 @@ export default function Login() {
           content: '';
           position: absolute;
           inset: -10%;
-          background-image: radial-gradient(circle, rgba(91,45,142,0.08) 1px, transparent 1.6px);
-          background-size: 34px 34px;
-          transform: rotate(-3deg);
+          background:
+            linear-gradient(115deg, transparent 0 58%, rgba(91,45,142,0.05) 58% 72%, transparent 72%),
+            radial-gradient(circle at 12% 18%, rgba(212,160,23,0.10), transparent 18rem);
           pointer-events: none;
         }
         .login-shell {
@@ -123,9 +123,10 @@ export default function Login() {
           content: '';
           position: absolute;
           inset: 0;
-          background-image: radial-gradient(circle, rgba(255,255,255,0.10) 1px, transparent 1.7px);
-          background-size: 28px 28px;
-          opacity: .45;
+          background:
+            linear-gradient(120deg, transparent 0 48%, rgba(255,255,255,0.08) 48% 62%, transparent 62%),
+            radial-gradient(circle at 18% 18%, rgba(255,255,255,0.10), transparent 18rem);
+          opacity: .58;
         }
         .login-brand::after {
           content: '';
@@ -151,6 +152,32 @@ export default function Login() {
           display: flex;
           align-items: center;
           gap: 14px;
+        }
+        .login-wordmark {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          color: #fff;
+          font-size: 24px;
+          font-weight: 800;
+          line-height: 1;
+        }
+        .login-plus-mark {
+          width: 24px;
+          height: 24px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 9px;
+          background: rgba(212,160,23,0.18);
+          border: 1px solid rgba(212,160,23,0.34);
+          color: #F5D46E;
+          box-shadow: 0 10px 22px rgba(0,0,0,0.16);
+          transform: translateY(1px);
+        }
+        .login-plus-mark svg {
+          width: 15px;
+          height: 15px;
         }
         .login-logo {
           width: 64px;
@@ -326,15 +353,22 @@ export default function Login() {
               <div className="login-logo-row">
                 <img src="/logo.png" alt="CBIS" className="login-logo" />
                 <div>
-                  <div style={{ fontWeight: 800, fontSize: 24 }}>CBIS+</div>
+                  <div className="login-wordmark">
+                    <span>CBIS</span>
+                    <span className="login-plus-mark" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                      </svg>
+                    </span>
+                  </div>
                   <div style={{ color: 'rgba(255,255,255,0.64)', fontSize: 13, fontWeight: 700 }}>Colegio Bautista Internacional</div>
                 </div>
               </div>
 
               <div>
-                <h1 className="login-brand-title">Portal académico con identidad CBIS.</h1>
+                <h1 className="login-brand-title">Tu día escolar, más claro y conectado.</h1>
                 <p className="login-brand-copy">
-                  Un espacio para acompañar la gestión escolar con claridad, orden y cercanía.
+                  Consulta notas, asistencia, cobros, solicitudes y comunicación institucional desde un solo lugar.
                 </p>
               </div>
 
