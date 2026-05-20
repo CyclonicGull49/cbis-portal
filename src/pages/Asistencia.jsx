@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { useYearEscolar } from '../hooks/useYearEscolar'
+import { FieldGroup, ModuleHero, ModuleToolbar, PremiumEmptyState, StatusPill } from '../components/ui/ModuleChrome'
 import toast from 'react-hot-toast'
 
 function useBreakpoint() {
@@ -278,45 +279,52 @@ export default function Asistencia({ onIrASolicitudes }) {
 
   return (
     <div style={{ fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
+      <style>{`
+        .attendance-state-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(26,13,48,0.08); }
+        .attendance-save-btn:hover { transform: translateY(-1px); box-shadow: 0 14px 28px rgba(91,45,142,0.20) !important; }
+      `}</style>
 
-      {/* Header */}
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ color: '#3d1f61', fontSize: 22, fontWeight: 800, marginBottom: 4, letterSpacing: '-0.5px' }}>
-          Registro de Asistencia
-        </h1>
-        <p style={{ color: '#b0a8c0', fontSize: 13, fontWeight: 500 }}>
-          Registra la asistencia diaria por grado
-        </p>
-      </div>
+      <ModuleHero
+        eyebrow="Operación diaria"
+        title="Registro de asistencia"
+        subtitle="Marca la presencia del día, identifica permisos y detecta alertas sin perder el flujo original de control por grado."
+        meta={gradoInfo ? `${gradoInfo.nombre} · ${new Date(fecha + 'T12:00:00').toLocaleDateString('es-SV', { day: '2-digit', month: 'long', year: 'numeric' })}` : `Año escolar ${year}`}
+        stats={[
+          { value: estudiantes.length || '—', label: 'estudiantes', color: '#fff' },
+          { value: resumen.find(e => e.value === 'presente')?.count || 0, label: 'presentes', color: '#DDF7BF' },
+          { value: sinMarcar, label: 'sin marcar', color: sinMarcar ? '#F5E3A8' : '#fff' },
+          { value: alertas.length, label: 'alertas', color: alertas.length ? '#F9C8DC' : '#fff' },
+        ]}
+      />
 
       {/* Controles */}
-      <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', padding: 24, marginBottom: 16 }}>
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <div style={{ flex: '1 1 220px' }}>
-            <label style={s.label}>Grado</label>
+      <ModuleToolbar>
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <FieldGroup label="Grado" minWidth={220}>
             <select style={s.select} value={gradoId} onChange={e => setGradoId(e.target.value)}>
               <option value="">Selecciona un grado</option>
               {grados.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
             </select>
-          </div>
-          <div style={{ flex: '0 0 180px' }}>
-            <label style={s.label}>Fecha</label>
+          </FieldGroup>
+          <FieldGroup label="Fecha" minWidth={180}>
             <input type="date" style={s.select} value={fecha}
               onChange={e => setFecha(e.target.value)} max={hoy()} />
-          </div>
+          </FieldGroup>
+          {gradoId && <StatusPill label="Permisos" value={permisosHoy} color="#5B2D8E" bg="#F3E8FA" />}
           {!isMobile && estudiantes.length > 0 && puedeEditar && (
             <div style={{ flex: '1 1 auto', display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
               <span style={{ ...s.label, marginBottom: 0 }}>Marcar todos:</span>
               {ESTADOS.map(e => (
                 <button key={e.value} onClick={() => marcarTodos(e.value)}
-                  style={{ padding: '6px 12px', borderRadius: 8, border: `1.5px solid ${e.dot}`, background: e.bg, color: e.color, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  className="attendance-state-btn"
+                  style={{ padding: '8px 12px', borderRadius: 999, border: `1.5px solid ${e.dot}`, background: e.bg, color: e.color, fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', transition: 'transform 160ms ease, box-shadow 160ms ease' }}>
                   {e.label}
                 </button>
               ))}
             </div>
           )}
         </div>
-      </div>
+      </ModuleToolbar>
 
       {/* Alerta fecha bloqueada */}
       {gradoId && !puedeEditarFecha(fecha, isAdmin) && !cargando && (
@@ -387,7 +395,8 @@ export default function Asistencia({ onIrASolicitudes }) {
               {resumen.map(e => (
                 <button key={e.value}
                   onClick={() => isMobile && puedeEditar && marcarTodos(e.value)}
-                  style={{ padding: isMobile ? '8px 12px' : '8px 16px', borderRadius: 10, background: e.bg, border: `1.5px solid ${e.dot}`, display: 'flex', alignItems: 'center', gap: 6, cursor: isMobile && puedeEditar ? 'pointer' : 'default', fontFamily: 'inherit', flexShrink: 0 }}>
+                  className={isMobile && puedeEditar ? 'attendance-state-btn' : ''}
+                  style={{ padding: isMobile ? '9px 12px' : '9px 16px', borderRadius: 999, background: e.bg, border: `1.5px solid ${e.dot}`, display: 'flex', alignItems: 'center', gap: 7, cursor: isMobile && puedeEditar ? 'pointer' : 'default', fontFamily: 'inherit', flexShrink: 0, transition: 'transform 160ms ease, box-shadow 160ms ease' }}>
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: e.dot, display: 'inline-block' }} />
                   <span style={{ fontSize: 12, fontWeight: 700, color: e.color }}>{e.label}</span>
                   <span style={{ fontSize: 14, fontWeight: 800, color: e.color }}>{e.count}</span>
@@ -406,7 +415,7 @@ export default function Asistencia({ onIrASolicitudes }) {
 
             {/* Tabla desktop */}
             {!isMobile ? (
-              <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', overflow: 'hidden' }}>
+              <div style={s.tableShell}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ background: '#1a2d5a' }}>
@@ -540,7 +549,8 @@ export default function Asistencia({ onIrASolicitudes }) {
                   </span>
                 )}
                 <button onClick={guardar} disabled={guardando}
-                  style={{ padding: '12px 32px', background: guardando ? '#e5e7eb' : 'linear-gradient(135deg, #3d1f61, #5B2D8E)', color: guardando ? '#9ca3af' : '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 800, cursor: guardando ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  className="attendance-save-btn"
+                  style={{ padding: '12px 32px', background: guardando ? '#e5e7eb' : 'linear-gradient(135deg, #3d1f61, #5B2D8E)', color: guardando ? '#9ca3af' : '#fff', border: 'none', borderRadius: 14, fontSize: 15, fontWeight: 900, cursor: guardando ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 8, boxShadow: guardando ? 'none' : '0 12px 24px rgba(91,45,142,0.18)', transition: 'transform 160ms ease, box-shadow 160ms ease' }}>
                   {guardando ? (
                     <><span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid #fff', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /> Guardando...</>
                   ) : `${yaGuardado ? 'Actualizar' : 'Guardar'} asistencia`}
@@ -552,10 +562,11 @@ export default function Asistencia({ onIrASolicitudes }) {
       )}
 
       {!gradoId && (
-        <div style={{ textAlign: 'center', padding: '60px 20px', color: '#b0a8c0' }}>
-          <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><IcoEmpty /></div>
-          <div style={{ fontSize: 15, fontWeight: 600 }}>Selecciona un grado y fecha para comenzar</div>
-        </div>
+        <PremiumEmptyState
+          title="Selecciona un grado y fecha para comenzar"
+          text="Después podrás marcar asistencia individual o aplicar un estado a todo el grupo."
+          icon={<IcoEmpty />}
+        />
       )}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -565,8 +576,9 @@ export default function Asistencia({ onIrASolicitudes }) {
 
 const s = {
   label:  { display: 'block', fontSize: 10, fontWeight: 700, color: '#5B2D8E', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' },
-  select: { width: '100%', padding: '11px 14px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: 14, background: '#fff', color: '#222', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', cursor: 'pointer', outline: 'none' },
+  select: { width: '100%', padding: '12px 14px', borderRadius: 14, border: '1.5px solid rgba(26,13,48,0.08)', fontSize: 14, background: '#F8FBFF', color: '#1a0d30', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', cursor: 'pointer', outline: 'none', fontWeight: 700 },
   th:     { padding: '10px 12px', fontSize: 11, fontWeight: 700, color: '#F5EDD0', textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: 'center' },
   td:     { padding: '10px 12px', fontSize: 13, color: '#374151', verticalAlign: 'middle' },
   aviso:  (bg, color) => ({ padding: '10px 16px', background: bg, borderRadius: 10, fontSize: 13, color, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }),
+  tableShell: { background: '#fff', borderRadius: 24, boxShadow: '0 16px 42px rgba(26,13,48,0.07), 0 0 0 1px rgba(26,13,48,0.05)', overflow: 'hidden' },
 }

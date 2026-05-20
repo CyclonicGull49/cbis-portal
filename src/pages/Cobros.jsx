@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
+import { FieldGroup, ModuleHero, ModuleToolbar } from '../components/ui/ModuleChrome'
 import toast from 'react-hot-toast'
 
 const IcoMoney = () => (
@@ -217,24 +218,34 @@ export default function Cobros() {
 
   return (
     <div style={{ fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
-        <div>
-          <h1 style={{ color: '#3d1f61', fontSize: 22, fontWeight: 800, marginBottom: 4, letterSpacing: '-0.5px' }}>Cobros</h1>
-          <p style={{ color: '#b0a8c0', fontSize: 13, fontWeight: 500 }}>
-            {estudianteSeleccionado ? `${cobrosEstudiante.length} cobros de ${estudianteSeleccionado.nombre} ${estudianteSeleccionado.apellido}` : `${cobros.length} cobros registrados`}
-          </p>
+      <style>{`
+        .billing-tab:hover { background: rgba(91,45,142,0.08) !important; }
+        .billing-primary:hover { transform: translateY(-1px); box-shadow: 0 14px 28px rgba(91,45,142,0.18) !important; }
+        .billing-row:hover { background: #F8FBFF !important; }
+      `}</style>
+
+      <ModuleHero
+        eyebrow="Administración financiera"
+        title="Cobros"
+        subtitle="Consulta saldos, registra pagos y conserva el historial de cada familia con una vista más clara para recepción y administración."
+        meta={estudianteSeleccionado ? `${cobrosEstudiante.length} cobros de ${estudianteSeleccionado.nombre} ${estudianteSeleccionado.apellido}` : `${cobros.length} cobros registrados`}
+        stats={[
+          { value: `$${totalPendiente.toFixed(2)}`, label: 'pendiente', color: '#F5E3A8' },
+          { value: cobros.filter(c => c.estado === 'pendiente').length, label: 'cobros', color: '#fff' },
+          { value: cobros.filter(c => c.estado === 'pendiente' && c.fecha_vencimiento && new Date(c.fecha_vencimiento) < new Date()).length, label: 'vencidos', color: '#F9C8DC' },
+          { value: estudiantes.length || '—', label: 'estudiantes', color: '#CDEEEA' },
+        ]}
+      >
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+          {estudianteSeleccionado && (<button onClick={() => setEstudianteSeleccionado(null)} style={s.btnHeroSecondary}>Volver a lista</button>)}
+          <button onClick={abrirNuevoCobro} className="billing-primary" style={s.btnHeroPrimary}>{esRecepcion ? 'Registrar cobro' : 'Nuevo cobro'}</button>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          {estudianteSeleccionado && (<button onClick={() => setEstudianteSeleccionado(null)} style={s.btnSecondary}>Volver a lista</button>)}
-          <button onClick={abrirNuevoCobro} style={s.btnPrimary}>+ {esRecepcion ? 'Registrar cobro' : 'Nuevo cobro'}</button>
-        </div>
-      </div>
+      </ModuleHero>
 
       {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginBottom: 16 }}>
         {kpis.map((k, i) => (
-          <div key={i} style={{ background: '#fff', borderRadius: 14, padding: '18px 20px', boxShadow: '0 2px 16px rgba(61,31,97,0.07)', borderTop: `4px solid ${k.color}` }}>
+          <div key={i} style={{ background: '#fff', borderRadius: 22, padding: '18px 20px', boxShadow: '0 16px 42px rgba(26,13,48,0.07), 0 0 0 1px rgba(26,13,48,0.05)', borderTop: `4px solid ${k.color}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <div style={{ fontSize: 11, color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>{k.label}</div>
@@ -248,15 +259,19 @@ export default function Cobros() {
 
       {/* Tabs vista */}
       {!estudianteSeleccionado && !esRecepcion && (
-        <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
           {[{ id: 'estudiantes', label: 'Por estudiante' }, { id: 'todos', label: 'Todos los cobros' }].map(v => (
-            <button key={v.id} onClick={() => setVista(v.id)} style={{ padding: '8px 18px', borderRadius: 8, border: 'none', cursor: 'pointer', background: vista === v.id ? '#5B2D8E' : '#fff', color: vista === v.id ? '#fff' : '#5B2D8E', fontWeight: 700, fontSize: 13, fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', boxShadow: vista === v.id ? 'none' : '0 1px 4px rgba(0,0,0,0.08)' }}>{v.label}</button>
+            <button key={v.id} onClick={() => setVista(v.id)} className="billing-tab" style={{ padding: '10px 16px', borderRadius: 999, border: `1px solid ${vista === v.id ? 'rgba(91,45,142,0.22)' : 'rgba(26,13,48,0.06)'}`, cursor: 'pointer', background: vista === v.id ? '#F3E8FA' : '#fff', color: vista === v.id ? '#3d1f61' : '#706882', fontWeight: vista === v.id ? 900 : 700, fontSize: 13, fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', boxShadow: vista === v.id ? '0 10px 22px rgba(91,45,142,0.10)' : '0 8px 18px rgba(26,13,48,0.04)' }}>{v.label}</button>
           ))}
         </div>
       )}
 
       {/* Buscador */}
-      <input style={s.search} placeholder={estudianteSeleccionado ? 'Buscar en cobros...' : (vista === 'estudiantes' ? 'Buscar estudiante por nombre o grado...' : 'Buscar por estudiante o concepto...')} value={busqueda} onChange={e => setBusqueda(e.target.value)} />
+      <ModuleToolbar compact>
+        <FieldGroup label="Buscar" minWidth={220}>
+          <input style={s.search} placeholder={estudianteSeleccionado ? 'Buscar en cobros...' : (vista === 'estudiantes' ? 'Buscar estudiante por nombre o grado...' : 'Buscar por estudiante o concepto...')} value={busqueda} onChange={e => setBusqueda(e.target.value)} />
+        </FieldGroup>
+      </ModuleToolbar>
 
       {/* Vista: estudiante seleccionado */}
       {estudianteSeleccionado && (
@@ -375,7 +390,7 @@ export default function Cobros() {
                   const totalPend = pendientes.reduce((a, c) => a + parseFloat(c.monto), 0)
                   const tieneVencidos = pendientes.some(c => c.fecha_vencimiento && new Date(c.fecha_vencimiento) < new Date())
                   return (
-                    <tr key={e.id} style={{ ...s.tr, cursor: 'pointer', background: idx % 2 === 0 ? '#fff' : '#fdfcff' }} onClick={() => { setEstudianteSeleccionado(e); setBusqueda('') }}>
+                    <tr key={e.id} className="billing-row" style={{ ...s.tr, cursor: 'pointer', background: idx % 2 === 0 ? '#fff' : '#fdfcff' }} onClick={() => { setEstudianteSeleccionado(e); setBusqueda('') }}>
                       <td style={s.td}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg, #3d1f61, #5B2D8E)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 12, flexShrink: 0 }}>
@@ -410,7 +425,7 @@ export default function Cobros() {
               <thead><tr style={{ background: '#faf8ff' }}>{['Estudiante','Grado','Concepto','Mes','Monto','Vencimiento','Estado','Acción'].map(h => <th key={h} style={s.th}>{h}</th>)}</tr></thead>
               <tbody>
                 {filtradosTodos.map((c, idx) => (
-                  <tr key={c.id} style={{ ...s.tr, background: idx % 2 === 0 ? '#fff' : '#fdfcff' }}>
+                  <tr key={c.id} className="billing-row" style={{ ...s.tr, background: idx % 2 === 0 ? '#fff' : '#fdfcff' }}>
                     <td style={s.td}>{c.estudiantes?.nombre} {c.estudiantes?.apellido}</td>
                     <td style={s.td}><span style={s.gradoBadge}>{c.estudiantes?.grados?.nombre || '—'}</span></td>
                     <td style={s.td}>{c.conceptos_cobro?.nombre}</td>
@@ -572,8 +587,8 @@ export default function Cobros() {
 }
 
 const s = {
-  card: { background: '#fff', borderRadius: 14, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', overflow: 'hidden' },
-  search: { width: '100%', padding: '12px 16px', borderRadius: 12, border: '1.5px solid #e5e7eb', fontSize: 14, marginBottom: 16, background: '#fff', boxSizing: 'border-box', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', color: '#374151', outline: 'none' },
+  card: { background: '#fff', borderRadius: 24, boxShadow: '0 16px 42px rgba(26,13,48,0.07), 0 0 0 1px rgba(26,13,48,0.05)', overflow: 'hidden' },
+  search: { width: '100%', padding: '12px 16px', borderRadius: 14, border: '1.5px solid rgba(26,13,48,0.08)', fontSize: 14, marginBottom: 0, background: '#F8FBFF', boxSizing: 'border-box', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', color: '#1a0d30', outline: 'none', fontWeight: 700 },
   table: { width: '100%', borderCollapse: 'collapse' },
   th: { padding: '10px 18px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: '0.6px', background: '#faf8ff' },
   tr: { borderTop: '1px solid #f3eeff' },
@@ -581,6 +596,8 @@ const s = {
   gradoBadge: { background: '#f3eeff', color: '#5B2D8E', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 },
   badge: { padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 },
   btnPrimary: { padding: '10px 20px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #5B2D8E, #3d1f61)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' },
+  btnHeroPrimary: { padding: '10px 15px', borderRadius: 14, border: 'none', background: '#D4A017', color: '#1a0d30', fontWeight: 900, fontSize: 12, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', boxShadow: '0 10px 22px rgba(0,0,0,0.12)', transition: 'transform 160ms ease, box-shadow 160ms ease' },
+  btnHeroSecondary: { padding: '10px 15px', borderRadius: 14, border: '1px solid rgba(255,255,255,0.18)', background: 'rgba(255,255,255,0.10)', color: '#fff', fontWeight: 800, fontSize: 12, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' },
   btnSecondary: { padding: '10px 20px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#555', fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' },
   btnPagar: { padding: '6px 14px', borderRadius: 8, border: 'none', background: '#dcfce7', color: '#16a34a', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' },
   btnAnular: { padding: '6px 14px', borderRadius: 8, border: 'none', background: '#fee2e2', color: '#dc2626', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' },

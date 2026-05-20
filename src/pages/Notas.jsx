@@ -4,6 +4,7 @@ import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { useYearEscolar } from '../hooks/useYearEscolar'
 import { usePeriodosNotas } from '../hooks/usePeriodosNotas'
+import { FieldGroup, ModuleHero, ModuleToolbar, PremiumEmptyState, StatusPill } from '../components/ui/ModuleChrome'
 import toast from 'react-hot-toast'
 
 function useBreakpoint() {
@@ -591,7 +592,7 @@ export default function Notas({ onVerEstudiante }) {
   // ── Tabla resumen ─────────────────────────────────────────
   function TablaResumen() {
     return (
-      <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', overflow: 'auto' }}>
+      <div style={s.tableShell}>
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 500 }}>
           <thead>
             <tr style={{ background: '#faf8ff' }}>
@@ -656,7 +657,7 @@ export default function Notas({ onVerEstudiante }) {
                                  Object.keys(pendingActs).some(k => k.includes(`|${periodoTab}|`))
 
     return (
-      <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', overflow: 'hidden' }}>
+      <div style={s.tableShell}>
 
         {/* Header */}
         <div style={{ padding: '16px 24px', borderBottom: '1px solid #f3eeff', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
@@ -937,7 +938,7 @@ export default function Notas({ onVerEstudiante }) {
     const hayPendPeriodo = Object.keys(pendingComp).some(k => k.split('|')[1] === String(periodoTab))
 
     return (
-      <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', overflow: 'hidden' }}>
+      <div style={s.tableShell}>
         {/* Header */}
         <div style={{ padding: '16px 24px', borderBottom: '1px solid #f3eeff', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ flex: 1 }}>
@@ -1168,7 +1169,7 @@ export default function Notas({ onVerEstudiante }) {
   function TablaGrupoIngles() {
     const periodos = Array.from({ length: numPerIngles }, (_, i) => i + 1)
     return (
-      <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', overflow: 'auto' }}>
+      <div style={s.tableShell}>
         <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3eeff', display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ background: '#f3eeff', color: '#5B2D8E', padding: '3px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>
             Inglés — {grupoInfo?.nombre}
@@ -1270,26 +1271,44 @@ export default function Notas({ onVerEstudiante }) {
   }
 
   // ── Render ────────────────────────────────────────────────
+  const cambiosPendientes = Object.keys(pendingNotas).length + Object.keys(pendingActs).length + Object.keys(pendingComp).length + Object.keys(pendingIngles).length
+  const materiaActual = materiaId === 'competencias'
+    ? 'Competencias Ciudadanas'
+    : materiaId === 'todas'
+      ? 'Todas las materias'
+      : materias.find(m => m.id === materiaId)?.nombre
+
   return (
     <div style={{ fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
+      <style>{`
+        .notes-mode-btn:hover { background: rgba(91,45,142,0.08) !important; color: #1a0d30 !important; }
+        .notes-save-btn:hover { transform: translateY(-1px); box-shadow: 0 14px 28px rgba(91,45,142,0.20) !important; }
+      `}</style>
 
-      {/* Header */}
-      <div style={{ marginBottom: 20 }}>
-        <h1 style={{ color: '#0f1d40', fontSize: 22, fontWeight: 800, marginBottom: 4, letterSpacing: '-0.5px' }}>Notas</h1>
-        <p style={{ color: '#b0a8c0', fontSize: 13, fontWeight: 500 }}>
-          {gradoInfo ? `${gradoInfo.nombre} · Año ${year}` : `Año escolar ${year}`}
-        </p>
-      </div>
+      <ModuleHero
+        eyebrow="Gestión académica"
+        title="Registro de notas"
+        subtitle="Captura evaluaciones, revisa acumulados y conserva la fórmula académica CBIS sin perder claridad operativa."
+        meta={gradoInfo ? `${gradoInfo.nombre} · ${materiaActual || 'Materia pendiente'} · Año ${year}` : `Año escolar ${year}`}
+        stats={[
+          { value: estudiantes.length || '—', label: 'estudiantes', color: '#fff' },
+          { value: materias.length || '—', label: 'materias', color: '#F5E3A8' },
+          { value: cambiosPendientes, label: 'cambios', color: cambiosPendientes ? '#F5E3A8' : '#fff' },
+          { value: numPeriodos || '—', label: gradoInfo?.nivel === 'bachillerato' ? 'bimestres' : 'períodos', color: '#CDEEEA' },
+        ]}
+      />
 
       {esDocenteTambien && grupos.length > 0 && (
-        <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '2px solid #f0f0f0' }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
           <button onClick={() => setModo('grados')}
-            style={{ padding: '9px 20px', border: 'none', borderBottom: modo === 'grados' ? '3px solid #5B2D8E' : '3px solid transparent', background: 'none', color: modo === 'grados' ? '#3d1f61' : '#b0a8c0', fontWeight: modo === 'grados' ? 800 : 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', marginBottom: -2, display: 'flex', alignItems: 'center', gap: 6 }}>
+            className="notes-mode-btn"
+            style={{ padding: '10px 16px', border: `1px solid ${modo === 'grados' ? 'rgba(91,45,142,0.22)' : 'rgba(26,13,48,0.06)'}`, borderRadius: 999, background: modo === 'grados' ? '#F3E8FA' : '#fff', color: modo === 'grados' ? '#3d1f61' : '#706882', fontWeight: modo === 'grados' ? 900 : 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 7, boxShadow: modo === 'grados' ? '0 10px 22px rgba(91,45,142,0.10)' : '0 8px 18px rgba(26,13,48,0.04)' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
             Mis materias
           </button>
           <button onClick={() => setModo('ingles')}
-            style={{ padding: '9px 20px', border: 'none', borderBottom: modo === 'ingles' ? '3px solid #5B2D8E' : '3px solid transparent', background: 'none', color: modo === 'ingles' ? '#3d1f61' : '#b0a8c0', fontWeight: modo === 'ingles' ? 800 : 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', marginBottom: -2, display: 'flex', alignItems: 'center', gap: 6 }}>
+            className="notes-mode-btn"
+            style={{ padding: '10px 16px', border: `1px solid ${modo === 'ingles' ? 'rgba(91,45,142,0.22)' : 'rgba(26,13,48,0.06)'}`, borderRadius: 999, background: modo === 'ingles' ? '#F3E8FA' : '#fff', color: modo === 'ingles' ? '#3d1f61' : '#706882', fontWeight: modo === 'ingles' ? 900 : 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 7, boxShadow: modo === 'ingles' ? '0 10px 22px rgba(91,45,142,0.10)' : '0 8px 18px rgba(26,13,48,0.04)' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
             Grupos de Inglés
           </button>
@@ -1298,9 +1317,9 @@ export default function Notas({ onVerEstudiante }) {
 
       {modo === 'ingles' && (
         <div>
-          <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
-            <div style={{ flex: 1, minWidth: 200 }}>
-              <label style={s.label}>Grupo</label>
+          <ModuleToolbar compact>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <FieldGroup label="Grupo" minWidth={220}>
               <select style={s.select} value={grupoId || ''} onChange={e => {
                 const id = parseInt(e.target.value)
                 setGrupoId(id)
@@ -1309,15 +1328,18 @@ export default function Notas({ onVerEstudiante }) {
                 <option value="">Selecciona un grupo</option>
                 {grupos.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
               </select>
+            </FieldGroup>
+            <StatusPill label="Modo" value="Inglés" color="#5B2D8E" bg="#F3E8FA" />
             </div>
-          </div>
+          </ModuleToolbar>
           {!grupoId && (
-            <div style={{ textAlign: 'center', padding: '60px 0', background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)' }}>
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12, color: '#d8c8f0' }}>
+            <PremiumEmptyState
+              title="Selecciona un grupo para comenzar"
+              text="Luego podrás registrar notas por bimestre para el grupo elegido."
+              icon={
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-              </div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#3d1f61' }}>Selecciona un grupo para comenzar</div>
-            </div>
+              }
+            />
           )}
           {grupoId && loadingIngles && <div style={{ textAlign: 'center', padding: 40, color: '#b0a8c0' }}>Cargando...</div>}
           {grupoId && !loadingIngles && <TablaGrupoIngles />}
@@ -1326,10 +1348,10 @@ export default function Notas({ onVerEstudiante }) {
 
       {modo === 'grados' && (
         <>
-          <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'flex-end', background: '#fff', borderRadius: 16, padding: '16px 20px', boxShadow: '0 2px 16px rgba(61,31,97,0.07)' }}>
+          <ModuleToolbar>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
             {(!esDocenteTambien || grados.length > 1) && (
-              <div style={{ flex: 1, minWidth: 160 }}>
-                <label style={s.label}>Grado</label>
+              <FieldGroup label="Grado" minWidth={180}>
                 <select style={s.select} value={gradoId || ''} onChange={e => {
                   const id = parseInt(e.target.value)
                   setGradoId(id); setGradoInfo(grados.find(g => g.id === id)); setBusqueda('')
@@ -1337,27 +1359,27 @@ export default function Notas({ onVerEstudiante }) {
                   <option value="">Selecciona un grado</option>
                   {grados.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
                 </select>
-              </div>
+              </FieldGroup>
             )}
-            <div style={{ flex: 1, minWidth: 160 }}>
-              <label style={s.label}>Materia</label>
+            <FieldGroup label="Materia" minWidth={190}>
               <select style={s.select} value={materiaId} onChange={e => { setMateriaId(e.target.value); setBusqueda(''); setPeriodoTab(1) }} disabled={!gradoId}>
                 {!isMobile && <option value="todas">Ver todas las materias</option>}
-                {!isMobile && tieneCompetencias && <option value="competencias">⊕ Competencias Ciudadanas</option>}
+                {!isMobile && tieneCompetencias && <option value="competencias">Competencias Ciudadanas</option>}
                 {materias.map(m => (
                   <option key={m.id} value={m.id}>
                     {m.nombre}{esDocenteTambien && esEncargado && !misMateriasIds.has(m.id) ? ' ●' : ''}
                   </option>
                 ))}
               </select>
-            </div>
+            </FieldGroup>
             {!isMobile && (
-              <div style={{ flex: 1, minWidth: 160 }}>
-                <label style={s.label}>Buscar</label>
+              <FieldGroup label="Buscar" minWidth={220}>
                 <BarraBusqueda />
-              </div>
+              </FieldGroup>
             )}
+            {gradoId && <StatusPill label="Vista" value={materiaActual || 'Pendiente'} color="#0e9490" bg="#E0F7F6" />}
           </div>
+          </ModuleToolbar>
 
           {esEncargado && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 10 }}>
@@ -1367,20 +1389,22 @@ export default function Notas({ onVerEstudiante }) {
           )}
 
           {!gradoId && (
-            <div style={{ textAlign: 'center', padding: '60px 0', background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)' }}>
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12, color: '#d8c8f0' }}>
+            <PremiumEmptyState
+              title="Selecciona un grado para comenzar"
+              text="Elige un grado para ver materias, estudiantes y períodos disponibles."
+              icon={
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-              </div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#3d1f61' }}>Selecciona un grado para comenzar</div>
-            </div>
+              }
+            />
           )}
           {gradoId && !loading && !materias.length && (
-            <div style={{ textAlign: 'center', padding: '60px 0', background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)' }}>
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12, color: '#d8c8f0' }}>
+            <PremiumEmptyState
+              title="Este grado no tiene materias asignadas"
+              text="Cuando se registren materias para el grado, aparecerán aquí."
+              icon={
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-              </div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#3d1f61' }}>Este grado no tiene materias asignadas</div>
-            </div>
+              }
+            />
           )}
           {loading && <div style={{ textAlign: 'center', padding: 40, color: '#b0a8c0', fontSize: 13 }}>Cargando...</div>}
           {gradoId && !loading && !!materias.length && (
@@ -1395,7 +1419,8 @@ export default function Notas({ onVerEstudiante }) {
 
 const s = {
   label:  { display: 'block', fontSize: 10, fontWeight: 700, color: '#5B2D8E', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' },
-  select: { width: '100%', padding: '10px 14px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: 14, background: '#fff', color: '#222', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', cursor: 'pointer' },
+  select: { width: '100%', padding: '12px 14px', borderRadius: 14, border: '1.5px solid rgba(26,13,48,0.08)', fontSize: 14, background: '#F8FBFF', color: '#1a0d30', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', cursor: 'pointer', outline: 'none', fontWeight: 700 },
   th:     { padding: '10px 10px', fontSize: 10, fontWeight: 700, color: '#F5EDD0', textTransform: 'uppercase', letterSpacing: '0.6px', textAlign: 'center' },
   th2:    { padding: '6px 6px', fontSize: 10, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.4px', textAlign: 'center', background: '#f5f3ff' },
+  tableShell: { background: '#fff', borderRadius: 24, boxShadow: '0 16px 42px rgba(26,13,48,0.07), 0 0 0 1px rgba(26,13,48,0.05)', overflow: 'hidden' },
 }
