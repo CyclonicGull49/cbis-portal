@@ -156,28 +156,16 @@ export default function Login() {
         .login-wordmark {
           display: inline-flex;
           align-items: center;
-          gap: 8px;
           color: #fff;
-          font-size: 24px;
+          font-size: 26px;
           font-weight: 800;
           line-height: 1;
         }
-        .login-plus-mark {
-          width: 24px;
-          height: 24px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 9px;
-          background: rgba(212,160,23,0.18);
-          border: 1px solid rgba(212,160,23,0.34);
+        .login-plus {
           color: #F5D46E;
-          box-shadow: 0 10px 22px rgba(0,0,0,0.16);
-          transform: translateY(1px);
-        }
-        .login-plus-mark svg {
-          width: 15px;
-          height: 15px;
+          margin-left: 1px;
+          transform: translateY(-1px);
+          display: inline-block;
         }
         .login-logo {
           width: 64px;
@@ -201,18 +189,13 @@ export default function Login() {
           font-weight: 500;
         }
         .login-motto {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 10px;
-        }
-        .login-motto span {
-          padding: 10px 14px;
-          border-radius: 999px;
-          background: rgba(255,255,255,0.10);
-          border: 1px solid rgba(255,255,255,0.14);
-          color: #fff;
-          font-size: 12px;
+          color: rgba(255,255,255,0.74);
+          font-size: 13px;
           font-weight: 800;
+          letter-spacing: 0.02em;
+          padding-top: 18px;
+          border-top: 1px solid rgba(255,255,255,0.16);
+          max-width: 420px;
         }
         .login-form-side {
           display: flex;
@@ -342,7 +325,7 @@ export default function Login() {
           .login-brand { padding: 26px; }
           .login-card { padding: 24px; }
           .login-form-side { padding: 14px; }
-          .login-motto span { padding: 8px 11px; font-size: 11px; }
+          .login-motto { font-size: 12px; }
         }
       `}</style>
 
@@ -354,12 +337,7 @@ export default function Login() {
                 <img src="/logo.png" alt="CBIS" className="login-logo" />
                 <div>
                   <div className="login-wordmark">
-                    <span>CBIS</span>
-                    <span className="login-plus-mark" aria-hidden="true">
-                      <svg viewBox="0 0 24 24" fill="none">
-                        <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                      </svg>
-                    </span>
+                    <span>CBIS<span className="login-plus">+</span></span>
                   </div>
                   <div style={{ color: 'rgba(255,255,255,0.64)', fontSize: 13, fontWeight: 700 }}>Colegio Bautista Internacional</div>
                 </div>
@@ -373,10 +351,7 @@ export default function Login() {
               </div>
 
               <div className="login-motto" aria-label="Lema institucional">
-                <span>Fe</span>
-                <span>Innovación</span>
-                <span>Cultura</span>
-                <span>Disciplina</span>
+                Fe, Innovación, Cultura & Disciplina
               </div>
             </div>
           </aside>
