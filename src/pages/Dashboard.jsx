@@ -18,6 +18,7 @@ const Notas        = lazy(() => import('./Notas'))
 const Boletas      = lazy(() => import('./Boletas'))
 const Asistencia   = lazy(() => import('./Asistencia'))
 const PerfilAlumno = lazy(() => import('./PerfilAlumno'))
+const PerfilDocente = lazy(() => import('./PerfilDocente'))
 const Solicitudes  = lazy(() => import('./Solicitudes'))
 const Calendario   = lazy(() => import('./Calendario'))
 const Anecdotario  = lazy(() => import('./Anecdotario'))
@@ -342,6 +343,7 @@ function DashboardHome({ onNavigate = () => {} }) {
       { id: 'calendario', title: 'Calendario', meta: 'Próximas fechas', icon: <IcoMes />, tone: '#DDF7BF' },
     ],
     docente: [
+      { id: 'mi-perfil', title: 'Mi perfil', meta: 'Identidad y asignaciones', icon: <IcoDocente />, tone: '#DDF7BF' },
       { id: 'notas', title: 'Notas', meta: 'Evaluaciones y períodos', icon: <IcoNotas />, tone: '#FFE7A8' },
       { id: 'asistencia', title: 'Asistencia', meta: 'Control de clase', icon: <IcoDocente />, tone: '#CDEEEA' },
       { id: 'anecdotario', title: 'Anecdotario', meta: 'Seguimiento formativo', icon: <IcoMaterias />, tone: '#F9C8DC' },
@@ -721,12 +723,12 @@ export default function Dashboard() {
       case 'matricula':     return <Matricula />
       case 'anecdotario':   return <Anecdotario />
       case 'permisos':      return <Permisos />
-      case 'mi-perfil':     return <PerfilAlumno seccion="perfil" />
-      case 'mis-cobros':    return <PerfilAlumno seccion="cobros" />
-      case 'mis-docs':      return <PerfilAlumno seccion="docs" />
-      case 'mis-notas':     return <PerfilAlumno seccion="notas" />
-      case 'mi-config':     return <PerfilAlumno seccion="config" />
-      default:              return esAlumno ? <PerfilAlumno seccion="perfil" /> : <DashboardHome onNavigate={setPagina} />
+      case 'mi-perfil':     return perfil?.rol === 'docente' ? <PerfilDocente onNavigate={setPagina} /> : <PerfilAlumno seccion="perfil" onNavigate={setPagina} />
+      case 'mis-cobros':    return <PerfilAlumno seccion="cobros" onNavigate={setPagina} />
+      case 'mis-docs':      return <PerfilAlumno seccion="docs" onNavigate={setPagina} />
+      case 'mis-notas':     return <PerfilAlumno seccion="notas" onNavigate={setPagina} />
+      case 'mi-config':     return <PerfilAlumno seccion="config" onNavigate={setPagina} />
+      default:              return esAlumno ? <PerfilAlumno seccion="perfil" onNavigate={setPagina} /> : <DashboardHome onNavigate={setPagina} />
     }
   }
 

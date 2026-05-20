@@ -27,7 +27,13 @@ function Spinner() {
       position:'relative',
       overflow:'hidden',
     }}>
-      <div style={{ position:'absolute', inset:0, opacity:0.42, backgroundImage:'radial-gradient(circle, rgba(212,160,23,0.28) 1px, transparent 1.5px)', backgroundSize:'34px 34px', transform:'rotate(-3deg) scale(1.08)' }} />
+      <div style={{
+        position:'absolute',
+        inset:0,
+        opacity:0.86,
+        background:
+          'radial-gradient(circle at 18% 10%, rgba(212,160,23,0.16), transparent 20rem), radial-gradient(circle at 86% 16%, rgba(91,45,142,0.11), transparent 24rem), linear-gradient(118deg, transparent 0 58%, rgba(91,45,142,0.035) 58% 72%, transparent 72%)',
+      }} />
       <div style={{ textAlign:'center', position:'relative', zIndex:1, animation:'cbis-fade-up 420ms ease both' }}>
         <div style={{
           width: 52, height: 52, margin: '0 auto 16px',

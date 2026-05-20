@@ -245,6 +245,7 @@ export default function Layout({ pagina, setPagina, children }) {
 
   const menuDocente = [
     { id: 'dashboard',    label: 'Dashboard',    icon: Icons.dashboard },
+    { id: 'mi-perfil',    label: 'Mi Perfil',    icon: Icons.usuarios },
     { id: 'notas',        label: 'Notas',        icon: Icons.notas },
     { id: 'asistencia',   label: 'Asistencia',   icon: Icons.asistencia },
     { id: 'anecdotario',  label: 'Anecdotario',  icon: Icons.anecdotario },
@@ -293,7 +294,7 @@ export default function Layout({ pagina, setPagina, children }) {
     direccion_academica: ['dashboard', 'notas', 'asistencia', 'reportes'],
     registro_academico:  ['dashboard', 'notas', 'boletas', 'cobros'],
     recepcion:           ['dashboard', 'estudiantes', 'cobros', 'solicitudes', 'reportes'],
-    docente:             ['dashboard', 'notas', 'asistencia', 'solicitudes', 'horario'],
+    docente:             ['dashboard', 'mi-perfil', 'notas', 'asistencia'],
     alumno:              ['mi-perfil', 'mis-notas', 'horario', 'calendario'],
     talento_humano:      ['dashboard', 'estudiantes', 'usuarios', 'reportes'],
   }
@@ -307,7 +308,7 @@ export default function Layout({ pagina, setPagina, children }) {
     direccion_academica: [{ label: 'Principal', ids: ['dashboard'] }, { label: 'Académico', ids: ['estudiantes','notas','asistencia','anecdotario','permisos'] }, { label: 'Administración', ids: ['cobros','contabilidad','solicitudes','reportes'] }, { label: 'Planificación', ids: ['horario','calendario'] }],
     registro_academico:  [{ label: 'Principal', ids: ['dashboard'] }, { label: 'Académico', ids: ['estudiantes','matricula','notas','asistencia','boletas'] }, { label: 'Administración', ids: ['cobros','solicitudes','reportes'] }, { label: 'Planificación', ids: ['horario','calendario'] }],
     recepcion:           [{ label: 'Principal', ids: ['dashboard'] }, { label: 'Gestión', ids: ['estudiantes','matricula','cobros','solicitudes','reportes','permisos','calendario'] }],
-    docente:             [{ label: 'Principal', ids: ['dashboard'] }, { label: 'Mi trabajo', ids: ['notas','asistencia','anecdotario','permisos'] }, { label: 'Gestión', ids: ['solicitudes','reportes','horario','calendario'] }],
+    docente:             [{ label: 'Principal', ids: ['dashboard','mi-perfil'] }, { label: 'Mi trabajo', ids: ['notas','asistencia','anecdotario','permisos'] }, { label: 'Gestión', ids: ['solicitudes','reportes','horario','calendario'] }],
     alumno:              [{ label: 'Mi espacio', ids: ['mi-perfil','mis-notas'] }, { label: 'Colegio', ids: ['horario','calendario'] }],
     talento_humano:      [{ label: 'Principal', ids: ['dashboard'] }, { label: 'Gestión', ids: ['estudiantes','usuarios','reportes'] }, { label: 'Planificación', ids: ['horario','calendario','configuracion'] }],
   }
@@ -321,9 +322,8 @@ export default function Layout({ pagina, setPagina, children }) {
       <div className="sb-blob-g" />
       <div className="sb-blob-d" />
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none',
-        backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1.6px)',
-        backgroundSize: '22px 22px',
-        maskImage: 'linear-gradient(180deg, rgba(0,0,0,0.92), rgba(0,0,0,0.18))' }} />
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.05), transparent 44%)',
+        opacity: 0.55 }} />
 
       {/* Header */}
       <div style={{ padding: '20px 16px 16px', borderBottom: '1px solid rgba(255,255,255,0.10)', position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -333,8 +333,7 @@ export default function Layout({ pagina, setPagina, children }) {
           </div>
           <div>
             <div style={{ color: '#fff', fontWeight: 800, fontSize: 15, letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: 5 }}>
-              CBIS
-              <svg width="13" height="13" viewBox="0 0 28 28" fill="none"><rect x="11" y="2" width="6" height="24" rx="3" fill="#D4A017"/><rect x="2" y="11" width="24" height="6" rx="3" fill="#D4A017"/></svg>
+              CBIS<span style={{ color: '#F5D46E', marginLeft: 1 }}>+</span>
             </div>
             <div style={{ color: 'rgba(255,255,255,0.62)', fontSize: 9, fontWeight: 700, lineHeight: 1.3 }}>Fe, Innovación, Cultura y Disciplina</div>
           </div>
@@ -429,9 +428,8 @@ export default function Layout({ pagina, setPagina, children }) {
           background:
             radial-gradient(circle at 13% 6%, rgba(212,160,23,0.12), transparent 24rem),
             radial-gradient(circle at 92% 20%, rgba(14,148,144,0.10), transparent 22rem),
-            radial-gradient(circle, rgba(91,45,142,0.08) 1px, transparent 1.6px);
-          background-size: auto, auto, 34px 34px;
-          opacity: 0.9;
+            linear-gradient(118deg, transparent 0 62%, rgba(91,45,142,0.035) 62% 74%, transparent 74%);
+          opacity: 0.86;
         }
         .nav-btn:hover { background: rgba(255,255,255,0.12) !important; color: #fff !important; transform: translateX(2px); }
         .nav-btn:hover > div:first-child { background: rgba(255,255,255,0.12) !important; }

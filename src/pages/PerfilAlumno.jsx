@@ -3,10 +3,29 @@ import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { useYearEscolar } from '../hooks/useYearEscolar'
 import { NIVEL_COLOR as nivelColor } from '../constants/colores'
+import { ActionTile, InfoPill, ProfileHero, StudentIdCard } from '../components/profile/ProfilePrimitives'
 
-export default function PerfilAlumno({ seccion = 'perfil' }) {
+const IcoId = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M16 10h2M16 14h2M7 10h5M7 14h3"/>
+  </svg>
+)
+const IcoChart = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+  </svg>
+)
+const IcoShield = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-5"/>
+  </svg>
+)
+
+export default function PerfilAlumno({ seccion = 'perfil', onNavigate = () => {} }) {
   const { perfil } = useAuth()
+  const { yearEscolar } = useYearEscolar()
   const [estudiante, setEstudiante] = useState(null)
+  const [fotoUrl, setFotoUrl]       = useState('')
   const [loading, setLoading]       = useState(true)
 
   useEffect(() => {
@@ -21,6 +40,25 @@ export default function PerfilAlumno({ seccion = 'perfil' }) {
       .eq('id', perfil.estudiante_id)
       .single()
     setEstudiante(est)
+    setFotoUrl('')
+
+    if (est?.id) {
+      const { data: docs } = await supabase
+        .from('documentos_estudiante')
+        .select('storage_path')
+        .eq('estudiante_id', est.id)
+        .eq('tipo', 'foto_estudiante')
+        .limit(1)
+
+      const path = docs?.[0]?.storage_path
+      if (path) {
+        const { data: signed } = await supabase.storage
+          .from('documentos-estudiantes')
+          .createSignedUrl(path, 60 * 60)
+        if (signed?.signedUrl) setFotoUrl(signed.signedUrl)
+      }
+    }
+
     setLoading(false)
   }
 
@@ -40,75 +78,80 @@ export default function PerfilAlumno({ seccion = 'perfil' }) {
     </div>
   )
 
-  const nivel     = nivelColor[estudiante.grados?.nivel] || nivelColor.primaria
   const iniciales = `${estudiante.nombre?.charAt(0) || ''}${estudiante.apellido?.charAt(0) || ''}`
+  const year = yearEscolar || new Date().getFullYear()
+  const estadoLabel = estudiante.estado === 'activo' ? 'Activo' : estudiante.estado || 'Activo'
 
   return (
-    <div style={{ fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', maxWidth: 760, margin: '0 auto' }}>
+    <div style={{ fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', maxWidth: 1080, margin: '0 auto' }}>
+      <style>{`
+        .profile-action-tile:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 18px 38px rgba(26,13,48,0.11) !important;
+          border-color: rgba(91,45,142,0.18) !important;
+        }
+        @media (max-width: 860px) {
+          .student-profile-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
 
       {/* ── HERO ─────────────────────────────────────────────── */}
       {seccion === 'perfil' && (
-        <div style={{
-          background: 'linear-gradient(135deg, #1a0d30 0%, #3d1f61 60%, #5B2D8E 100%)',
-          borderRadius: 24, padding: '28px 24px 24px', marginBottom: 20,
-          position: 'relative', overflow: 'hidden',
-        }}>
-          <div style={{ position: 'absolute', inset: 0, opacity: 0.05,
-            backgroundImage: 'radial-gradient(circle at 20% 50%, #D4A017 0%, transparent 50%), radial-gradient(circle at 80% 20%, #fff 0%, transparent 40%)',
-          }} />
-          <div style={{ position: 'absolute', top: -40, right: -40, width: 180, height: 180, borderRadius: '50%', background: 'rgba(212,160,23,0.08)', pointerEvents: 'none' }} />
-          <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 18 }}>
-            <div style={{
-              width: 72, height: 72, borderRadius: '50%', flexShrink: 0,
-              background: 'linear-gradient(135deg, #D4A017, #b8860b)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: '#fff', fontWeight: 900, fontSize: 24, letterSpacing: '-0.5px',
-              boxShadow: '0 0 0 3px rgba(212,160,23,0.3), 0 8px 24px rgba(0,0,0,0.3)',
-            }}>
-              {iniciales}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.45)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 4 }}>
-                Estudiante CBIS
-              </div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.4px', lineHeight: 1.2, marginBottom: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {estudiante.nombre} {estudiante.apellido}
-              </div>
-              <span style={{ ...nivel, padding: '4px 14px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>
-                {estudiante.grados?.nombre}
-              </span>
-            </div>
-          </div>
+        <div style={{ marginBottom: 18 }}>
+          <ProfileHero
+            eyebrow="Mi espacio CBIS+"
+            title={`${estudiante.nombre} ${estudiante.apellido}`}
+            subtitle="Tu información escolar, carnet digital y accesos personales en un solo lugar."
+            avatarUrl={fotoUrl}
+            initials={iniciales}
+            badge={estudiante.grados?.nombre || 'Grado no asignado'}
+            meta={`NIE ${estudiante.nie || '—'} · ${estadoLabel}`}
+          />
         </div>
       )}
 
       {/* ── MI PERFIL ────────────────────────────────────────── */}
       {seccion === 'perfil' && (
-        <div>
-          <SectionLabel>Información Personal</SectionLabel>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10, marginBottom: 20 }}>
-            {[
-              { label: 'Nombre completo',      val: `${estudiante.nombre} ${estudiante.apellido}` },
-              { label: 'NIE',                  val: estudiante.nie },
-              { label: 'Género',               val: estudiante.genero },
-              { label: 'Fecha de nacimiento',  val: estudiante.fecha_nacimiento ? new Date(estudiante.fecha_nacimiento + 'T12:00:00').toLocaleDateString('es-SV') : null },
-              { label: 'Correo institucional', val: estudiante.correo_institucional },
-              { label: 'Dirección',            val: estudiante.direccion },
-              { label: 'Municipio',            val: estudiante.municipio },
-            ].map(({ label, val }) => (
-              <InfoCard key={label} label={label} val={val} />
-            ))}
+        <div className="student-profile-grid" style={s.profileGrid}>
+          <div style={s.mainColumn}>
+            <section style={s.card}>
+              <SectionLabel>Accesos personales</SectionLabel>
+              <div style={s.actionGrid}>
+                <ActionTile title="Carnet digital" meta="Identificación escolar" icon={<IcoId />} tone="#FFE7A8" />
+                <ActionTile title="Notas" meta="Resultados por período" icon={<IcoChart />} tone="#CDE7FF" onClick={() => onNavigate('mis-notas')} />
+                <ActionTile title="Estado activo" meta="Credencial vigente" icon={<IcoShield />} tone="#DDF7BF" />
+              </div>
+            </section>
+
+            <section style={s.card}>
+              <SectionLabel>Información personal</SectionLabel>
+              <div style={s.infoGrid}>
+                {[
+                  { label: 'Nombre completo', value: `${estudiante.nombre} ${estudiante.apellido}` },
+                  { label: 'NIE', value: estudiante.nie },
+                  { label: 'Género', value: estudiante.genero },
+                  { label: 'Nacimiento', value: estudiante.fecha_nacimiento ? new Date(estudiante.fecha_nacimiento + 'T12:00:00').toLocaleDateString('es-SV') : null },
+                  { label: 'Correo institucional', value: estudiante.correo_institucional },
+                  { label: 'Municipio', value: estudiante.municipio },
+                ].map(item => <InfoPill key={item.label} label={item.label} value={item.value} />)}
+              </div>
+            </section>
+
+            <section style={s.card}>
+              <SectionLabel>Encargado</SectionLabel>
+              <div style={s.infoGrid}>
+                <InfoPill label="Nombre" value={estudiante.nombre_tutor || estudiante.nombre_padre || estudiante.nombre_madre} />
+                <InfoPill label="Teléfono" value={estudiante.telefono_tutor || estudiante.telefono_padre || estudiante.telefono_madre} />
+              </div>
+            </section>
           </div>
 
-          <SectionLabel>Encargado</SectionLabel>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
-            {[
-              { label: 'Nombre',   val: estudiante.nombre_tutor || estudiante.nombre_padre || estudiante.nombre_madre },
-              { label: 'Teléfono', val: estudiante.telefono_tutor || estudiante.telefono_padre || estudiante.telefono_madre },
-            ].map(({ label, val }) => (
-              <InfoCard key={label} label={label} val={val} />
-            ))}
-          </div>
+          <aside style={s.sideColumn}>
+            <StudentIdCard student={estudiante} photoUrl={fotoUrl} yearEscolar={year} status={estadoLabel} />
+            <div style={s.noteBox}>
+              La fotografía del carnet es administrada por el colegio. Si necesitas actualizarla, solicita el cambio en recepción o registro académico.
+            </div>
+          </aside>
         </div>
       )}
 
@@ -122,25 +165,38 @@ export default function PerfilAlumno({ seccion = 'perfil' }) {
         />
       )}
 
+      {['docs', 'cobros', 'config'].includes(seccion) && (
+        <div style={s.emptyState}>
+          <div style={s.emptyIcon}><IcoShield /></div>
+          <h2 style={s.emptyTitle}>Vista en preparación</h2>
+          <p style={s.emptyText}>Esta sección conservará su lógica actual y se rediseñará en el bloque de módulos internos.</p>
+        </div>
+      )}
+
     </div>
   )
 }
 
 function SectionLabel({ children }) {
   return (
-    <div style={{ fontSize: 11, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 10, marginTop: 4 }}>
+    <div style={{ fontSize: 11, fontWeight: 800, color: '#D4A017', textTransform: 'uppercase', letterSpacing: '1.3px', marginBottom: 12 }}>
       {children}
     </div>
   )
 }
 
-function InfoCard({ label, val }) {
-  return (
-    <div style={{ background: '#fff', borderRadius: 14, padding: '14px 18px', boxShadow: '0 1px 6px rgba(61,31,97,0.06)' }}>
-      <div style={{ fontSize: 10, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 5 }}>{label}</div>
-      <div style={{ fontSize: 14, color: val ? '#1a0d30' : '#d1d5db', fontWeight: val ? 600 : 400 }}>{val || '—'}</div>
-    </div>
-  )
+const s = {
+  profileGrid: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(300px, 380px)', gap: 18, alignItems: 'start' },
+  mainColumn: { display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 },
+  sideColumn: { display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 },
+  card: { background: '#fff', borderRadius: 24, padding: 20, boxShadow: '0 16px 42px rgba(26,13,48,0.07), 0 0 0 1px rgba(26,13,48,0.05)' },
+  actionGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 },
+  infoGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 },
+  noteBox: { background: '#FEFAF0', border: '1px solid rgba(212,160,23,0.22)', color: '#7A5C0D', borderRadius: 18, padding: '13px 14px', fontSize: 12, lineHeight: 1.55, fontWeight: 700 },
+  emptyState: { textAlign: 'center', padding: '58px 24px', background: '#fff', borderRadius: 24, boxShadow: '0 16px 42px rgba(26,13,48,0.07), 0 0 0 1px rgba(26,13,48,0.05)' },
+  emptyIcon: { width: 58, height: 58, borderRadius: 18, background: '#F3E8FA', color: '#5B2D8E', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' },
+  emptyTitle: { color: '#1a0d30', fontSize: 20, fontWeight: 900, margin: '0 0 6px' },
+  emptyText: { color: '#706882', fontSize: 13, lineHeight: 1.55, margin: 0, fontWeight: 600 },
 }
 
 // ── Boletín ───────────────────────────────────────────────
@@ -191,7 +247,7 @@ function Boletin({ estudianteId, gradoId, nivel, componentesNota }) {
         setMaterias(ms || [])
       }
       const mapa = {}
-      for (const n of (ns || [])) mapa[`${n.materia_id}-${n.periodo}-${n.tipo}`] = n.nota
+      for (const n of (ns || [])) mapa[`${n.materia_id}|${n.periodo}|${n.tipo}`] = n.nota
       setNotas(mapa)
       setLoading(false)
     }
@@ -213,7 +269,7 @@ function Boletin({ estudianteId, gradoId, nivel, componentesNota }) {
   const materiasConNotas = materias.map(m => {
     const nftsPeriodo = Array.from({ length: numPeriodos }, (_, i) => {
       const map = {}
-      for (const c of componentes) map[c] = notas[`${m.id}-${i + 1}-${c}`] ?? null
+      for (const c of componentes) map[c] = notas[`${m.id}|${i + 1}|${c}`] ?? null
       return calcNFT(componentes, map)
     })
     const validos = nftsPeriodo.filter(v => v !== null)

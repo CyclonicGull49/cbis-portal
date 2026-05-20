@@ -225,13 +225,10 @@ function SidebarContent({ onNav, sidebarOpen, setSidebarOpen, isTablet }) {
 
   return (
     <>
-      {/* blobs */}
+      {/* ambient accents */}
       <div style={{ position:'absolute', borderRadius:'50%', pointerEvents:'none', width:280, height:280, background:'radial-gradient(circle,rgba(255,255,255,0.08) 0%,transparent 100%)', filter:'blur(50px)', top:-60, left:-60 }} />
       <div style={{ position:'absolute', borderRadius:'50%', pointerEvents:'none', width:180, height:180, background:'radial-gradient(circle,rgba(212,160,23,0.12) 0%,transparent 70%)', filter:'blur(40px)', top:120, right:-40 }} />
-      <div style={{ position:'absolute', borderRadius:'50%', pointerEvents:'none', width:200, height:200, background:'radial-gradient(circle,rgba(255,255,255,0.05) 0%,transparent 70%)', filter:'blur(45px)', bottom:120, left:-30 }} />
-      <div style={{ position:'absolute', borderRadius:'50%', pointerEvents:'none', width:220, height:220, background:'radial-gradient(circle,rgba(212,160,23,0.10) 0%,transparent 70%)', filter:'blur(50px)', bottom:-40, right:-40 }} />
-      {/* grid pattern */}
-      <div style={{ position:'absolute', inset:0, pointerEvents:'none', backgroundImage:'radial-gradient(circle,rgba(255,255,255,0.08) 1px,transparent 1.6px)', backgroundSize:'22px 22px', maskImage:'linear-gradient(180deg,rgba(0,0,0,0.92),rgba(0,0,0,0.18))' }} />
+      <div style={{ position:'absolute', inset:0, pointerEvents:'none', background:'linear-gradient(180deg, rgba(255,255,255,0.05), transparent 44%)', opacity:.55 }} />
 
       {/* Header */}
       <div style={{ padding:'20px 16px 14px', borderBottom:'1px solid rgba(255,255,255,0.08)', position:'relative', zIndex:1, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
@@ -240,9 +237,8 @@ function SidebarContent({ onNav, sidebarOpen, setSidebarOpen, isTablet }) {
             <img src="/logo.png" alt="CBIS" style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:11 }} onError={e => { e.target.style.display='none' }} />
           </div>
           <div>
-            <div style={{ color:'#fff', fontWeight:800, fontSize:15, letterSpacing:'-0.3px', display:'flex', alignItems:'center', gap:5 }}>
-              CBIS
-              <svg width="13" height="13" viewBox="0 0 28 28" fill="none"><rect x="11" y="2" width="6" height="24" rx="3" fill="#D4A017"/><rect x="2" y="11" width="24" height="6" rx="3" fill="#D4A017"/></svg>
+            <div style={{ color:'#fff', fontWeight:800, fontSize:15, letterSpacing:'-0.3px', display:'flex', alignItems:'center', gap:1 }}>
+              CBIS<span style={{ color:'#F5D46E' }}>+</span>
             </div>
             <div style={{ color:'rgba(255,255,255,0.62)', fontSize:9, fontWeight:700, lineHeight:1.3 }}>Fe, Innovación, Cultura y Disciplina</div>
           </div>
@@ -339,11 +335,10 @@ function PadreLayoutInner() {
           inset:0;
           pointer-events:none;
           background:
-            radial-gradient(circle at 13% 6%, rgba(212,160,23,0.12), transparent 24rem),
-            radial-gradient(circle at 92% 20%, rgba(14,148,144,0.10), transparent 22rem),
-            radial-gradient(circle, rgba(91,45,142,0.08) 1px, transparent 1.6px);
-          background-size:auto, auto, 34px 34px;
-          opacity:.9;
+            radial-gradient(circle at 13% 6%, rgba(212,160,23,0.11), transparent 24rem),
+            radial-gradient(circle at 92% 20%, rgba(14,148,144,0.09), transparent 22rem),
+            linear-gradient(118deg, transparent 0 62%, rgba(91,45,142,0.035) 62% 74%, transparent 74%);
+          opacity:.86;
         }
         .padre-topbar{
           background:rgba(255,255,255,.82)!important;
