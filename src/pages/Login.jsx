@@ -73,17 +73,19 @@ export default function Login() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,700&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body, #root { min-height: 100%; }
         body { overflow-x: hidden; }
 
         .login-page {
-          min-height: 100vh;
+          min-height: 100svh;
+          height: 100svh;
           font-family: 'Plus Jakarta Sans', sans-serif;
           background:
             radial-gradient(circle at 7% 0%, rgba(212,160,23,0.16), transparent 26rem),
             radial-gradient(circle at 95% 18%, rgba(14,148,144,0.12), transparent 24rem),
             linear-gradient(135deg, #fff 0%, #f4f7fc 45%, #eef4fb 100%);
           display: flex; align-items: center; justify-content: center;
-          padding: 28px; position: relative; overflow: hidden;
+          padding: clamp(16px, 2.4vh, 28px); position: relative; overflow: hidden;
         }
         .login-page::before {
           content: '';
@@ -96,7 +98,8 @@ export default function Login() {
         }
         .login-shell {
           width: min(1040px, 100%);
-          min-height: 640px;
+          min-height: 0;
+          height: min(640px, calc(100svh - clamp(32px, 4.8vh, 56px)));
           display: grid;
           grid-template-columns: minmax(0, 1fr) 460px;
           border-radius: 32px;
@@ -146,7 +149,7 @@ export default function Login() {
           display: flex;
           flex-direction: column;
           justify-content: space-between;
-          gap: 40px;
+          gap: clamp(22px, 4vh, 40px);
         }
         .login-logo-row {
           display: flex;
@@ -201,6 +204,8 @@ export default function Login() {
           display: flex;
           align-items: center;
           padding: 38px;
+          min-height: 0;
+          overflow: auto;
         }
         .login-card {
           position: relative; width: 100%;
@@ -277,7 +282,7 @@ export default function Login() {
         .login-error {
           background: rgba(220, 38, 38, 0.12);
           border: 1px solid rgba(220, 38, 38, 0.3);
-          color: #fca5a5;
+          color: #991B1B;
           padding: 12px 14px; border-radius: 10px;
           font-size: 13px; font-weight: 500;
           margin-bottom: 18px; line-height: 1.5;
@@ -285,7 +290,7 @@ export default function Login() {
         .login-success {
           background: rgba(16, 185, 129, 0.12);
           border: 1px solid rgba(16, 185, 129, 0.3);
-          color: #a7f3d0;
+          color: #065F46;
           padding: 12px 14px; border-radius: 10px;
           font-size: 13px; font-weight: 500;
           margin-bottom: 18px; line-height: 1.5;
@@ -306,7 +311,7 @@ export default function Login() {
         }
         .login-link:hover { color: #e6b829; }
         @media (max-width: 900px) {
-          .login-shell { grid-template-columns: minmax(280px, 1fr) minmax(360px, 420px); min-height: auto; }
+          .login-shell { grid-template-columns: minmax(280px, 1fr) minmax(360px, 420px); }
           .login-brand { padding: 32px; }
           .login-brand-title { font-size: 40px; }
           .login-brand-copy { font-size: 15px; }
@@ -314,7 +319,8 @@ export default function Login() {
           .login-card { padding: 28px; }
         }
         @media (max-width: 720px) {
-          .login-shell { grid-template-columns: 1fr; }
+          .login-page { height: auto; min-height: 100svh; overflow: auto; }
+          .login-shell { grid-template-columns: 1fr; height: auto; }
           .login-brand { padding: 28px; }
           .login-brand-title { font-size: 34px; }
           .login-form-side { padding: 16px; }

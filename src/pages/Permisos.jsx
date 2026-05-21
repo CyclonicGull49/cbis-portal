@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { useYearEscolar } from '../hooks/useYearEscolar'
+import { FieldGroup, ModuleHero, ModuleToolbar, PremiumEmptyState } from '../components/ui/ModuleChrome'
 import toast from 'react-hot-toast'
 
 // ── Iconos ────────────────────────────────────
@@ -139,17 +140,18 @@ function Tarjeta({ p, esRecepcion, procesando, onSelect, onAprobar, onRechazar, 
   const puedeConfirmar = esRecepcion && esRetiro && p.estado === 'aprobado'
 
   return (
-    <div onClick={() => onSelect(p)}
+    <div className="permission-card" onClick={() => onSelect(p)}
       style={{
         background: '#fff',
-        borderRadius: 14,
-        border: `1.5px solid ${p.estado === 'pendiente' ? subtipo.border : p.estado === 'salida_confirmada' ? '#c4b5fd' : '#f0ecf8'}`,
-        padding: '14px 18px', marginBottom: 10, cursor: 'pointer',
-        transition: 'box-shadow 0.15s',
+        borderRadius: 20,
+        border: `1.5px solid ${p.estado === 'pendiente' ? subtipo.border : p.estado === 'salida_confirmada' ? '#c4b5fd' : 'rgba(26,13,48,0.06)'}`,
+        padding: '16px 18px', marginBottom: 12, cursor: 'pointer',
+        transition: 'transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease',
         borderLeft: `4px solid ${subtipo.color}`,
+        boxShadow: '0 10px 26px rgba(26,13,48,0.05)',
       }}
-      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(61,31,97,0.1)'}
-      onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
+      onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 18px 38px rgba(26,13,48,0.10)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
+      onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 10px 26px rgba(26,13,48,0.05)'; e.currentTarget.style.transform = 'translateY(0)' }}>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ flex: 1 }}>
@@ -398,24 +400,30 @@ export default function Permisos() {
 
   return (
     <div style={{ fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
+      <style>{`
+        .permission-tab:hover { background: rgba(91,45,142,0.08) !important; color: #1a0d30 !important; }
+        .permission-primary:hover { transform: translateY(-1px); box-shadow: 0 14px 28px rgba(91,45,142,0.20) !important; }
+      `}</style>
 
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <h1 style={{ color: '#0f1d40', fontSize: 22, fontWeight: 800, marginBottom: 4, letterSpacing: '-0.5px' }}>Permisos</h1>
-          <p style={{ color: '#b0a8c0', fontSize: 13, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {pendientesCount > 0 && <span style={{ color: '#d97706', fontWeight: 700 }}>{pendientesCount} pendiente{pendientesCount !== 1 ? 's' : ''}</span>}
-            {retirosHoy > 0 && <span style={{ color: '#d97706', fontWeight: 700 }}>· {retirosHoy} retiro{retirosHoy !== 1 ? 's' : ''} hoy</span>}
-            {salidasPendientes > 0 && <span style={{ color: '#5B2D8E', fontWeight: 700 }}>· {salidasPendientes} salida{salidasPendientes !== 1 ? 's' : ''} por confirmar</span>}
-          </p>
-        </div>
+      <ModuleHero
+        eyebrow="Control diario"
+        title="Permisos"
+        subtitle="Registra ausencias, llegadas tarde y retiros anticipados con una lectura rápida de lo que requiere atención hoy."
+        meta={`Año escolar ${year}`}
+        stats={[
+          { value: permisos.length || '—', label: 'permisos', color: '#fff' },
+          { value: pendientesCount, label: 'pendientes', color: pendientesCount ? '#F5E3A8' : '#fff' },
+          { value: retirosHoy, label: 'retiros hoy', color: retirosHoy ? '#F9C8DC' : '#fff' },
+          { value: salidasPendientes, label: 'por confirmar', color: salidasPendientes ? '#CDEEEA' : '#fff' },
+        ]}
+      >
         {(esRecepcion || esDocente) && (
-          <button onClick={() => { resetForm(); setModalNuevo(true) }}
-            style={{ ...s.btnPrimary, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button className="permission-primary" onClick={() => { resetForm(); setModalNuevo(true) }}
+            style={{ ...s.btnHero, display: 'flex', alignItems: 'center', gap: 6 }}>
             <IcoPlus /> Registrar permiso
           </button>
         )}
-      </div>
+      </ModuleHero>
 
       {/* Banner salidas pendientes de confirmar */}
       {salidasPendientes > 0 && esRecepcion && (
@@ -426,10 +434,11 @@ export default function Permisos() {
       )}
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 16, background: '#fff', borderRadius: 12, padding: 4, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', width: 'fit-content' }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
         {tabs.map(tab => (
           <button key={tab.id} onClick={() => setTabActiva(tab.id)}
-            style={{ padding: '7px 14px', borderRadius: 9, border: 'none', fontFamily: 'inherit', fontSize: 12, fontWeight: tabActiva === tab.id ? 700 : 500, cursor: 'pointer', background: tabActiva === tab.id ? 'linear-gradient(135deg, #5B2D8E, #3d1f61)' : 'transparent', color: tabActiva === tab.id ? '#fff' : '#6b7280', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 6 }}>
+            className="permission-tab"
+            style={{ padding: '9px 14px', borderRadius: 999, border: `1px solid ${tabActiva === tab.id ? 'rgba(91,45,142,0.22)' : 'rgba(26,13,48,0.06)'}`, fontFamily: 'inherit', fontSize: 12, fontWeight: tabActiva === tab.id ? 900 : 700, cursor: 'pointer', background: tabActiva === tab.id ? '#F3E8FA' : '#fff', color: tabActiva === tab.id ? '#1a0d30' : '#706882', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 6, boxShadow: tabActiva === tab.id ? '0 10px 22px rgba(91,45,142,0.10)' : '0 8px 18px rgba(26,13,48,0.04)' }}>
             {tab.label}
             {tab.id === 'pendientes' && pendientesCount > 0 && (
               <span style={{ background: tabActiva === 'pendientes' ? 'rgba(255,255,255,0.25)' : '#fef9c3', color: tabActiva === 'pendientes' ? '#fff' : '#92400e', fontSize: 10, fontWeight: 800, padding: '1px 6px', borderRadius: 10 }}>
@@ -446,15 +455,17 @@ export default function Permisos() {
       </div>
 
       {/* Filtros */}
-      <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', padding: '14px 20px', marginBottom: 16 }}>
+      <ModuleToolbar compact>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ flex: '2 1 200px', position: 'relative' }}>
+          <FieldGroup label="Buscar estudiante" minWidth={240}>
+          <div style={{ position: 'relative' }}>
             <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#b0a8c0', display: 'flex' }}><IcoSearch /></span>
             <input type="text" placeholder="Buscar estudiante..." value={busqueda}
               onChange={e => setBusqueda(e.target.value)}
               style={{ ...s.input, paddingLeft: 34, width: '100%', boxSizing: 'border-box' }} />
           </div>
-          <div style={{ flex: '1 1 160px' }}>
+          </FieldGroup>
+          <FieldGroup label="Estado" minWidth={180}>
             <select value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)} style={s.input}>
               <option value="">Todos los estados</option>
               <option value="pendiente">Pendientes</option>
@@ -462,19 +473,19 @@ export default function Permisos() {
               <option value="salida_confirmada">Salida confirmada</option>
               <option value="rechazado">Rechazados</option>
             </select>
-          </div>
+          </FieldGroup>
         </div>
-      </div>
+      </ModuleToolbar>
 
       {/* Lista */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: 48, color: '#b0a8c0' }}>Cargando...</div>
       ) : permisosFiltrados.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '60px 0', background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}><IcoEmpty /></div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#3d1f61' }}>Sin permisos</div>
-          <div style={{ fontSize: 12, color: '#b0a8c0', marginTop: 4 }}>No hay permisos para los filtros seleccionados</div>
-        </div>
+        <PremiumEmptyState
+          icon={<IcoEmpty />}
+          title="Sin permisos"
+          text="No hay permisos para los filtros seleccionados."
+        />
       ) : (
         <div>
           {permisosFiltrados.map(p => (
@@ -674,10 +685,11 @@ export default function Permisos() {
 const s = {
   label:       { display: 'block', fontSize: 10, fontWeight: 700, color: '#5B2D8E', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' },
   field:       { marginBottom: 14 },
-  input:       { padding: '9px 14px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: 13, background: '#fff', color: '#222', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', outline: 'none', width: '100%' },
-  inputFull:   { width: '100%', padding: '10px 14px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: 13, background: '#f9fafb', color: '#222', boxSizing: 'border-box', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', outline: 'none' },
-  btnPrimary:  { padding: '10px 20px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #5B2D8E, #3d1f61)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' },
-  btnSecondary:{ padding: '10px 20px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#555', fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' },
-  modalBg:     { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 16 },
-  modalBox:    { background: '#fff', borderRadius: 16, padding: '28px 24px', width: '100%', maxWidth: 480, boxShadow: '0 20px 60px rgba(0,0,0,0.25)', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', maxHeight: '90vh', overflowY: 'auto' },
+  input:       { padding: '10px 14px', borderRadius: 14, border: '1px solid rgba(26,13,48,0.10)', fontSize: 13, background: '#F8FBFF', color: '#1a0d30', fontWeight: 700, fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', outline: 'none', width: '100%', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8)' },
+  inputFull:   { width: '100%', padding: '11px 14px', borderRadius: 14, border: '1px solid rgba(26,13,48,0.10)', fontSize: 13, background: '#F8FBFF', color: '#1a0d30', fontWeight: 700, boxSizing: 'border-box', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', outline: 'none', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8)' },
+  btnPrimary:  { padding: '10px 20px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg, #5B2D8E, #3d1f61)', color: '#fff', fontWeight: 800, fontSize: 13, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', boxShadow: '0 12px 24px rgba(91,45,142,0.18)' },
+  btnHero:     { padding: '10px 15px', borderRadius: 14, border: 'none', background: '#D4A017', color: '#1a0d30', fontWeight: 900, fontSize: 12, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', boxShadow: '0 10px 22px rgba(0,0,0,0.12)', transition: 'transform 160ms ease, box-shadow 160ms ease' },
+  btnSecondary:{ padding: '10px 20px', borderRadius: 14, border: '1px solid rgba(26,13,48,0.10)', background: '#fff', color: '#4D435F', fontWeight: 800, fontSize: 13, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' },
+  modalBg:     { position: 'fixed', inset: 0, background: 'rgba(26,13,48,0.48)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 16 },
+  modalBox:    { background: 'linear-gradient(180deg, #fff 0%, #FBFCFF 100%)', border: '1px solid rgba(26,13,48,0.08)', borderRadius: 24, padding: '28px 24px', width: '100%', maxWidth: 480, boxShadow: '0 28px 80px rgba(26,13,48,0.26)', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', maxHeight: '90vh', overflowY: 'auto' },
 }

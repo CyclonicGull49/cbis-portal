@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { useYearEscolar } from '../hooks/useYearEscolar'
+import { ModuleHero } from '../components/ui/ModuleChrome'
 
 // ── Iconos ────────────────────────────────────
 const IcoLock = () => (
@@ -190,23 +191,39 @@ export default function MisNotas() {
   )
 
   const periodoTerm = isBach ? 'Período' : 'Trimestre'
+  const nftsGenerales = materias
+    .filter(m => !m.esComplementaria)
+    .flatMap(m => Array.from({ length: numPer }, (_, pi) => calcNFT(m.notas[pi + 1] || {}, comps)))
+    .filter(n => n !== null)
+  const promedioGeneral = nftsGenerales.length
+    ? nftsGenerales.reduce((a, b) => a + b, 0) / nftsGenerales.length
+    : null
 
   return (
     <div style={{ fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
+      <style>{`
+        .student-tab:hover { background: rgba(91,45,142,0.08) !important; color: #1a0d30 !important; }
+      `}</style>
 
-      {/* Header */}
-      <div style={{ marginBottom: 20 }}>
-        <h1 style={{ color: '#3d1f61', fontSize: 22, fontWeight: 800, marginBottom: 4, letterSpacing: '-0.5px' }}>Mis Notas</h1>
-        <p style={{ color: '#b0a8c0', fontSize: 13 }}>
-          {gradoInfo?.nombre} · Año {year}
-        </p>
-      </div>
+      <ModuleHero
+        eyebrow="Mi avance académico"
+        title="Mis notas"
+        subtitle="Consulta tus resultados por materia, período y componente. La boleta se muestra solo cuando cumple las condiciones académicas y administrativas."
+        meta={`${gradoInfo?.nombre || 'Grado'} · Año ${year}`}
+        stats={[
+          { value: materias.length || '—', label: 'materias', color: '#fff' },
+          { value: numPer, label: isBach ? 'períodos' : 'trimestres', color: '#CDEEEA' },
+          { value: promedioGeneral !== null ? promedioGeneral.toFixed(2) : '—', label: 'promedio', color: promedioGeneral !== null && promedioGeneral < 7 ? '#F9C8DC' : '#F5E3A8' },
+          { value: boletaStatus?.visible ? 'Sí' : 'No', label: 'boleta', color: boletaStatus?.visible ? '#CDEEEA' : '#fff' },
+        ]}
+      />
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: '#fff', borderRadius: 12, padding: 4, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', width: 'fit-content' }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         {[{ id: 'notas', label: 'Mis Notas' }, { id: 'boleta', label: 'Boleta' }].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
-            style={{ padding: '8px 20px', borderRadius: 9, border: 'none', fontFamily: 'inherit', fontSize: 13, fontWeight: tab === t.id ? 700 : 500, cursor: 'pointer', background: tab === t.id ? 'linear-gradient(135deg, #5B2D8E, #3d1f61)' : 'transparent', color: tab === t.id ? '#fff' : '#6b7280', transition: 'all 0.15s', position: 'relative' }}>
+            className="student-tab"
+            style={{ padding: '10px 16px', borderRadius: 999, border: `1px solid ${tab === t.id ? 'rgba(91,45,142,0.22)' : 'rgba(26,13,48,0.06)'}`, fontFamily: 'inherit', fontSize: 13, fontWeight: tab === t.id ? 900 : 700, cursor: 'pointer', background: tab === t.id ? '#F3E8FA' : '#fff', color: tab === t.id ? '#1a0d30' : '#706882', transition: 'all 0.15s', position: 'relative', boxShadow: tab === t.id ? '0 10px 22px rgba(91,45,142,0.10)' : '0 8px 18px rgba(26,13,48,0.04)' }}>
             {t.label}
             {t.id === 'boleta' && boletaStatus && !boletaStatus.visible && (
               <span style={{ position: 'absolute', top: 4, right: 4, width: 7, height: 7, borderRadius: '50%', background: '#dc2626' }} />
@@ -217,7 +234,7 @@ export default function MisNotas() {
 
       {/* ── TAB NOTAS ──────────────────────────── */}
       {tab === 'notas' && (
-        <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', overflow: 'auto' }}>
+        <div style={s.tableShell}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 500 }}>
             <thead>
               <tr style={{ background: '#1a0d30' }}>
@@ -331,7 +348,7 @@ export default function MisNotas() {
               </div>
 
               {/* Vista previa boleta */}
-              <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', overflow: 'hidden' }}>
+              <div style={s.tableShell}>
                 {/* Header */}
                 <div style={{ background: 'linear-gradient(135deg, #1a0d30, #3d1f61)', padding: '20px 24px', color: '#fff' }}>
                   <div style={{ fontSize: 16, fontWeight: 800 }}>Colegio Bautista Internacional de Sonsonate</div>
@@ -436,5 +453,6 @@ const s = {
   th:       { padding: '10px 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.4px', textAlign: 'center' },
   th2:      { padding: '6px 8px', fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textAlign: 'center', textTransform: 'uppercase' },
   td:       { padding: '9px 8px', fontSize: 12, color: '#374151', verticalAlign: 'middle' },
-  bloqueado:{ textAlign: 'center', padding: '60px 32px', background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', maxWidth: 480, margin: '0 auto' },
+  bloqueado:{ textAlign: 'center', padding: '60px 32px', background: '#fff', borderRadius: 24, boxShadow: '0 16px 42px rgba(26,13,48,0.07), 0 0 0 1px rgba(26,13,48,0.05)', maxWidth: 520, margin: '0 auto' },
+  tableShell: { background: '#fff', borderRadius: 24, boxShadow: '0 16px 42px rgba(26,13,48,0.07), 0 0 0 1px rgba(26,13,48,0.05)', overflow: 'auto' },
 }

@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { useYearEscolar } from '../hooks/useYearEscolar'
+import { ModuleHero, PremiumEmptyState } from '../components/ui/ModuleChrome'
 import toast from 'react-hot-toast'
 
 // ── Iconos ────────────────────────────────────
@@ -405,9 +406,9 @@ export default function Solicitudes() {
 
     return (
       <div onClick={() => setModalDetalle(s)}
-        style={{ background: '#fff', borderRadius: 14, border: '1px solid #f0ecf8', padding: '16px 20px', marginBottom: 10, cursor: 'pointer', transition: 'box-shadow 0.1s' }}
-        onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(61,31,97,0.1)'}
-        onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
+        style={{ background: '#fff', borderRadius: 20, border: '1px solid rgba(26,13,48,0.06)', padding: '16px 20px', marginBottom: 12, cursor: 'pointer', transition: 'transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease', boxShadow: '0 10px 26px rgba(26,13,48,0.05)' }}
+        onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 18px 38px rgba(26,13,48,0.10)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = 'rgba(91,45,142,0.16)' }}
+        onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 10px 26px rgba(26,13,48,0.05)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = 'rgba(26,13,48,0.06)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
@@ -502,26 +503,37 @@ export default function Solicitudes() {
 
   return (
     <div style={{ fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
+      <style>{`
+        .request-tab:hover { background: rgba(91,45,142,0.08) !important; color: #1a0d30 !important; }
+        .request-primary:hover { transform: translateY(-1px); box-shadow: 0 14px 28px rgba(91,45,142,0.20) !important; }
+      `}</style>
 
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <h1 style={{ color: '#3d1f61', fontSize: 22, fontWeight: 800, marginBottom: 4, letterSpacing: '-0.5px' }}>Solicitudes</h1>
-          <p style={{ color: '#b0a8c0', fontSize: 13 }}>{esDocente ? 'Tus solicitudes enviadas' : `${solicitudes.length} solicitudes este año`}</p>
-        </div>
+      <ModuleHero
+        eyebrow="Gestión institucional"
+        title="Solicitudes"
+        subtitle={esDocente ? 'Envía y da seguimiento a tus solicitudes académicas o permisos personales.' : 'Revisa, responde y da continuidad a solicitudes académicas, administrativas y de atención a familias.'}
+        meta={`Año escolar ${year}`}
+        stats={[
+          { value: solicitudes.length || '—', label: 'solicitudes', color: '#fff' },
+          { value: pendientesCount, label: 'pendientes', color: pendientesCount ? '#F5E3A8' : '#fff' },
+          { value: solicitudes.filter(s => s.estado === 'aprobado').length, label: 'aprobadas', color: '#CDEEEA' },
+          { value: filtradas.length || '—', label: 'en vista', color: '#fff' },
+        ]}
+      >
         {esDocente && (
-          <button onClick={() => { resetForm(); setModalNueva(true) }}
-            style={{ ...s.btnPrimary, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button className="request-primary" onClick={() => { resetForm(); setModalNueva(true) }}
+            style={{ ...s.btnHero, display: 'flex', alignItems: 'center', gap: 6 }}>
             <IcoPlus /> Nueva solicitud
           </button>
         )}
-      </div>
+      </ModuleHero>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: '#fff', borderRadius: 12, padding: 4, boxShadow: '0 2px 16px rgba(61,31,97,0.07)', width: 'fit-content' }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         {tabs.map(tab => (
           <button key={tab.id} onClick={() => setTabActiva(tab.id)}
-            style={{ padding: '7px 16px', borderRadius: 9, border: 'none', fontFamily: 'inherit', fontSize: 12, fontWeight: tabActiva === tab.id ? 700 : 500, cursor: 'pointer', background: tabActiva === tab.id ? 'linear-gradient(135deg, #5B2D8E, #3d1f61)' : 'transparent', color: tabActiva === tab.id ? '#fff' : '#6b7280', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 6 }}>
+            className="request-tab"
+            style={{ padding: '9px 15px', borderRadius: 999, border: `1px solid ${tabActiva === tab.id ? 'rgba(91,45,142,0.22)' : 'rgba(26,13,48,0.06)'}`, fontFamily: 'inherit', fontSize: 12, fontWeight: tabActiva === tab.id ? 900 : 700, cursor: 'pointer', background: tabActiva === tab.id ? '#F3E8FA' : '#fff', color: tabActiva === tab.id ? '#1a0d30' : '#706882', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 6, boxShadow: tabActiva === tab.id ? '0 10px 22px rgba(91,45,142,0.10)' : '0 8px 18px rgba(26,13,48,0.04)' }}>
             {tab.label}
             {tab.id === 'pendiente' && pendientesCount > 0 && (
               <span style={{ background: tabActiva === 'pendiente' ? 'rgba(255,255,255,0.3)' : '#fef9c3', color: tabActiva === 'pendiente' ? '#fff' : '#92400e', fontSize: 10, fontWeight: 800, padding: '1px 6px', borderRadius: 10 }}>
@@ -536,12 +548,11 @@ export default function Solicitudes() {
       {loading ? (
         <div style={{ textAlign: 'center', padding: 48, color: '#b0a8c0' }}>Cargando...</div>
       ) : filtradas.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '60px 0', background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(61,31,97,0.07)' }}>
-          <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><IcoEmpty /></div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#3d1f61' }}>
-            {tabActiva === 'pendiente' ? 'Sin solicitudes pendientes' : 'Sin solicitudes'}
-          </div>
-        </div>
+        <PremiumEmptyState
+          icon={<IcoEmpty />}
+          title={tabActiva === 'pendiente' ? 'Sin solicitudes pendientes' : 'Sin solicitudes'}
+          text="Cuando exista actividad para esta vista, aparecerá aquí."
+        />
       ) : (
         <div>{filtradas.map(s => <TarjetaSolicitud key={s.id} s={s} />)}</div>
       )}
@@ -815,9 +826,10 @@ export default function Solicitudes() {
 const s = {
   label:       { display: 'block', fontSize: 10, fontWeight: 700, color: '#5B2D8E', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' },
   field:       { marginBottom: 14 },
-  inputFull:   { width: '100%', padding: '10px 14px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: 13, background: '#f9fafb', color: '#222', boxSizing: 'border-box', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', outline: 'none' },
-  btnPrimary:  { padding: '10px 20px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #5B2D8E, #3d1f61)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' },
-  btnSecondary:{ padding: '10px 20px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#555', fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' },
-  modalBg:     { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 16 },
-  modalBox:    { background: '#fff', borderRadius: 16, padding: '28px 24px', width: '100%', maxWidth: 480, boxShadow: '0 20px 60px rgba(0,0,0,0.25)', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', maxHeight: '90vh', overflowY: 'auto' },
+  inputFull:   { width: '100%', padding: '11px 14px', borderRadius: 14, border: '1px solid rgba(26,13,48,0.10)', fontSize: 13, background: '#F8FBFF', color: '#1a0d30', fontWeight: 700, boxSizing: 'border-box', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', outline: 'none', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8)' },
+  btnPrimary:  { padding: '10px 20px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg, #5B2D8E, #3d1f61)', color: '#fff', fontWeight: 800, fontSize: 13, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', boxShadow: '0 12px 24px rgba(91,45,142,0.18)' },
+  btnHero:     { padding: '10px 15px', borderRadius: 14, border: 'none', background: '#D4A017', color: '#1a0d30', fontWeight: 900, fontSize: 12, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', boxShadow: '0 10px 22px rgba(0,0,0,0.12)', transition: 'transform 160ms ease, box-shadow 160ms ease' },
+  btnSecondary:{ padding: '10px 20px', borderRadius: 14, border: '1px solid rgba(26,13,48,0.10)', background: '#fff', color: '#4D435F', fontWeight: 800, fontSize: 13, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' },
+  modalBg:     { position: 'fixed', inset: 0, background: 'rgba(26,13,48,0.48)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 16 },
+  modalBox:    { background: 'linear-gradient(180deg, #fff 0%, #FBFCFF 100%)', border: '1px solid rgba(26,13,48,0.08)', borderRadius: 24, padding: '28px 24px', width: '100%', maxWidth: 480, boxShadow: '0 28px 80px rgba(26,13,48,0.26)', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', maxHeight: '90vh', overflowY: 'auto' },
 }
