@@ -205,13 +205,13 @@ export default function Login() {
           align-items: center;
           padding: 38px;
           min-height: 0;
-          overflow: auto;
+          overflow: hidden;
         }
         .login-card {
           position: relative; width: 100%;
           background: #fff;
           border: 1px solid rgba(26,13,48,0.08);
-          border-radius: 24px; padding: 38px;
+          border-radius: 24px; padding: 34px;
           box-shadow: 0 16px 42px rgba(26,13,48,0.08);
           opacity: 0; transform: translateY(12px);
           transition: opacity .5s ease, transform .5s ease;
@@ -229,7 +229,7 @@ export default function Login() {
         }
         .login-subtitle {
           font-size: 14px; color: #625878;
-          margin-bottom: 28px; line-height: 1.5;
+          margin-bottom: 22px; line-height: 1.5;
         }
         .login-label {
           display: block; font-size: 11px; font-weight: 700;
@@ -237,7 +237,7 @@ export default function Login() {
           text-transform: uppercase; margin-bottom: 8px;
         }
         .login-input-wrap {
-          position: relative; margin-bottom: 18px;
+          position: relative; margin-bottom: 14px;
         }
         .login-input {
           width: 100%; padding: 14px 44px 14px 16px;
@@ -275,7 +275,7 @@ export default function Login() {
         .login-btn-ghost {
           background: none; border: none; color: #625878;
           font-family: inherit; font-size: 13px; font-weight: 600;
-          cursor: pointer; margin-top: 16px; text-align: center; width: 100%;
+          cursor: pointer; margin-top: 12px; text-align: center; width: 100%;
           padding: 8px; transition: color .2s;
         }
         .login-btn-ghost:hover { color: #5B2D8E; }
@@ -296,7 +296,7 @@ export default function Login() {
           margin-bottom: 18px; line-height: 1.5;
         }
         .login-divider {
-          display: flex; align-items: center; gap: 12px; margin: 24px 0;
+          display: flex; align-items: center; gap: 12px; margin: 18px 0;
           color: #8d849e;
           font-size: 12px;
         }
@@ -317,6 +317,9 @@ export default function Login() {
           .login-brand-copy { font-size: 15px; }
           .login-form-side { padding: 24px; }
           .login-card { padding: 28px; }
+        }
+        @media (max-height: 760px) and (min-width: 721px) {
+          .login-form-side { overflow: auto; }
         }
         @media (max-width: 720px) {
           .login-page { height: auto; min-height: 100svh; overflow: auto; }

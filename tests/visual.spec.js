@@ -13,6 +13,17 @@ test.describe('CBIS+ visual smoke', () => {
     if (viewport && viewport.width >= 900) {
       const hasVerticalOverflow = await page.evaluate(() => document.documentElement.scrollHeight > window.innerHeight + 1)
       expect(hasVerticalOverflow).toBe(false)
+
+      const formSideShowsInternalScroll = await page.evaluate(() => {
+        const formSide = document.querySelector('.login-form-side')
+        const card = document.querySelector('.login-card')
+        if (!formSide || !card) return true
+        const sideBox = formSide.getBoundingClientRect()
+        const cardBox = card.getBoundingClientRect()
+        const cardFitsVisually = cardBox.top >= sideBox.top - 1 && cardBox.bottom <= sideBox.bottom + 1
+        return getComputedStyle(formSide).overflowY === 'auto' || !cardFitsVisually
+      })
+      expect(formSideShowsInternalScroll).toBe(false)
     }
   })
 
