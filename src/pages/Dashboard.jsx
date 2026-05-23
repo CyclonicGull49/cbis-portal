@@ -370,18 +370,23 @@ function DashboardHome({ onNavigate = () => {} }) {
       <style>{`
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
         .management-action:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 18px 38px rgba(26,13,48,0.11) !important;
-          border-color: rgba(91,45,142,0.18) !important;
+          transform: translateY(-3px);
+          box-shadow: 0 16px 34px rgba(26,13,48,0.10) !important;
+          border-color: rgba(91,45,142,0.16) !important;
+          background: #FCFDFE !important;
+        }
+        .management-action:hover .management-action-icon {
+          transform: scale(1.04);
         }
       `}</style>
 
       {/* Header */}
       <div style={{
-        background: 'linear-gradient(135deg, #1a0d30 0%, #2d1554 48%, #5B2D8E 100%)',
-        borderRadius: 24, padding: isMobile ? '22px 20px' : '30px 34px', marginBottom: 16,
+        background: 'linear-gradient(135deg, #1a0d30 0%, #2d1554 52%, #604098 100%)',
+        borderRadius: 24, padding: isMobile ? '20px 18px' : '26px 30px', marginBottom: 16,
         position: 'relative', overflow: 'hidden',
-        boxShadow: '0 22px 60px rgba(26,13,48,0.22)',
+        boxShadow: '0 18px 48px rgba(26,13,48,0.18)',
+        border: '1px solid rgba(255,255,255,0.08)',
       }}>
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(118deg, transparent 0 52%, rgba(255,255,255,0.08) 52% 66%, transparent 66%)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', width: 240, height: 240, borderRadius: 56, background: 'rgba(212,160,23,0.16)', filter: 'blur(42px)', bottom: -70, right: 80, transform: 'rotate(-14deg)', pointerEvents: 'none' }} />
@@ -401,47 +406,47 @@ function DashboardHome({ onNavigate = () => {} }) {
                 {rolLabel}
               </span>
             </div>
-            <h1 style={{ color: '#fff', fontSize: isMobile ? 26 : 34, fontWeight: 800, letterSpacing: 0, margin: 0, marginBottom: 8, lineHeight: 1.08 }}>
+            <h1 style={{ color: '#fff', fontSize: isMobile ? 25 : 32, fontWeight: 800, letterSpacing: 0, margin: 0, marginBottom: 8, lineHeight: 1.08 }}>
               {saludo}, {perfil?.nombre}.
             </h1>
             <p style={{ color: 'rgba(255,255,255,0.68)', fontSize: isMobile ? 13 : 14, margin: 0, fontWeight: 500, maxWidth: 620, lineHeight: 1.6 }}>
-              Centro de gestión CBIS+: accesos rápidos, seguimiento académico y tareas del día en un solo lugar.
+              Centro de gestión CBIS+: accesos rápidos, seguimiento académico y pendientes del día en un solo lugar.
             </p>
           </div>
-          <Campanita onNavegar={pagina => setPagina(pagina)} />
+          <Campanita onNavegar={pagina => onNavigate(pagina)} />
         </div>
       </div>
 
       {/* Centro de gestión por rol */}
-      <section style={{ background: '#fff', borderRadius: 24, padding: isMobile ? 16 : 22, marginBottom: 16, boxShadow: '0 16px 42px rgba(26,13,48,0.07), 0 0 0 1px rgba(26,13,48,0.05)' }}>
+      <section style={{ background: 'rgba(255,255,255,0.92)', borderRadius: 24, padding: isMobile ? 15 : 20, marginBottom: 16, boxShadow: '0 14px 36px rgba(26,13,48,0.065), 0 0 0 1px rgba(26,13,48,0.05)', backdropFilter: 'blur(10px)' }}>
         <div style={{ display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16, flexDirection: isMobile ? 'column' : 'row' }}>
           <div>
             <div style={{ fontSize: 11, fontWeight: 800, color: '#D4A017', textTransform: 'uppercase', letterSpacing: '1.3px', marginBottom: 4 }}>Centro de gestión</div>
-            <h2 style={{ margin: 0, color: '#1a0d30', fontSize: isMobile ? 20 : 24, fontWeight: 800, letterSpacing: 0 }}>¿Qué necesitas hacer ahora?</h2>
+            <h2 style={{ margin: 0, color: '#1a0d30', fontSize: isMobile ? 20 : 23, fontWeight: 800, letterSpacing: 0 }}>¿Qué necesitas hacer ahora?</h2>
           </div>
           <span style={{ color: '#6b647c', fontSize: 12, fontWeight: 700, background: '#F8FBFF', border: '1px solid rgba(26,13,48,0.07)', borderRadius: 999, padding: '8px 12px' }}>
             {quickActions.length} accesos para {rolLabel}
           </span>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(auto-fit, minmax(150px, 1fr))', gap: isMobile ? 10 : 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(auto-fit, minmax(142px, 1fr))', gap: isMobile ? 10 : 12 }}>
           {quickActions.map(action => (
             <button key={action.id} onClick={() => onNavigate(action.id)} className="management-action" style={{
-              minHeight: isMobile ? 132 : 150,
+              minHeight: isMobile ? 126 : 136,
               border: '1px solid rgba(26,13,48,0.07)',
-              background: '#fff',
-              borderRadius: 22,
-              padding: isMobile ? 12 : 16,
+              background: 'rgba(255,255,255,0.96)',
+              borderRadius: 20,
+              padding: isMobile ? 12 : 15,
               cursor: 'pointer',
               fontFamily: 'inherit',
               textAlign: 'left',
-              boxShadow: '0 10px 24px rgba(26,13,48,0.06)',
-              transition: 'transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease',
+              boxShadow: '0 8px 20px rgba(26,13,48,0.055)',
+              transition: 'transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background 180ms ease',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
-              gap: 14,
+              gap: 12,
             }}>
-              <span style={{ width: 58, height: 58, borderRadius: 18, background: action.tone, color: '#1a0d30', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.58)' }}>
+              <span className="management-action-icon" style={{ width: 52, height: 52, borderRadius: 17, background: action.tone, color: '#1a0d30', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.58)', transition: 'transform 180ms ease' }}>
                 {action.icon}
               </span>
               <span>

@@ -163,11 +163,11 @@ const s = {
     borderRadius: t.radius.xl, // 24
     border: `1px solid ${t.color.purple[600]}14`, // default; se override con accent
     boxShadow: t.shadow.card,
-    padding: 28,
+    padding: 24,
     display: 'flex',
     flexDirection: 'column',
-    gap: 20,
-    minHeight: 180,
+    gap: 18,
+    minHeight: 156,
     transition: `box-shadow ${t.transition.smooth} ${t.transition.snappy}`,
   },
   primaryValueBlock: {
@@ -177,7 +177,7 @@ const s = {
   },
   primaryValue: {
     fontFamily: t.font.family,
-    fontSize: 52,
+    fontSize: 48,
     fontWeight: t.font.weight.extrabold,
     letterSpacing: t.font.tracking.tighter,
     lineHeight: t.font.leading.tight,
@@ -200,7 +200,7 @@ const s = {
   },
   primaryDistributionSlot: {
     marginTop: 4,
-    paddingTop: 18,
+    paddingTop: 16,
     borderTop: `1px solid ${t.color.border.subtle}`,
   },
 
@@ -210,16 +210,16 @@ const s = {
     borderRadius: t.radius.lg, // 20
     border: `1px solid ${t.color.border.subtle}`,
     boxShadow: t.shadow.xs,
-    padding: 20,
+    padding: 18,
     display: 'flex',
     flexDirection: 'column',
     gap: 6,
-    minHeight: 102,
+    minHeight: 96,
     transition: `box-shadow ${t.transition.smooth} ${t.transition.snappy}, transform ${t.transition.base} ${t.transition.snappy}`,
   },
   secondaryIconWrap: {
-    width: 36,
-    height: 36,
+    width: 34,
+    height: 34,
     borderRadius: t.radius.sm,
     display: 'flex',
     alignItems: 'center',
@@ -236,7 +236,7 @@ const s = {
   },
   secondaryValue: {
     fontFamily: t.font.family,
-    fontSize: t.font.size['3xl'], // 28
+    fontSize: 26,
     fontWeight: t.font.weight.bold,
     letterSpacing: t.font.tracking.tight,
     color: t.color.text.primary,

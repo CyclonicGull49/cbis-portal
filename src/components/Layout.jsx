@@ -320,10 +320,9 @@ export default function Layout({ pagina, setPagina, children }) {
       <div className="sb-blob-v" />
       <div className="sb-blob-o" />
       <div className="sb-blob-g" />
-      <div className="sb-blob-d" />
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none',
         background: 'linear-gradient(180deg, rgba(255,255,255,0.86), rgba(248,251,255,0.76) 46%, rgba(244,247,252,0.92))',
-        opacity: 0.84 }} />
+        opacity: 0.9 }} />
 
       {/* Header */}
       <div style={{ padding: '20px 16px 16px', borderBottom: '1px solid rgba(26,13,48,0.08)', position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -362,8 +361,8 @@ export default function Layout({ pagina, setPagina, children }) {
                 const activo = pagina === item.id
                 return (
                   <button key={item.id} onClick={() => navegar(item.id)} className="nav-btn" data-active={activo ? 'true' : 'false'}
-                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 9, padding: '8px 8px', borderRadius: 14, border: activo ? '1px solid rgba(26,13,48,0.10)' : '1px solid transparent', background: activo ? '#1a0d30' : 'transparent', color: activo ? '#fff' : '#4D435F', fontSize: 12.5, fontWeight: activo ? 900 : 700, cursor: 'pointer', textAlign: 'left', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', transition: 'transform 180ms ease, background 180ms ease, color 180ms ease, border-color 180ms ease, box-shadow 180ms ease', marginBottom: 2, boxShadow: activo ? '0 12px 24px rgba(26,13,48,0.16)' : 'none' }}>
-                    <div style={{ width: 30, height: 30, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: activo ? 'rgba(212,160,23,0.20)' : '#F4F7FC', border: activo ? '1px solid rgba(212,160,23,0.34)' : '1px solid rgba(26,13,48,0.06)', color: activo ? '#F5D46E' : '#5B2D8E', transition: 'all 0.15s' }}>
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 9, padding: '8px 8px', borderRadius: 14, border: activo ? '1px solid rgba(91,45,142,0.18)' : '1px solid transparent', background: activo ? 'linear-gradient(135deg, #2d1554, #5B2D8E)' : 'transparent', color: activo ? '#fff' : '#4D435F', fontSize: 12.5, fontWeight: activo ? 900 : 700, cursor: 'pointer', textAlign: 'left', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', transition: 'transform 180ms ease, background 180ms ease, color 180ms ease, border-color 180ms ease, box-shadow 180ms ease', marginBottom: 2, boxShadow: activo ? '0 10px 22px rgba(91,45,142,0.16)' : 'none' }}>
+                    <div style={{ width: 30, height: 30, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: activo ? 'rgba(255,255,255,0.13)' : '#F4F7FC', border: activo ? '1px solid rgba(245,212,110,0.30)' : '1px solid rgba(26,13,48,0.06)', color: activo ? '#F5D46E' : '#5B2D8E', transition: 'all 0.15s' }}>
                       {item.icon}
                     </div>
                     <span style={{ flex: 1, letterSpacing: '-0.1px' }}>{item.label}</span>
@@ -406,7 +405,7 @@ export default function Layout({ pagina, setPagina, children }) {
     width: 238, flexShrink: 0,
     background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, #F8FBFF 52%, #F4F7FC 100%)',
     display: 'flex', flexDirection: 'column',
-    boxShadow: '14px 0 38px rgba(26,13,48,0.08)',
+    boxShadow: '12px 0 34px rgba(26,13,48,0.07)',
     borderRight: '1px solid rgba(26,13,48,0.07)',
     position: 'relative', overflow: 'hidden',
   }
@@ -434,8 +433,8 @@ export default function Layout({ pagina, setPagina, children }) {
         }
         .nav-btn:hover { background: #F3E8FA !important; color: #1a0d30 !important; transform: translateX(2px); border-color: rgba(91,45,142,0.10) !important; }
         .nav-btn:hover > div:first-child { background: #fff !important; }
-        .nav-btn[data-active="true"]:hover { background: #1a0d30 !important; color: #fff !important; border-color: rgba(26,13,48,0.12) !important; box-shadow: 0 14px 26px rgba(26,13,48,0.18) !important; }
-        .nav-btn[data-active="true"]:hover > div:first-child { background: rgba(212,160,23,0.20) !important; }
+        .nav-btn[data-active="true"]:hover { background: linear-gradient(135deg, #2d1554, #5B2D8E) !important; color: #fff !important; border-color: rgba(91,45,142,0.18) !important; box-shadow: 0 12px 24px rgba(91,45,142,0.18) !important; }
+        .nav-btn[data-active="true"]:hover > div:first-child { background: rgba(255,255,255,0.13) !important; }
         .logout-btn:hover { background: rgba(239,68,68,0.10) !important; color: #991b1b !important; border-color: rgba(239,68,68,0.18) !important; }
         .bottom-btn:hover { background: rgba(91,45,142,0.08) !important; }
         :root {
@@ -449,10 +448,9 @@ export default function Layout({ pagina, setPagina, children }) {
           backdrop-filter: blur(18px);
           -webkit-backdrop-filter: blur(18px);
         }
-        .sb-blob-v { position: absolute; pointer-events: none; width: 220px; height: 220px; border-radius: 42px; background: rgba(91,45,142,0.08); filter: blur(36px); top: -54px; left: -80px; transform: rotate(18deg); }
-        .sb-blob-o { position: absolute; pointer-events: none; width: 150px; height: 150px; border-radius: 36px; background: rgba(212,160,23,0.13); filter: blur(34px); top: 118px; right: -48px; transform: rotate(-16deg); }
-        .sb-blob-g { position: absolute; pointer-events: none; width: 178px; height: 178px; border-radius: 46px; background: rgba(14,148,144,0.08); filter: blur(38px); bottom: 124px; left: -42px; transform: rotate(-10deg); }
-        .sb-blob-d { position: absolute; pointer-events: none; width: 190px; height: 190px; border-radius: 52px; background: rgba(212,160,23,0.11); filter: blur(44px); bottom: -54px; right: -52px; transform: rotate(20deg); }
+        .sb-blob-v { position: absolute; pointer-events: none; width: 220px; height: 220px; border-radius: 42px; background: rgba(91,45,142,0.055); filter: blur(38px); top: -54px; left: -84px; transform: rotate(18deg); }
+        .sb-blob-o { position: absolute; pointer-events: none; width: 150px; height: 150px; border-radius: 36px; background: rgba(212,160,23,0.09); filter: blur(36px); top: 118px; right: -54px; transform: rotate(-16deg); }
+        .sb-blob-g { position: absolute; pointer-events: none; width: 178px; height: 178px; border-radius: 46px; background: rgba(14,148,144,0.055); filter: blur(40px); bottom: 90px; left: -52px; transform: rotate(-10deg); }
       `}</style>
 
       <div className="layout-root layout-shell" style={{ display: 'flex', minHeight: '100vh', width: '100vw', background: 'linear-gradient(180deg, #fff 0%, #F4F7FC 46%, #EEF4FB 100%)', position: 'relative' }}>
