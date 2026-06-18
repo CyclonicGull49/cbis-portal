@@ -1,11 +1,13 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
+import { useYearEscolar } from '../hooks/useYearEscolar'
 import Layout from '../components/Layout'
 import Campanita from '../components/Campanita'
 import KpiCardNew from '../components/ui/KpiCard'
 import DistributionBar from '../components/ui/DistributionBar'
 import { t as tokens } from '../theme/tokens'
+import { isSeminarioMateria, qualitativeLabel, qualitativeTone } from '../utils/qualitativeGrades'
 
 const Estudiantes  = lazy(() => import('./Estudiantes'))
 const Cobros       = lazy(() => import('./Cobros'))
@@ -85,6 +87,7 @@ const TIPO_BG    = { examen: '#fef2f2', excursion: '#e0f7f6', feriado: '#fffbeb'
 
 function DashboardHome({ onNavigate = () => {} }) {
   const { perfil } = useAuth()
+  const yearEscolar = useYearEscolar()
   const rol = perfil?.rol
   const isMobile = window.innerWidth < 768
 
@@ -111,11 +114,11 @@ function DashboardHome({ onNavigate = () => {} }) {
 
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => { cargarStats() }, [])
+  useEffect(() => { cargarStats() }, [yearEscolar, perfil?.id, perfil?.rol])
 
   async function cargarStats() {
     setLoading(true)
-    const year = new Date().getFullYear()
+    const year = yearEscolar || new Date().getFullYear()
     const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
     const hoy = new Date().toISOString().split('T')[0]
 
@@ -465,7 +468,7 @@ function DashboardHome({ onNavigate = () => {} }) {
             variant="primary"
             value={stats.estudiantesActivos}
             label="Estudiantes activos"
-            sublabel={`de ${stats.totalEstudiantes} matriculados · año escolar ${new Date().getFullYear()}`}
+            sublabel={`de ${stats.totalEstudiantes} matriculados · año escolar ${yearEscolar || new Date().getFullYear()}`}
             accent="bachillerato"
             loading={loading}
             distribution={
@@ -513,7 +516,7 @@ function DashboardHome({ onNavigate = () => {} }) {
       {verDocente && !stats.esEncargado && (
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 16, marginBottom: 16 }}>
           <KpiCard acento icon={<IcoDocente />} label="Materias asignadas" val={stats.docenteMaterias} sub={stats.docenteGrado?.nombre || 'Docente'} color="#5B2D8E" />
-          <KpiCard icon={<IcoNotas />} label="Notas registradas" val={stats.notasRegistradas.toLocaleString()} sub={`año ${new Date().getFullYear()}`} color="#0e9490" />
+          <KpiCard icon={<IcoNotas />} label="Notas registradas" val={stats.notasRegistradas.toLocaleString()} sub={`año ${yearEscolar || new Date().getFullYear()}`} color="#0e9490" />
         </div>
       )}
 
@@ -636,12 +639,18 @@ function DashboardHome({ onNavigate = () => {} }) {
                 <h2 style={{ color: '#3d1f61', fontSize: 14, fontWeight: 800, margin: 0 }}>Mis notas recientes</h2>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12, padding: 16 }}>
-                {stats.alumnoNotas.map((n, i) => (
-                  <div key={i} style={{ background: '#f9fafb', borderRadius: 12, padding: '12px 14px' }}>
-                    <div style={{ fontSize: 11, color: '#b0a8c0', fontWeight: 600, marginBottom: 4 }}>{n.materias?.nombre} · P{n.periodo}</div>
-                    <div style={{ fontSize: 22, fontWeight: 900, color: n.nota >= 7 ? '#16a34a' : n.nota >= 5 ? '#a16207' : '#dc2626' }}>{n.nota?.toFixed(1) || '—'}</div>
-                  </div>
-                ))}
+                {stats.alumnoNotas.map((n, i) => {
+                  const esSeminario = isSeminarioMateria(n.materias)
+                  const tone = qualitativeTone(n.nota)
+                  return (
+                    <div key={i} style={{ background: '#f9fafb', borderRadius: 12, padding: '12px 14px' }}>
+                      <div style={{ fontSize: 11, color: '#b0a8c0', fontWeight: 600, marginBottom: 4 }}>{n.materias?.nombre} · P{n.periodo}</div>
+                      <div style={{ fontSize: esSeminario ? 15 : 22, fontWeight: 900, color: esSeminario ? tone.color : n.nota >= 7 ? '#16a34a' : n.nota >= 5 ? '#a16207' : '#dc2626' }}>
+                        {esSeminario ? qualitativeLabel(n.nota) : n.nota?.toFixed(1) || '—'}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}
@@ -653,7 +662,7 @@ function DashboardHome({ onNavigate = () => {} }) {
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
           <KpiCard acento icon={<IcoEstudiantes />} label="Estudiantes activos" val={stats.estudiantesActivos} sub={`de ${stats.totalEstudiantes} matriculados`} color="#5B2D8E" />
           <KpiCard icon={<IcoDocente />} label="Usuarios registrados" val={stats.totalUsuarios} sub="en el sistema" color="#0e9490" />
-          <KpiCard icon={<IcoNotas />} label="Notas registradas" val={stats.notasRegistradas.toLocaleString()} sub={`año ${new Date().getFullYear()}`} color="#a16207" />
+          <KpiCard icon={<IcoNotas />} label="Notas registradas" val={stats.notasRegistradas.toLocaleString()} sub={`año ${yearEscolar || new Date().getFullYear()}`} color="#a16207" />
         </div>
       )}
 
@@ -663,7 +672,7 @@ function DashboardHome({ onNavigate = () => {} }) {
           <div style={{ padding: '18px 24px', borderBottom: '1px solid #f3eeff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h2 style={{ color: '#0f1d40', fontSize: 14, fontWeight: 800, margin: 0, letterSpacing: '-0.3px' }}>Próximos eventos</h2>
-              <p style={{ fontSize: 11, color: '#b0a8c0', margin: '2px 0 0', fontWeight: 500 }}>Calendario escolar {new Date().getFullYear()}</p>
+              <p style={{ fontSize: 11, color: '#b0a8c0', margin: '2px 0 0', fontWeight: 500 }}>Calendario escolar {yearEscolar || new Date().getFullYear()}</p>
             </div>
             <span style={{ fontSize: 10, fontWeight: 700, color: '#5B2D8E', background: '#f3eeff', padding: '4px 10px', borderRadius: 100, letterSpacing: '0.3px' }}>
               {stats.proximosEventos.length} próximos
@@ -719,7 +728,7 @@ export default function Dashboard() {
       case 'dashboard':     return <DashboardHome onNavigate={setPagina} />
       case 'estudiantes':   return <Estudiantes />
       case 'cobros':        return <Cobros />
-      case 'notas':         return <Notas onVerEstudiante={id => setPagina(`perfil-estudiante-${id}`)} />
+      case 'notas':         return <Notas onVerEstudiante={id => setPagina(`perfil-estudiante-${id}`)} onIrASolicitudes={(state) => { setPagina('solicitudes'); sessionStorage.setItem('solicitudes_state', JSON.stringify(state)) }} />
       case 'horario':       return <Horario />
       case 'calendario':    return <Calendario />
       case 'contabilidad':  return <Contabilidad />

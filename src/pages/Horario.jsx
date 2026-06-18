@@ -80,7 +80,7 @@ async function notificar(usuarioIds, tipo, titulo, mensaje, link) {
 
 export default function Horario() {
   const { perfil } = useAuth()
-  const { yearEscolar } = useYearEscolar()
+  const yearEscolar = useYearEscolar()
   const year = yearEscolar || new Date().getFullYear()
 
   const esDireccion  = ['admin', 'direccion_academica'].includes(perfil?.rol)

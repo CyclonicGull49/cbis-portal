@@ -28,7 +28,7 @@ function formatFecha(fechaStr, opciones) {
 
 export default function Calendario() {
   const { perfil } = useAuth()
-  const { yearEscolar } = useYearEscolar()
+  const yearEscolar = useYearEscolar()
   const year = yearEscolar || new Date().getFullYear()
 
   const puedeEditar = ['admin', 'direccion_academica'].includes(perfil?.rol)

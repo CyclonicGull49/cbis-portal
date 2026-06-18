@@ -218,7 +218,7 @@ function Tarjeta({ p, esRecepcion, procesando, onSelect, onAprobar, onRechazar, 
 // ── Componente principal ──────────────────────
 export default function Permisos() {
   const { perfil } = useAuth()
-  const { yearEscolar } = useYearEscolar()
+  const yearEscolar = useYearEscolar()
   const year = yearEscolar || new Date().getFullYear()
 
   const esRecepcion = ['admin', 'recepcion', 'direccion_academica', 'registro_academico'].includes(perfil?.rol)

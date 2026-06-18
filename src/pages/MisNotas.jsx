@@ -3,6 +3,7 @@ import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { useYearEscolar } from '../hooks/useYearEscolar'
 import { ModuleHero } from '../components/ui/ModuleChrome'
+import { isSeminarioMateria, qualitativeLabel, qualitativeShort, qualitativeTone } from '../utils/qualitativeGrades'
 
 // ── Iconos ────────────────────────────────────
 const IcoLock = () => (
@@ -52,7 +53,7 @@ function notaBg(n) {
 
 export default function MisNotas() {
   const { perfil } = useAuth()
-  const { yearEscolar } = useYearEscolar()
+  const yearEscolar = useYearEscolar()
   const year = yearEscolar || new Date().getFullYear()
 
   const [tab,          setTab]          = useState('notas')
@@ -105,7 +106,7 @@ export default function MisNotas() {
 
     const notasMap = {}
     for (const n of (notasData || [])) {
-      notasMap[`${n.materia_id}-${n.periodo}-${n.tipo}`] = n.nota
+      notasMap[`${n.materia_id}|${n.periodo}|${n.tipo}`] = n.nota
     }
 
     const compIds = (mgs || []).filter(m => m.es_complementario).map(m => m.materia_id)
@@ -113,7 +114,7 @@ export default function MisNotas() {
       const notas = {}
       for (let p = 1; p <= nPer; p++) {
         notas[p] = {}
-        for (const c of compsList) notas[p][c] = notasMap[`${m.id}-${p}-${c}`] ?? null
+        for (const c of compsList) notas[p][c] = notasMap[`${m.id}|${p}|${c}`] ?? null
       }
       return { id: m.id, nombre: m.nombre, notas, esComplementaria: compIds.includes(m.id) }
     })
@@ -150,7 +151,7 @@ export default function MisNotas() {
     }
 
     // 3. ¿Tiene materia reprobada o promedio bajo?
-    const normales = mats.filter(m => !m.esComplementaria)
+    const normales = mats.filter(m => !m.esComplementaria && !isSeminarioMateria(m))
     let hayReprobada = false
     let sumNFTs = 0, countNFTs = 0
 
@@ -192,7 +193,7 @@ export default function MisNotas() {
 
   const periodoTerm = isBach ? 'Período' : 'Trimestre'
   const nftsGenerales = materias
-    .filter(m => !m.esComplementaria)
+    .filter(m => !m.esComplementaria && !isSeminarioMateria(m))
     .flatMap(m => Array.from({ length: numPer }, (_, pi) => calcNFT(m.notas[pi + 1] || {}, comps)))
     .filter(n => n !== null)
   const promedioGeneral = nftsGenerales.length
@@ -262,6 +263,7 @@ export default function MisNotas() {
             </thead>
             <tbody>
               {materias.map((mat, mi) => {
+                const esSeminario = isSeminarioMateria(mat)
                 const nfts = Array.from({ length: numPer }, (_, pi) => calcNFT(mat.notas[pi + 1] || {}, comps))
                 const nftsValidos = nfts.filter(n => n !== null)
                 const prom = nftsValidos.length ? nftsValidos.reduce((a, b) => a + b, 0) / nftsValidos.length : null
@@ -277,18 +279,18 @@ export default function MisNotas() {
                         {comps.map(c => {
                           const val = mat.notas[pi + 1]?.[c]
                           return (
-                            <td key={`${pi}-${c}`} style={{ ...s.td, textAlign: 'center', color: notaColor(val), fontWeight: val !== null ? 600 : 400 }}>
-                              {val !== null && val !== undefined ? Number(val).toFixed(1) : '—'}
+                            <td key={`${pi}-${c}`} style={{ ...s.td, textAlign: 'center', color: esSeminario ? qualitativeTone(val).color : notaColor(val), fontWeight: val !== null ? 600 : 400 }}>
+                              {esSeminario ? qualitativeShort(val) : val !== null && val !== undefined ? Number(val).toFixed(1) : '—'}
                             </td>
                           )
                         })}
-                        <td key={`nft-${pi}`} style={{ ...s.td, textAlign: 'center', fontWeight: 800, color: notaColor(nfts[pi]), background: nfts[pi] !== null ? notaBg(nfts[pi]) : 'transparent' }}>
-                          {nfts[pi] !== null ? Number(nfts[pi]).toFixed(2) : '—'}
+                        <td key={`nft-${pi}`} style={{ ...s.td, textAlign: 'center', fontWeight: 800, color: esSeminario ? qualitativeTone(nfts[pi]).color : notaColor(nfts[pi]), background: esSeminario ? qualitativeTone(nfts[pi]).bg : nfts[pi] !== null ? notaBg(nfts[pi]) : 'transparent' }}>
+                          {esSeminario ? qualitativeLabel(nfts[pi]) : nfts[pi] !== null ? Number(nfts[pi]).toFixed(2) : '—'}
                         </td>
                       </>
                     ))}
-                    <td style={{ ...s.td, textAlign: 'center', fontWeight: 800, fontSize: 14, color: notaColor(prom), background: prom !== null ? notaBg(prom) : 'transparent' }}>
-                      {prom !== null ? Number(prom).toFixed(2) : '—'}
+                    <td style={{ ...s.td, textAlign: 'center', fontWeight: 800, fontSize: 14, color: esSeminario ? qualitativeTone(prom).color : notaColor(prom), background: esSeminario ? qualitativeTone(prom).bg : prom !== null ? notaBg(prom) : 'transparent' }}>
+                      {esSeminario ? qualitativeLabel(prom) : prom !== null ? Number(prom).toFixed(2) : '—'}
                     </td>
                   </tr>
                 )
@@ -387,6 +389,7 @@ export default function MisNotas() {
                     </thead>
                     <tbody>
                       {materias.filter(m => !m.esComplementaria).map((mat, mi) => {
+                        const esSeminario = isSeminarioMateria(mat)
                         const nfts = Array.from({ length: numPer }, (_, pi) => calcNFT(mat.notas[pi + 1] || {}, comps))
                         const nftsValidos = nfts.filter(n => n !== null)
                         const prom = nftsValidos.length ? nftsValidos.reduce((a, b) => a + b, 0) / nftsValidos.length : null
@@ -397,17 +400,17 @@ export default function MisNotas() {
                               <>
                                 {comps.map(c => {
                                   const val = mat.notas[pi + 1]?.[c]
-                                  return <td key={`${pi}-${c}`} style={{ ...s.td, textAlign: 'center', color: notaColor(val), fontWeight: val !== null ? 600 : 400 }}>
-                                    {val !== null && val !== undefined ? Number(val).toFixed(1) : '—'}
+                                  return <td key={`${pi}-${c}`} style={{ ...s.td, textAlign: 'center', color: esSeminario ? qualitativeTone(val).color : notaColor(val), fontWeight: val !== null ? 600 : 400 }}>
+                                    {esSeminario ? qualitativeShort(val) : val !== null && val !== undefined ? Number(val).toFixed(1) : '—'}
                                   </td>
                                 })}
-                                <td key={`nft-${pi}`} style={{ ...s.td, textAlign: 'center', fontWeight: 800, color: notaColor(nfts[pi]), background: nfts[pi] !== null ? notaBg(nfts[pi]) : 'transparent' }}>
-                                  {nfts[pi] !== null ? Number(nfts[pi]).toFixed(2) : '—'}
+                                <td key={`nft-${pi}`} style={{ ...s.td, textAlign: 'center', fontWeight: 800, color: esSeminario ? qualitativeTone(nfts[pi]).color : notaColor(nfts[pi]), background: esSeminario ? qualitativeTone(nfts[pi]).bg : nfts[pi] !== null ? notaBg(nfts[pi]) : 'transparent' }}>
+                                  {esSeminario ? qualitativeLabel(nfts[pi]) : nfts[pi] !== null ? Number(nfts[pi]).toFixed(2) : '—'}
                                 </td>
                               </>
                             ))}
-                            <td style={{ ...s.td, textAlign: 'center', fontWeight: 800, color: notaColor(prom) }}>
-                              {prom !== null ? Number(prom).toFixed(2) : '—'}
+                            <td style={{ ...s.td, textAlign: 'center', fontWeight: 800, color: esSeminario ? qualitativeTone(prom).color : notaColor(prom) }}>
+                              {esSeminario ? qualitativeLabel(prom) : prom !== null ? Number(prom).toFixed(2) : '—'}
                             </td>
                           </tr>
                         )
@@ -421,13 +424,14 @@ export default function MisNotas() {
                   <div style={{ padding: '12px 16px', borderTop: '2px solid #f3eeff' }}>
                     <div style={{ fontSize: 10, fontWeight: 700, color: '#0e9490', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Cursos Complementarios</div>
                     {materias.filter(m => m.esComplementaria).map(mat => {
+                      const esSeminario = isSeminarioMateria(mat)
                       const nfts = Array.from({ length: numPer }, (_, pi) => calcNFT(mat.notas[pi + 1] || {}, comps))
                       return (
                         <div key={mat.id} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #f3eeff', flexWrap: 'wrap' }}>
                           <span style={{ fontSize: 12, fontWeight: 700, color: '#0e9490', flex: '1 1 120px' }}>{mat.nombre}</span>
                           {nfts.map((nft, i) => (
-                            <span key={i} style={{ fontSize: 12, color: notaColor(nft), fontWeight: 700 }}>
-                              {periodoTerm} {i + 1}: {nft !== null ? Number(nft).toFixed(2) : '—'}
+                            <span key={i} style={{ fontSize: 12, color: esSeminario ? qualitativeTone(nft).color : notaColor(nft), fontWeight: 700 }}>
+                              {periodoTerm} {i + 1}: {esSeminario ? qualitativeLabel(nft) : nft !== null ? Number(nft).toFixed(2) : '—'}
                             </span>
                           ))}
                         </div>

@@ -160,7 +160,7 @@ export default function PadreInicio() {
                   {hijoActual.nombre} {hijoActual.apellido}
                 </span>
                 <span style={{ fontSize:12, color:'rgba(255,255,255,0.46)', fontWeight:500 }}>
-                  Año escolar {new Date().getFullYear()}
+                  Año escolar {yearEscolar || new Date().getFullYear()}
                 </span>
               </div>
             </>

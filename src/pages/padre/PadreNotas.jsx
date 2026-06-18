@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../supabase'
 import { usePadreHijo } from '../../hooks/usePadreHijo'
 import { useYearEscolar } from '../../hooks/useYearEscolar'
+import { isSeminarioMateria, qualitativeLabel, qualitativeShort, qualitativeTone } from '../../utils/qualitativeGrades'
 
 const PESOS = { ac:0.35, ai:0.35, em:0.10, ep:0.10, ef:0.20 }
 const COMP_LABELS = { ac:'AC', ai:'AI', em:'EM', ep:'EP', ef:'EF' }
@@ -27,8 +28,14 @@ const s = {
   card: { background:'#fff', borderRadius:14, padding:'0', boxShadow:'0 2px 12px rgba(91,45,142,0.07)', border:'1px solid #f0ebff', marginBottom:12, overflow:'hidden' },
   th: { padding:'10px 14px', fontSize:11, fontWeight:700, color:'#6b7280', textTransform:'uppercase', letterSpacing:'0.8px', background:'#fafafa', borderBottom:'1px solid #f3eeff', textAlign:'center' },
   td: { padding:'10px 14px', fontSize:13, fontWeight:600, color:'#0f1d40', borderBottom:'1px solid #f9f5ff', textAlign:'center' },
-  nota: (n) => ({ display:'inline-flex', alignItems:'center', justifyContent:'center', minWidth:32, padding:'2px 8px', borderRadius:20, fontSize:13, fontWeight:800, color: notaColor(n), background: notaBg(n) }),
-  nft:  (n) => ({ display:'inline-flex', alignItems:'center', justifyContent:'center', minWidth:40, padding:'3px 10px', borderRadius:20, fontSize:14, fontWeight:800, color: notaColor(n), background: notaBg(n), border: `1px solid ${n === null ? '#e9e3ff' : n < 5 ? '#fecdd3' : n < 7 ? '#fde68a' : '#bbf7d0'}` }),
+  nota: (n, criterio = false) => {
+    const tone = criterio ? qualitativeTone(n) : null
+    return { display:'inline-flex', alignItems:'center', justifyContent:'center', minWidth: criterio ? 42 : 32, padding:'2px 8px', borderRadius:20, fontSize:13, fontWeight:800, color: criterio ? tone.color : notaColor(n), background: criterio ? tone.bg : notaBg(n) }
+  },
+  nft:  (n, criterio = false) => {
+    const tone = criterio ? qualitativeTone(n) : null
+    return { display:'inline-flex', alignItems:'center', justifyContent:'center', minWidth: criterio ? 86 : 40, padding:'3px 10px', borderRadius:20, fontSize:14, fontWeight:800, color: criterio ? tone.color : notaColor(n), background: criterio ? tone.bg : notaBg(n), border: `1px solid ${criterio ? tone.border : n === null ? '#e9e3ff' : n < 5 ? '#fecdd3' : n < 7 ? '#fde68a' : '#bbf7d0'}` }
+  },
 }
 
 export default function PadreNotas() {
@@ -127,6 +134,7 @@ export default function PadreNotas() {
                 <th style={{ ...s.th, color:'#5B2D8E' }}>Promedio</th>
               </tr></thead>
               <tbody>{materias.map(m => {
+                const esSeminario = isSeminarioMateria(m)
                 const nfts = periodos.map(p => calcNFT(m.notas[p], comps))
                 const validNfts = nfts.filter(n => n !== null)
                 const prom = validNfts.length ? validNfts.reduce((a,b) => a+b, 0) / validNfts.length : null
@@ -135,8 +143,12 @@ export default function PadreNotas() {
                     <td style={{ ...s.td, textAlign:'left', fontWeight:700 }}>{m.nombre}
                       {m.esComplementaria && <span style={{ marginLeft:6, fontSize:9, background:'#f3eeff', color:'#5B2D8E', padding:'1px 6px', borderRadius:8, fontWeight:700 }}>Comp.</span>}
                     </td>
-                    {nfts.map((n, i) => <td key={i} style={s.td}><span style={s.nft(n)}>{n !== null ? n.toFixed(1) : '—'}</span></td>)}
-                    <td style={s.td}><span style={s.nft(prom)}>{prom !== null ? prom.toFixed(1) : '—'}</span></td>
+                    {nfts.map((n, i) => (
+                      <td key={i} style={s.td}>
+                        <span style={s.nft(n, esSeminario)}>{esSeminario ? qualitativeShort(n) : n !== null ? n.toFixed(1) : '—'}</span>
+                      </td>
+                    ))}
+                    <td style={s.td}><span style={s.nft(prom, esSeminario)}>{esSeminario ? qualitativeLabel(prom) : prom !== null ? prom.toFixed(1) : '—'}</span></td>
                   </tr>
                 )
               })}</tbody>
@@ -153,6 +165,7 @@ export default function PadreNotas() {
                 <th style={{ ...s.th, color:'#5B2D8E' }}>NFT</th>
               </tr></thead>
               <tbody>{materias.map(m => {
+                const esSeminario = isSeminarioMateria(m)
                 const nft = calcNFT(m.notas[periodo], comps)
                 return (
                   <tr key={m.id}>
@@ -161,9 +174,9 @@ export default function PadreNotas() {
                     </td>
                     {comps.map(c => {
                       const n = m.notas[periodo][c]
-                      return <td key={c} style={s.td}><span style={s.nota(n)}>{n !== null ? n : '—'}</span></td>
+                      return <td key={c} style={s.td}><span style={s.nota(n, esSeminario)}>{esSeminario ? qualitativeShort(n) : n !== null ? n : '—'}</span></td>
                     })}
-                    <td style={s.td}><span style={s.nft(nft)}>{nft !== null ? nft.toFixed(1) : '—'}</span></td>
+                    <td style={s.td}><span style={s.nft(nft, esSeminario)}>{esSeminario ? qualitativeLabel(nft) : nft !== null ? nft.toFixed(1) : '—'}</span></td>
                   </tr>
                 )
               })}</tbody>

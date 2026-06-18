@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { useYearEscolar } from '../hooks/useYearEscolar'
@@ -64,23 +63,28 @@ const TIPO_PERMISO = {
   medico:    { label: 'Médico',    color: '#1e40af', bg: '#dbeafe' },
   familiar:  { label: 'Familiar',  color: '#6d28d9', bg: '#ede9fe' },
   academico: { label: 'Académico', color: '#065f46', bg: '#d1fae5' },
+  ausencia:  { label: 'Ausencia',  color: '#1e40af', bg: '#dbeafe' },
+  llegada_tarde: { label: 'Llegada tarde', color: '#946A00', bg: '#fef9c3' },
+  retiro_anticipado: { label: 'Retiro anticipado', color: '#c2410c', bg: '#fff7ed' },
   otro:      { label: 'Otro',      color: '#92400e', bg: '#fef3c7' },
 }
 
 function estadoInfo(val) { return ESTADOS.find(e => e.value === val) || ESTADOS[0] }
 function hoy() { return new Date().toISOString().split('T')[0] }
 
-// ── Regla ±1 día ──────────────────────────────
 function puedeEditarFecha(fecha, esAdmin) {
-  // [TEMPORAL hasta junio 2026] Apertura solicitada por dirección — sin bloqueo por fecha
-  // Restaurar después: if (esAdmin) return true; const hoyDate = new Date(); ...
-  return true
+  if (esAdmin) return true
+  if (!fecha) return false
+  const hoyDate = new Date()
+  hoyDate.setHours(0, 0, 0, 0)
+  const fechaDate = new Date(`${fecha}T00:00:00`)
+  const diffDias = Math.floor((hoyDate - fechaDate) / 86400000)
+  return diffDias >= 0 && diffDias <= 1
 }
 
 export default function Asistencia({ onIrASolicitudes }) {
   const { perfil } = useAuth()
-  const navigate = useNavigate()
-  const { yearEscolar } = useYearEscolar()
+  const yearEscolar = useYearEscolar()
   const year = yearEscolar || new Date().getFullYear()
   const bp = useBreakpoint()
   const isMobile = bp === 'mobile'
@@ -102,22 +106,54 @@ export default function Asistencia({ onIrASolicitudes }) {
   const [alertas,           setAlertas]            = useState([])
   const [modificacionAprobada, setModificacionAprobada] = useState(false)
 
-  // [TEMPORAL hasta junio 2026] Apertura — todos pueden editar siempre
-  // Restaurar después: (puedeEditarFecha(fecha, isAdmin) || modificacionAprobada) && (isAdmin || !yaGuardado || modificacionAprobada)
-  const puedeEditar = true
+  const puedeEditar = isAdmin || modificacionAprobada || (isDocente && puedeEditarFecha(fecha, false))
 
   useEffect(() => {
     if (!perfil) return
-    supabase.from('grados').select('id, nombre, nivel, orden')
-      .order('orden').then(({ data }) => setGrados(data || []))
-  }, [perfil, year])
+    async function cargarGrados() {
+      if (!isDocente) {
+        const { data } = await supabase.from('grados').select('id, nombre, nivel, orden').order('orden')
+        setGrados(data || [])
+        return
+      }
+
+      const [{ data: asigs }, { data: gradoEncargado }] = await Promise.all([
+        supabase.from('asignaciones')
+          .select('grado_id')
+          .eq('docente_id', perfil.id)
+          .eq('año_escolar', year),
+        supabase.from('grados')
+          .select('id')
+          .eq('encargado_id', perfil.id)
+          .maybeSingle(),
+      ])
+
+      const gradoIds = new Set((asigs || []).map(a => a.grado_id).filter(Boolean))
+      if (perfil?.grado_id) gradoIds.add(perfil.grado_id)
+      if (gradoEncargado?.id) gradoIds.add(gradoEncargado.id)
+
+      if (gradoIds.size === 0) {
+        setGrados([])
+        setGradoId('')
+        return
+      }
+
+      const { data } = await supabase.from('grados')
+        .select('id, nombre, nivel, orden')
+        .in('id', Array.from(gradoIds))
+        .order('orden')
+      setGrados(data || [])
+    }
+    cargarGrados()
+  }, [perfil?.id, perfil?.grado_id, isDocente, year])
 
   useEffect(() => {
-    if (isDocente && grados.length === 1) setGradoId(String(grados[0].id))
-    // Si es docente con grado encargado, pre-seleccionar ese grado para comodidad
-    if (isDocente && perfil?.grado_id && grados.length > 0) {
+    if (!isDocente || grados.length === 0) return
+    if (perfil?.grado_id && grados.some(g => g.id === perfil.grado_id)) {
       setGradoId(String(perfil.grado_id))
+      return
     }
+    if (grados.length === 1) setGradoId(String(grados[0].id))
   }, [grados, isDocente, perfil])
 
   useEffect(() => {
@@ -142,7 +178,7 @@ export default function Asistencia({ onIrASolicitudes }) {
       let pMap = {}
       if (estIds.length > 0) {
         const { data: perms } = await supabase.from('permisos')
-          .select('estudiante_id, tipo, motivo').eq('fecha', fecha).in('estudiante_id', estIds)
+          .select('estudiante_id, tipo, subtipo, motivo').eq('fecha', fecha).in('estudiante_id', estIds)
         for (const p of (perms || [])) pMap[p.estudiante_id] = p
       }
       setPermisosMap(pMap)
@@ -166,12 +202,15 @@ export default function Asistencia({ onIrASolicitudes }) {
       } else {
         const asMap = {}
         for (const e of estList) {
-          if (pMap[e.id]) asMap[e.id] = 'justificado'
+          const permisoTipo = pMap[e.id]?.subtipo || pMap[e.id]?.tipo
+          if (permisoTipo === 'ausencia') asMap[e.id] = 'justificado'
+          if (permisoTipo === 'llegada_tarde') asMap[e.id] = 'tardanza'
           // Sin registros previos: estado vacío, el docente debe marcarlo explícitamente
         }
         const obMap = {}
         for (const e of estList) {
-          if (pMap[e.id]) obMap[e.id] = `${TIPO_PERMISO[pMap[e.id].tipo]?.label || 'Permiso'}: ${pMap[e.id].motivo}`
+          const permisoTipo = pMap[e.id]?.subtipo || pMap[e.id]?.tipo
+          if (pMap[e.id]) obMap[e.id] = `${TIPO_PERMISO[permisoTipo]?.label || 'Permiso'}: ${pMap[e.id].motivo}`
         }
         setAsistencia(asMap)
         setObservaciones(obMap)
@@ -214,25 +253,26 @@ export default function Asistencia({ onIrASolicitudes }) {
       // Solo relevante cuando ya hay asistencia guardada (yaGuardado se setea arriba)
       if (perfil?.id && gradoId) {
         const { data: solMod } = await supabase.from('solicitudes')
-          .select('id')
+          .select('id, abierto_en, cierre_en')
           .eq('tipo', 'modificar_asistencia')
           .eq('solicitante_id', perfil.id)
           .eq('grado_id', parseInt(gradoId))
           .eq('fecha_asistencia', fecha)
+          .eq('año_escolar', year)
           .eq('estado', 'aprobado')
           .limit(1)
-        setModificacionAprobada((solMod || []).length > 0)
+        setModificacionAprobada((solMod || []).some(sol => sol.abierto_en && sol.cierre_en && new Date() < new Date(sol.cierre_en)))
       }
 
       setCargando(false)
     })
-  }, [gradoId, fecha, year])
+  }, [gradoId, fecha, year, perfil?.id])
 
   function irASolicitudes(state) {
     if (onIrASolicitudes) {
       onIrASolicitudes(state)
     } else {
-      navigate('/solicitudes', { state })
+      sessionStorage.setItem('solicitudes_state', JSON.stringify(state))
     }
   }
 
@@ -244,7 +284,7 @@ export default function Asistencia({ onIrASolicitudes }) {
 
   async function guardar() {
     if (!gradoId || estudiantes.length === 0) return
-    if (!puedeEditar) { toast.error('Solo puedes modificar la asistencia del día anterior, hoy o mañana'); return }
+    if (!puedeEditar) { toast.error('La asistencia solo puede editarse hoy o al día siguiente. Para fechas anteriores solicita desbloqueo.'); return }
     setGuardando(true)
     const toastId = toast.loading('Guardando asistencia...')
     try {
@@ -258,7 +298,7 @@ export default function Asistencia({ onIrASolicitudes }) {
           materia_id: null, registrado_por: perfil.id,
         }))
       const { error } = await supabase.from('asistencia')
-        .upsert(registros, { onConflict: 'estudiante_id,fecha,grado_id' })
+        .upsert(registros, { onConflict: 'estudiante_id,fecha,grado_id,año_escolar' })
       if (error) throw error
       toast.success('Asistencia guardada', { id: toastId })
       setYaGuardado(true)
@@ -327,7 +367,7 @@ export default function Asistencia({ onIrASolicitudes }) {
       </ModuleToolbar>
 
       {/* Alerta fecha bloqueada */}
-      {gradoId && !puedeEditarFecha(fecha, isAdmin) && !cargando && (
+      {gradoId && !puedeEditar && !cargando && (
         <div style={{ ...s.aviso('#fee2e2', '#dc2626'), marginBottom: 16, justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <IcoLock />
@@ -380,13 +420,13 @@ export default function Asistencia({ onIrASolicitudes }) {
               <div style={{ ...s.aviso('#dbeafe', '#1e40af'), marginBottom: 12 }}>
                 <IcoCheck />
                 <span>
-                  Asistencia registrada{registradoPor ? ` por ${registradoPor}` : ''}. Puedes modificarla directamente.
+                  Asistencia registrada{registradoPor ? ` por ${registradoPor}` : ''}{puedeEditar ? '. Puedes modificarla dentro del plazo permitido.' : '. Esta fecha está bloqueada para edición.'}
                 </span>
               </div>
             )}
             {permisosHoy > 0 && !yaGuardado && (
               <div style={{ ...s.aviso('#ede9fe', '#6d28d9'), marginBottom: 12 }}>
-                <IcoList /> {permisosHoy} estudiante{permisosHoy > 1 ? 's' : ''} con permiso — marcado{permisosHoy > 1 ? 's' : ''} automáticamente como Justificado
+                <IcoList /> {permisosHoy} estudiante{permisosHoy > 1 ? 's' : ''} con permiso — aplicado automáticamente según el tipo de solicitud
               </div>
             )}
 
@@ -437,6 +477,7 @@ export default function Asistencia({ onIrASolicitudes }) {
                       const estadoActual = asistencia[est.id] || null
                       const info         = estadoActual ? estadoInfo(estadoActual) : { dot: '#d1d5db', bg: 'transparent', color: '#9ca3af' }
                       const permiso      = permisosMap[est.id]
+                      const permisoTipo  = permiso?.subtipo || permiso?.tipo
                       const tieneAlerta  = alertas.some(a => a.estudiante.id === est.id)
                       return (
                         <tr key={est.id} style={{ background: tieneAlerta ? '#fffbeb' : idx % 2 === 0 ? '#fff' : '#fdfcff', borderBottom: '1px solid #f3eeff', transition: 'background 0.1s' }}>
@@ -450,8 +491,8 @@ export default function Asistencia({ onIrASolicitudes }) {
                                   {tieneAlerta && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 10, background: '#fef9c3', color: '#92400e' }}>Alerta</span>}
                                 </div>
                                 {permiso && (
-                                  <span style={{ fontSize: 11, fontWeight: 700, padding: '1px 7px', borderRadius: 20, background: TIPO_PERMISO[permiso.tipo]?.bg || '#f3f4f6', color: TIPO_PERMISO[permiso.tipo]?.color || '#374151', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                    <IcoCalendar /> Permiso {TIPO_PERMISO[permiso.tipo]?.label}
+                                  <span style={{ fontSize: 11, fontWeight: 700, padding: '1px 7px', borderRadius: 20, background: TIPO_PERMISO[permisoTipo]?.bg || '#f3f4f6', color: TIPO_PERMISO[permisoTipo]?.color || '#374151', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                    <IcoCalendar /> Permiso {TIPO_PERMISO[permisoTipo]?.label}
                                   </span>
                                 )}
                               </div>
@@ -500,6 +541,7 @@ export default function Asistencia({ onIrASolicitudes }) {
                 {estudiantes.map(est => {
                   const estadoActual = asistencia[est.id] || null
                   const permiso      = permisosMap[est.id]
+                  const permisoTipo  = permiso?.subtipo || permiso?.tipo
                   const tieneAlerta  = alertas.some(a => a.estudiante.id === est.id)
                   return (
                     <div key={est.id} style={{ background: tieneAlerta ? '#fffbeb' : '#fff', borderRadius: 14, boxShadow: '0 2px 12px rgba(61,31,97,0.07)', padding: 14, border: tieneAlerta ? '1.5px solid #fcd34d' : 'none' }}>
@@ -510,8 +552,8 @@ export default function Asistencia({ onIrASolicitudes }) {
                             {tieneAlerta && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 10, background: '#fef9c3', color: '#92400e' }}>Alerta</span>}
                           </div>
                           {permiso && (
-                            <span style={{ fontSize: 11, fontWeight: 700, padding: '1px 8px', borderRadius: 20, background: TIPO_PERMISO[permiso.tipo]?.bg || '#f3f4f6', color: TIPO_PERMISO[permiso.tipo]?.color || '#374151', display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
-                              <IcoCalendar /> Permiso {TIPO_PERMISO[permiso.tipo]?.label}
+                            <span style={{ fontSize: 11, fontWeight: 700, padding: '1px 8px', borderRadius: 20, background: TIPO_PERMISO[permisoTipo]?.bg || '#f3f4f6', color: TIPO_PERMISO[permisoTipo]?.color || '#374151', display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                              <IcoCalendar /> Permiso {TIPO_PERMISO[permisoTipo]?.label}
                             </span>
                           )}
                         </div>

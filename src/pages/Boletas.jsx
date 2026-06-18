@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { useYearEscolar } from '../hooks/useYearEscolar'
+import { isSeminarioMateria, qualitativeLabel, qualitativeShort, qualitativeTone } from '../utils/qualitativeGrades'
 import toast from 'react-hot-toast'
 
 const API_URL = 'https://web-production-b7240a.up.railway.app'
@@ -140,6 +141,7 @@ function VistaPreviaBoleta({ est, grado, materias, comps, periodo, periodoLabel,
             <tbody>
               {materias.map((mat, mi) => {
                 const nft = calcNFT(mat.notas[tabPer] || {}, comps, grado.nivel)
+                const esSeminario = isSeminarioMateria(mat)
                 return (
                   <tr key={mat.id} style={{ background: mi % 2 === 0 ? '#fff' : '#fdfcff', borderBottom: '1px solid #f3eeff' }}>
                     <td style={{ ...s.td, fontWeight: 600, color: '#0f1d40', padding: '10px 20px' }}>{mat.nombre}</td>
@@ -147,15 +149,18 @@ function VistaPreviaBoleta({ est, grado, materias, comps, periodo, periodoLabel,
                       const val = mat.notas[tabPer]?.[c]
                       return (
                         <td key={c} style={{ ...s.td, textAlign: 'center' }}>
-                          <span style={{ fontWeight: 700, color: notaColor(val !== null && val !== undefined ? parseFloat(val) : null) }}>
-                            {val !== null && val !== undefined ? val : '—'}
+                          <span
+                            title={esSeminario && val !== null && val !== undefined ? qualitativeLabel(val) : undefined}
+                            style={{ fontWeight: 700, color: esSeminario ? qualitativeTone(val).color : notaColor(val !== null && val !== undefined ? parseFloat(val) : null) }}
+                          >
+                            {esSeminario ? qualitativeShort(val) : val !== null && val !== undefined ? val : '—'}
                           </span>
                         </td>
                       )
                     })}
                     <td style={{ ...s.td, textAlign: 'center', background: '#fdfcff' }}>
-                      <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 8, fontSize: 13, fontWeight: 800, background: notaBg(nft ? parseFloat(nft) : null), color: notaColor(nft ? parseFloat(nft) : null) }}>
-                        {nft || '—'}
+                      <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 8, fontSize: 13, fontWeight: 800, background: esSeminario ? qualitativeTone(nft).bg : notaBg(nft ? parseFloat(nft) : null), color: esSeminario ? qualitativeTone(nft).color : notaColor(nft ? parseFloat(nft) : null) }}>
+                        {esSeminario ? qualitativeLabel(nft) : nft || '—'}
                       </span>
                     </td>
                   </tr>
@@ -181,6 +186,7 @@ function VistaPreviaBoleta({ est, grado, materias, comps, periodo, periodoLabel,
             </thead>
             <tbody>
               {materias.map((mat, mi) => {
+                const esSeminario = isSeminarioMateria(mat)
                 const nfts = Array.from({ length: numPer }, (_, i) => {
                   const n = calcNFT(mat.notas[i+1] || {}, comps, grado.nivel)
                   return n ? parseFloat(n) : null
@@ -192,14 +198,14 @@ function VistaPreviaBoleta({ est, grado, materias, comps, periodo, periodoLabel,
                     <td style={{ ...s.td, fontWeight: 600, color: '#0f1d40', padding: '10px 20px' }}>{mat.nombre}</td>
                     {nfts.map((nft, i) => (
                       <td key={i} style={{ ...s.td, textAlign: 'center' }}>
-                        <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 7, fontSize: 12, fontWeight: 700, background: notaBg(nft), color: notaColor(nft) }}>
-                          {nft !== null ? nft.toFixed(2) : '—'}
+                        <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 7, fontSize: 12, fontWeight: 700, background: esSeminario ? qualitativeTone(nft).bg : notaBg(nft), color: esSeminario ? qualitativeTone(nft).color : notaColor(nft) }}>
+                          {esSeminario ? qualitativeShort(nft) : nft !== null ? nft.toFixed(2) : '—'}
                         </span>
                       </td>
                     ))}
                     <td style={{ ...s.td, textAlign: 'center', background: '#fdfcff' }}>
-                      <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 8, fontSize: 13, fontWeight: 900, background: notaBg(prom), color: notaColor(prom), border: prom !== null ? `1.5px solid ${prom < 5 ? '#fca5a5' : prom < 7 ? '#fcd34d' : '#86efac'}` : 'none' }}>
-                        {prom !== null ? prom.toFixed(2) : '—'}
+                      <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 8, fontSize: 13, fontWeight: 900, background: esSeminario ? qualitativeTone(prom).bg : notaBg(prom), color: esSeminario ? qualitativeTone(prom).color : notaColor(prom), border: prom !== null ? `1.5px solid ${esSeminario ? qualitativeTone(prom).border : prom < 5 ? '#fca5a5' : prom < 7 ? '#fcd34d' : '#86efac'}` : 'none' }}>
+                        {esSeminario ? qualitativeLabel(prom) : prom !== null ? prom.toFixed(2) : '—'}
                       </span>
                     </td>
                   </tr>
@@ -223,7 +229,7 @@ async function notificar(usuarioIds, tipo, titulo, mensaje, link) {
 
 export default function Boletas() {
   const { perfil } = useAuth()
-  const { yearEscolar } = useYearEscolar()
+  const yearEscolar = useYearEscolar()
 
   const [grados,       setGrados]       = useState([])
   const [gradoId,      setGradoId]      = useState('')
@@ -298,14 +304,14 @@ export default function Boletas() {
 
     const notasMap = {}
     for (const n of (notasData || [])) {
-      notasMap[`${n.materia_id}-${n.periodo}-${n.tipo}`] = n.nota
+      notasMap[`${n.materia_id}|${n.periodo}|${n.tipo}`] = n.nota
     }
 
     const materias = (matsData || []).map(m => {
       const notas = {}
       for (let p = 1; p <= numPer; p++) {
         notas[p] = {}
-        for (const c of comps) notas[p][c] = notasMap[`${m.id}-${p}-${c}`] ?? null
+        for (const c of comps) notas[p][c] = notasMap[`${m.id}|${p}|${c}`] ?? null
       }
       return { id: m.id, nombre: m.nombre, notas }
     })
@@ -335,14 +341,14 @@ export default function Boletas() {
 
     const notasMap = {}
     for (const n of (notasData || [])) {
-      notasMap[`${n.materia_id}-${n.periodo}-${n.tipo}`] = n.nota
+      notasMap[`${n.materia_id}|${n.periodo}|${n.tipo}`] = n.nota
     }
 
     function getNotasPorPeriodo(matId) {
       const result = {}
       for (let p = 1; p <= numPer; p++) {
         const notas = {}
-        for (const c of comps) notas[c] = notasMap[`${matId}-${p}-${c}`] ?? null
+        for (const c of comps) notas[c] = notasMap[`${matId}|${p}|${c}`] ?? null
         result[String(p)] = notas
       }
       return result

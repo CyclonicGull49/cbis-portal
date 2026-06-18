@@ -51,7 +51,7 @@ const TIPOS = {
 
 export default function Anecdotario() {
   const { perfil } = useAuth()
-  const { yearEscolar } = useYearEscolar()
+  const yearEscolar = useYearEscolar()
   const year = yearEscolar || new Date().getFullYear()
 
   const esDireccion = ['admin', 'direccion_academica', 'registro_academico'].includes(perfil?.rol)

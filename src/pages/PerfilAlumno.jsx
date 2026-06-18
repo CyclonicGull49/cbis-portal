@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { useYearEscolar } from '../hooks/useYearEscolar'
 import { NIVEL_COLOR as nivelColor } from '../constants/colores'
 import { ActionTile, InfoPill, ProfileHero, StudentIdCard } from '../components/profile/ProfilePrimitives'
+import { isSeminarioMateria, qualitativeLabel, qualitativeTone } from '../utils/qualitativeGrades'
 
 const IcoId = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -23,7 +24,7 @@ const IcoShield = () => (
 
 export default function PerfilAlumno({ seccion = 'perfil', onNavigate = () => {} }) {
   const { perfil } = useAuth()
-  const { yearEscolar } = useYearEscolar()
+  const yearEscolar = useYearEscolar()
   const [estudiante, setEstudiante] = useState(null)
   const [fotoUrl, setFotoUrl]       = useState('')
   const [loading, setLoading]       = useState(true)
@@ -222,7 +223,7 @@ function bgNota(n) {
 }
 
 function Boletin({ estudianteId, gradoId, nivel, componentesNota }) {
-  const { yearEscolar } = useYearEscolar()
+  const yearEscolar = useYearEscolar()
   const [materias, setMaterias]   = useState([])
   const [notas, setNotas]         = useState({})
   const [loading, setLoading]     = useState(true)
@@ -267,6 +268,7 @@ function Boletin({ estudianteId, gradoId, nivel, componentesNota }) {
   )
 
   const materiasConNotas = materias.map(m => {
+    const esSeminario = isSeminarioMateria(m)
     const nftsPeriodo = Array.from({ length: numPeriodos }, (_, i) => {
       const map = {}
       for (const c of componentes) map[c] = notas[`${m.id}|${i + 1}|${c}`] ?? null
@@ -274,12 +276,12 @@ function Boletin({ estudianteId, gradoId, nivel, componentesNota }) {
     })
     const validos = nftsPeriodo.filter(v => v !== null)
     const acu = validos.length ? validos.reduce((a, b) => a + b, 0) / validos.length : null
-    return { ...m, nftsPeriodo, acu }
+    return { ...m, nftsPeriodo, acu, esSeminario }
   })
 
   const notasPeriodo = periodoTab > 0
-    ? materiasConNotas.map(m => m.nftsPeriodo[periodoTab - 1]).filter(v => v !== null)
-    : materiasConNotas.map(m => m.acu).filter(v => v !== null)
+    ? materiasConNotas.filter(m => !m.esSeminario).map(m => m.nftsPeriodo[periodoTab - 1]).filter(v => v !== null)
+    : materiasConNotas.filter(m => !m.esSeminario).map(m => m.acu).filter(v => v !== null)
   const promedio = notasPeriodo.length ? notasPeriodo.reduce((a, b) => a + b, 0) / notasPeriodo.length : null
 
   return (
@@ -346,23 +348,24 @@ function Boletin({ estudianteId, gradoId, nivel, componentesNota }) {
         {materiasConNotas.map(m => {
           const nota = periodoTab === 0 ? m.acu : m.nftsPeriodo[periodoTab - 1]
           const pct  = nota !== null ? Math.min((nota / 10) * 100, 100) : 0
+          const tone = m.esSeminario ? qualitativeTone(nota) : null
           return (
             <div key={m.id} style={{ background: '#fff', borderRadius: 14, padding: '14px 18px', boxShadow: '0 1px 6px rgba(61,31,97,0.06)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#1a0d30', flex: 1, paddingRight: 12 }}>{m.nombre}</div>
                 <span style={{
-                  fontSize: 16, fontWeight: 900, color: colorNota(nota),
-                  background: bgNota(nota), padding: '3px 12px', borderRadius: 8,
-                  minWidth: 52, textAlign: 'center', flexShrink: 0,
+                  fontSize: m.esSeminario ? 13 : 16, fontWeight: 900, color: m.esSeminario ? tone.color : colorNota(nota),
+                  background: m.esSeminario ? tone.bg : bgNota(nota), padding: '3px 12px', borderRadius: 8,
+                  minWidth: m.esSeminario ? 96 : 52, textAlign: 'center', flexShrink: 0,
                 }}>
-                  {nota !== null ? nota.toFixed(2) : '—'}
+                  {m.esSeminario ? qualitativeLabel(nota) : nota !== null ? nota.toFixed(2) : '—'}
                 </span>
               </div>
               <div style={{ height: 6, background: '#f3f4f6', borderRadius: 99, overflow: 'hidden' }}>
                 <div style={{
                   height: '100%', borderRadius: 99,
                   width: nota !== null ? `${pct}%` : '0%',
-                  background: nota === null ? '#e5e7eb' : nota < 5 ? '#ef4444' : nota < 7 ? '#f59e0b' : '#22c55e',
+                  background: m.esSeminario ? tone.color : nota === null ? '#e5e7eb' : nota < 5 ? '#ef4444' : nota < 7 ? '#f59e0b' : '#22c55e',
                   transition: 'width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
                 }} />
               </div>

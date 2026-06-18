@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { useYearEscolar } from '../hooks/useYearEscolar'
+import { isSeminarioMateria } from '../utils/qualitativeGrades'
 
 // ── Helpers ───────────────────────────────────
 const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
@@ -231,7 +232,7 @@ function ReportesAsistencia({ year, perfil }) {
   const [cargando,     setCargando]     = useState(false)
 
   const COLORS = { presente: '#1A7A4A', ausente: '#C0392B', tardanza: '#946A00', justificado: '#1e40af' }
-  const anio = new Date().getFullYear()
+  const anio = year
 
   useEffect(() => {
     if (isDocente) {
@@ -423,10 +424,10 @@ function ReportesAcademico({ year, perfil }) {
       supabase.from('estudiantes').select('id, nombre, apellido').eq('grado_id', parseInt(gradoId)).eq('estado', 'activo'),
       supabase.from('notas').select('estudiante_id, materia_id, tipo, nota').eq('grado_id', parseInt(gradoId)).eq('año_escolar', year).eq('periodo', parseInt(periodo)),
     ]).then(([{ data: mgs }, { data: ests }, { data: ns }]) => {
-      const mats = (mgs||[]).map(m => m.materias).filter(Boolean)
+      const mats = (mgs||[]).map(m => m.materias).filter(Boolean).filter(m => !isSeminarioMateria(m))
       const notasMap = {}
       for (const n of (ns||[])) {
-        const key = `${n.estudiante_id}-${n.materia_id}`
+        const key = `${n.estudiante_id}|${n.materia_id}`
         if (!notasMap[key]) notasMap[key] = {}
         notasMap[key][n.tipo] = n.nota
       }
@@ -434,7 +435,7 @@ function ReportesAcademico({ year, perfil }) {
       const porMat = {}
       for (const est of (ests||[])) {
         for (const mat of mats) {
-          const notas = notasMap[`${est.id}-${mat.id}`] || {}
+          const notas = notasMap[`${est.id}|${mat.id}`] || {}
           const nft = calcNFT(comps, notas)
           if (!porMat[mat.id]) porMat[mat.id] = { nombre: mat.nombre, nfts: [] }
           if (nft !== null) porMat[mat.id].nfts.push(nft)
@@ -450,7 +451,7 @@ function ReportesAcademico({ year, perfil }) {
       const enRiesgo = {}
       for (const est of (ests||[])) {
         for (const mat of mats) {
-          const notas = notasMap[`${est.id}-${mat.id}`] || {}
+          const notas = notasMap[`${est.id}|${mat.id}`] || {}
           const nft = calcNFT(comps, notas)
           if (nft !== null && nft < 7) {
             if (!enRiesgo[est.id]) enRiesgo[est.id] = { est, materias: [] }
@@ -708,7 +709,7 @@ function ReportesPermisos({ year }) {
 // ── PRINCIPAL ─────────────────────────────────
 export default function Reportes() {
   const { perfil } = useAuth()
-  const { yearEscolar } = useYearEscolar()
+  const yearEscolar = useYearEscolar()
   const year = yearEscolar || new Date().getFullYear()
 
   const TABS = [

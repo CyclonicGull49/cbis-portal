@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { useYearEscolar } from '../hooks/useYearEscolar'
 import { usePeriodosNotas } from '../hooks/usePeriodosNotas'
 import { FieldGroup, ModuleHero, ModuleToolbar, PremiumEmptyState, StatusPill } from '../components/ui/ModuleChrome'
+import { QUALITATIVE_OPTIONS, isSeminarioMateria, qualitativeFromScore, qualitativeLabel, qualitativeShort, qualitativeTone, scoreFromQualitative } from '../utils/qualitativeGrades'
 import toast from 'react-hot-toast'
 
 function useBreakpoint() {
@@ -127,10 +127,43 @@ function NotaInput({ value, onChange, onPreview, disabled }) {
   )
 }
 
-export default function Notas({ onVerEstudiante }) {
+function QualitativeInput({ value, onChange, disabled }) {
+  const selected = qualitativeFromScore(value)?.key || ''
+  const tone = qualitativeTone(value)
+
+  return (
+    <select
+      value={selected}
+      disabled={disabled}
+      onChange={e => onChange(e.target.value ? scoreFromQualitative(e.target.value) : null)}
+      style={{
+        width: 104,
+        maxWidth: '100%',
+        padding: '6px 8px',
+        borderRadius: 9,
+        border: `1.5px solid ${selected ? tone.border : '#e5e7eb'}`,
+        fontSize: 12,
+        fontWeight: 800,
+        background: disabled ? '#fafafa' : selected ? tone.bg : '#fff',
+        color: selected ? tone.color : '#9ca3af',
+        fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif',
+        outline: 'none',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+      }}
+      title="Seminario se evalúa por criterio"
+    >
+      <option value="">—</option>
+      {QUALITATIVE_OPTIONS.map(opt => (
+        <option key={opt.key} value={opt.key}>{opt.label}</option>
+      ))}
+    </select>
+  )
+}
+
+export default function Notas({ onVerEstudiante, onIrASolicitudes }) {
   const { perfil } = useAuth()
-  const navigate = useNavigate()
-  const { yearEscolar } = useYearEscolar()
+  const yearEscolar = useYearEscolar()
+  const year = yearEscolar || new Date().getFullYear()
   const bp = useBreakpoint()
   const isMobile = bp === 'mobile'
 
@@ -143,9 +176,9 @@ export default function Notas({ onVerEstudiante }) {
   useEffect(() => {
     if (perfil?.rol !== 'admin' || !perfil?.id) return
     supabase.from('asignaciones').select('id', { count: 'exact', head: true })
-      .eq('docente_id', perfil.id).eq('año_escolar', yearEscolar || new Date().getFullYear())
+      .eq('docente_id', perfil.id).eq('año_escolar', year)
       .then(({ count }) => setTieneAsignaciones((count || 0) > 0))
-  }, [perfil])
+  }, [perfil?.rol, perfil?.id, year])
 
   // ── Estado principal ──────────────────────────────────────
   const [modo, setModo]             = useState('grados')
@@ -190,7 +223,6 @@ export default function Notas({ onVerEstudiante }) {
   const gruposComp = getCompetenciasPorNivel(gradoInfo?.nivel)
   const tieneCompetencias = !!gruposComp
 
-  const year = yearEscolar || new Date().getFullYear()
   const { isPeriodoAbierto } = usePeriodosNotas(year)
 
   // ── Solicitudes — se gestionan desde /solicitudes ─────────
@@ -206,13 +238,13 @@ export default function Notas({ onVerEstudiante }) {
     setSolicitudes(data || [])
   }
 
-  useEffect(() => { if (esDocenteTambien && perfil) recargarSolicitudes() }, [perfil, year])
-  useEffect(() => { if (esDocenteTambien && gradoId) recargarSolicitudes() }, [gradoId, materiaId])
+  useEffect(() => { if (esDocenteTambien && perfil) recargarSolicitudes() }, [esDocenteTambien, perfil?.id, year])
+  useEffect(() => { if (esDocenteTambien && gradoId) recargarSolicitudes() }, [esDocenteTambien, gradoId, materiaId, year])
 
   function isMateriaDesbloqueada(matId, gId, periodo, estId) {
     return solicitudes.some(s =>
       s.materia_id === matId && s.grado_id === gId &&
-      s.periodo === periodo && s.estudiante_id === estId &&
+      s.periodo === periodo && (!s.estudiante_id || s.estudiante_id === estId) &&
       s.estado === 'aprobado' &&
       s.abierto_en && s.cierre_en && new Date() < new Date(s.cierre_en)
     )
@@ -220,21 +252,21 @@ export default function Notas({ onVerEstudiante }) {
 
   function getSolicitudEstudiante(matId, periodo, estId) {
     return solicitudes.find(s =>
-      s.materia_id === matId && s.periodo === periodo && s.estudiante_id === estId
+      s.materia_id === matId && s.grado_id === gradoId && s.periodo === periodo && (!s.estudiante_id || s.estudiante_id === estId)
     ) || null
   }
 
   function irASolicitar(matId, periodo, estId, estNombre) {
-    navigate('/solicitudes', {
-      state: {
-        tipo: 'desbloqueo_notas',
-        materia_id: matId,
-        grado_id: String(gradoId),
-        periodo: String(periodo),
-        estudiante_id: String(estId),
-        _hint: `${materias.find(m => m.id === matId)?.nombre} · ${gradoInfo?.nombre} · ${gradoInfo?.nivel === 'bachillerato' ? 'Bimestre' : 'Trimestre'} ${periodo} · ${estNombre}`,
-      }
-    })
+    const state = {
+      tipo: 'desbloqueo_notas',
+      materia_id: matId,
+      grado_id: String(gradoId),
+      periodo: String(periodo),
+      estudiante_id: String(estId),
+      _hint: `${materias.find(m => m.id === matId)?.nombre} · ${gradoInfo?.nombre} · ${gradoInfo?.nivel === 'bachillerato' ? 'Bimestre' : 'Trimestre'} ${periodo} · ${estNombre}`,
+    }
+    if (onIrASolicitudes) onIrASolicitudes(state)
+    else sessionStorage.setItem('solicitudes_state', JSON.stringify(state))
   }
 
   function puedeEditarPeriodo(matId, periodo, estId = null) {
@@ -269,8 +301,28 @@ export default function Notas({ onVerEstudiante }) {
 
   function getVal(estId, matId, periodo, tipo) {
     const pKey = `${estId}|${matId}|${periodo}|${tipo}`
-    const dbKey = `${estId}-${matId}-${periodo}-${tipo}`
+    const dbKey = `${estId}|${matId}|${periodo}|${tipo}`
     return pendingNotas[pKey] !== undefined ? pendingNotas[pKey] : (notas[dbKey]?.nota ?? null)
+  }
+  function getMateriaById(matId) {
+    return materias.find(m => String(m.id) === String(matId))
+  }
+  function esSeminario(matId) {
+    return isSeminarioMateria(getMateriaById(matId))
+  }
+  function displayGrade(matId, value, decimals = 2) {
+    if (value === null || value === undefined) return '—'
+    return esSeminario(matId) ? qualitativeShort(value) : Number(value).toFixed(decimals)
+  }
+  function gradeColor(matId, value) {
+    return esSeminario(matId) ? qualitativeTone(value).color : colorNota(value)
+  }
+  function gradeBg(matId, value) {
+    if (value === null || value === undefined) return 'transparent'
+    if (esSeminario(matId)) return qualitativeTone(value).bg
+    if (value < 5) return '#fee2e2'
+    if (value < 7) return '#fef9c3'
+    return '#f0fdf4'
   }
   function getNotasMap(estId, matId, periodo) {
     const map = {}
@@ -279,13 +331,13 @@ export default function Notas({ onVerEstudiante }) {
   }
   function getValIngles(estId, gradoEstId, periodo, tipo) {
     const pKey = `${estId}|${materiaInglesId}|${gradoEstId}|${periodo}|${tipo}`
-    const dbKey = `${estId}-${materiaInglesId}-${gradoEstId}-${periodo}-${tipo}`
+    const dbKey = `${estId}|${materiaInglesId}|${gradoEstId}|${periodo}|${tipo}`
     return pendingIngles[pKey] !== undefined ? pendingIngles[pKey] : (notasIngles[dbKey]?.nota ?? null)
   }
   function getAC(estId, matId, periodo) {
     const acts = Array.from({ length: numActividades }, (_, i) => {
       const pKey = `${estId}|${matId}|${periodo}|${i + 1}`
-      const dbKey = `${estId}-${matId}-${periodo}-${i + 1}`
+      const dbKey = `${estId}|${matId}|${periodo}|${i + 1}`
       return pendingActs[pKey] !== undefined ? pendingActs[pKey] : actividades[dbKey]
     }).filter(v => v !== null && v !== undefined)
     if (acts.length === 0) return null
@@ -334,7 +386,7 @@ export default function Notas({ onVerEstudiante }) {
       }
     }
     cargar()
-  }, [perfil])
+  }, [perfil?.id, perfil?.rol, esDocenteTambien, year])
 
   // ── Cargar materias al cambiar grado ──────────────────────
   useEffect(() => {
@@ -368,7 +420,7 @@ export default function Notas({ onVerEstudiante }) {
       setMaterias(mat); setMateriaId(mat.length > 0 ? mat[0].id : 'todas'); setBusqueda('')
     }
     cargar()
-  }, [gradoId, year])
+  }, [gradoId, year, grados, esDocenteTambien, perfil?.id])
 
   // ── Cargar estudiantes, notas y competencias ──────────────
   useEffect(() => { if (gradoId) cargarDatos() }, [gradoId, year])
@@ -383,13 +435,13 @@ export default function Notas({ onVerEstudiante }) {
     ])
     setEstudiantes(ests || [])
     const mapa = {}
-    for (const n of (ns || [])) mapa[`${n.estudiante_id}-${n.materia_id}-${n.periodo}-${n.tipo}`] = n
+    for (const n of (ns || [])) mapa[`${n.estudiante_id}|${n.materia_id}|${n.periodo}|${n.tipo}`] = n
     setNotas(mapa)
     const acMapa = {}
-    for (const a of (acs || [])) acMapa[`${a.estudiante_id}-${a.materia_id}-${a.periodo}-${a.numero}`] = a.nota
+    for (const a of (acs || [])) acMapa[`${a.estudiante_id}|${a.materia_id}|${a.periodo}|${a.numero}`] = a.nota
     setActividades(acMapa)
     const compMapa = {}
-    for (const c of (comps || [])) compMapa[`${c.estudiante_id}-${c.periodo}-${c.competencia}`] = c
+    for (const c of (comps || [])) compMapa[`${c.estudiante_id}|${c.periodo}|${c.competencia}`] = c
     setCompCiudadanas(compMapa)
     setLoading(false)
   }
@@ -405,7 +457,7 @@ export default function Notas({ onVerEstudiante }) {
       const parts = key.split('|')
       const estId = parts[0], matId = parts[1], periodo = parts[2], tipo = parts[3]
       const valor = pendingNotas[key]
-      const dbKey = `${estId}-${matId}-${periodo}-${tipo}`
+      const dbKey = `${estId}|${matId}|${periodo}|${tipo}`
       const existe = notas[dbKey]
       const payload = { estudiante_id: parseInt(estId), materia_id: matId, grado_id: gradoId, año_escolar: year, periodo: parseInt(periodo), tipo, nota: valor, docente_id: perfil.id }
       ops.push(existe
@@ -430,27 +482,23 @@ export default function Notas({ onVerEstudiante }) {
       const nuevasNotas = { ...notas }
       keysNotas.forEach((key, i) => {
         if (results[i]?.data) {
-          const parts = key.split('|')
-          const dbKey = `${parts[0]}-${parts[1]}-${parts[2]}-${parts[3]}`
-          nuevasNotas[dbKey] = results[i].data
+          nuevasNotas[key] = results[i].data
         }
       })
       const nuevasActs = { ...actividades }
       keysActs.forEach((key) => {
-        const parts = key.split('|')
-        const dbKey = `${parts[0]}-${parts[1]}-${parts[2]}-${parts[3]}`
-        nuevasActs[dbKey] = pendingActs[key]
+        nuevasActs[key] = pendingActs[key]
       })
       setActividades(nuevasActs)
       const combos = new Set(keysActs.map(k => k.split('|').slice(0, 3).join('|')))
       for (const combo of combos) {
         const [estId, matId, periodo] = combo.split('|')
         const acts = Array.from({ length: numActividades }, (_, j) => {
-          const dbKey = `${estId}-${matId}-${periodo}-${j + 1}`
+          const dbKey = `${estId}|${matId}|${periodo}|${j + 1}`
           return nuevasActs[dbKey]
         }).filter(v => v !== null && v !== undefined)
         const acPromedio = acts.length > 0 ? Math.round((acts.reduce((a, b) => a + b, 0) / acts.length) * 10) / 10 : null
-        const acDbKey = `${estId}-${matId}-${periodo}-ac`
+        const acDbKey = `${estId}|${matId}|${periodo}|ac`
         const existeAC = nuevasNotas[acDbKey]
         const payloadAC = { estudiante_id: parseInt(estId), materia_id: matId, grado_id: gradoId, año_escolar: year, periodo: parseInt(periodo), tipo: 'ac', nota: acPromedio, docente_id: perfil.id }
         const { data: acData } = existeAC
@@ -472,7 +520,7 @@ export default function Notas({ onVerEstudiante }) {
     const ops = keys.map(key => {
       const parts = key.split('|')
       const estId = parts[0], matId = parts[1], gradoEstId = parts[2], periodo = parts[3], tipo = parts[4]
-      const dbKey = `${estId}-${matId}-${gradoEstId}-${periodo}-${tipo}`
+      const dbKey = `${estId}|${matId}|${gradoEstId}|${periodo}|${tipo}`
       const existe = notasIngles[dbKey]
       const payload = { estudiante_id: parseInt(estId), materia_id: matId, grado_id: parseInt(gradoEstId), año_escolar: year, periodo: parseInt(periodo), tipo, nota: pendingIngles[key], docente_id: perfil.id }
       return existe
@@ -486,9 +534,7 @@ export default function Notas({ onVerEstudiante }) {
       const nuevas = { ...notasIngles }
       keys.forEach((key, i) => {
         if (results[i].data) {
-          const parts = key.split('|')
-          const dbKey = `${parts[0]}-${parts[1]}-${parts[2]}-${parts[3]}-${parts[4]}`
-          nuevas[dbKey] = results[i].data
+          nuevas[key] = results[i].data
         }
       })
       setNotasIngles(nuevas); setPendingIngles({})
@@ -505,7 +551,7 @@ export default function Notas({ onVerEstudiante }) {
       const [estId, periodo, ...compParts] = key.split('|')
       const competencia = compParts.join('|')
       const valor = pendingComp[key]
-      const dbKey = `${estId}-${periodo}-${competencia}`
+      const dbKey = `${estId}|${periodo}|${competencia}`
       const existe = compCiudadanas[dbKey]
       const payload = { estudiante_id: parseInt(estId), grado_id: gradoId, año_escolar: year, periodo: parseInt(periodo), competencia, valor, docente_id: perfil.id }
       return existe
@@ -519,8 +565,7 @@ export default function Notas({ onVerEstudiante }) {
       const nuevas = { ...compCiudadanas }
       keys.forEach((key, i) => {
         if (results[i].data) {
-          const [estId, periodo, ...compParts] = key.split('|')
-          nuevas[`${estId}-${periodo}-${compParts.join('|')}`] = results[i].data
+          nuevas[key] = results[i].data
         }
       })
       setCompCiudadanas(nuevas); setPendingComp({})
@@ -545,7 +590,7 @@ export default function Notas({ onVerEstudiante }) {
         const { data: ns } = await supabase.from('notas').select('*')
           .in('estudiante_id', ests.map(e => e.id)).eq('materia_id', materiaInglesId).eq('año_escolar', year)
         const mapa = {}
-        for (const n of (ns || [])) mapa[`${n.estudiante_id}-${n.materia_id}-${n.grado_id}-${n.periodo}-${n.tipo}`] = n
+        for (const n of (ns || [])) mapa[`${n.estudiante_id}|${n.materia_id}|${n.grado_id}|${n.periodo}|${n.tipo}`] = n
         setNotasIngles(mapa)
       }
       setLoadingIngles(false)
@@ -614,14 +659,19 @@ export default function Notas({ onVerEstudiante }) {
                 const vals = Array.from({ length: numPeriodos }, (_, i) => calcNFT(componentes, getNotasMap(est.id, m.id, i + 1))).filter(v => v !== null)
                 return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
               })
-              const validos = nftsPorMateria.filter(v => v !== null)
+              const validos = nftsPorMateria.filter((v, i) => v !== null && !isSeminarioMateria(materias[i]))
               const prom = validos.length ? validos.reduce((a, b) => a + b, 0) / validos.length : null
               return (
                 <tr key={est.id} style={{ borderTop: '1px solid #f3eeff', background: idx % 2 === 0 ? '#fff' : '#fdfcff' }}>
                   <NombreEstudiante est={est} />
                   {nftsPorMateria.map((n, i) => (
                     <td key={i} style={{ padding: '10px 8px', textAlign: 'center', borderLeft: '1px solid #f3eeff' }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: colorNota(n) }}>{n !== null ? n.toFixed(2) : '—'}</span>
+                      <span
+                        title={isSeminarioMateria(materias[i]) && n !== null ? qualitativeLabel(n) : undefined}
+                        style={{ fontSize: 13, fontWeight: 700, color: isSeminarioMateria(materias[i]) ? qualitativeTone(n).color : colorNota(n) }}
+                      >
+                        {isSeminarioMateria(materias[i]) ? qualitativeShort(n) : n !== null ? n.toFixed(2) : '—'}
+                      </span>
                     </td>
                   ))}
                   <td style={{ padding: '6px 10px', textAlign: 'center', borderLeft: '2px solid #c9b8e8', background: '#fdfcff' }}>
@@ -652,6 +702,7 @@ export default function Notas({ onVerEstudiante }) {
   // ── Tabla materia ─────────────────────────────────────────
   function TablaMateria() {
     const materia = materias.find(m => m.id === materiaId)
+    const materiaSeminario = isSeminarioMateria(materia)
     const abierto = isPeriodoAbierto(gradoInfo?.nivel, periodoTab)
     const hayPendientesPeriodo = Object.keys(pendingNotas).some(k => k.includes(`|${periodoTab}|`)) ||
                                  Object.keys(pendingActs).some(k => k.includes(`|${periodoTab}|`))
@@ -669,7 +720,7 @@ export default function Notas({ onVerEstudiante }) {
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {componentes.map(c => (
                 <span key={c} style={{ fontSize: 10, fontWeight: 600, color: '#b0a8c0', background: '#f9fafb', padding: '2px 8px', borderRadius: 8, border: '1px solid #f0f0f0' }}>
-                  {c === 'ac' ? `AC (${numActividades} act.)` : FULL_LABELS[c]} · {PESOS[c] * 100}%
+                  {materiaSeminario ? `${FULL_LABELS[c] || LABELS[c]} · criterio` : `${c === 'ac' ? `AC (${numActividades} act.)` : FULL_LABELS[c]} · ${PESOS[c] * 100}%`}
                 </span>
               ))}
             </div>
@@ -751,10 +802,10 @@ export default function Notas({ onVerEstudiante }) {
                           <span style={{
                             display: 'inline-block', padding: '3px 10px', borderRadius: 8,
                             fontSize: 13, fontWeight: 700,
-                            background: nft === null ? 'transparent' : nft < 5 ? '#fee2e2' : nft < 7 ? '#fef9c3' : '#f0fdf4',
-                            color: nft === null ? '#d1d5db' : colorNota(nft),
+                            background: materiaSeminario ? gradeBg(materiaId, nft) : nft === null ? 'transparent' : nft < 5 ? '#fee2e2' : nft < 7 ? '#fef9c3' : '#f0fdf4',
+                            color: nft === null ? '#d1d5db' : gradeColor(materiaId, nft),
                           }}>
-                            {nft !== null ? nft.toFixed(2) : '—'}
+                            {materiaSeminario ? qualitativeShort(nft) : nft !== null ? nft.toFixed(2) : '—'}
                           </span>
                         </td>
                       ))}
@@ -762,11 +813,11 @@ export default function Notas({ onVerEstudiante }) {
                         <span style={{
                           display: 'inline-block', padding: '4px 12px', borderRadius: 8,
                           fontSize: 14, fontWeight: 900,
-                          background: notaFinal === null ? 'transparent' : notaFinal < 5 ? '#fee2e2' : notaFinal < 7 ? '#fef9c3' : '#f0fdf4',
-                          color: notaFinal === null ? '#d1d5db' : colorNota(notaFinal),
-                          border: notaFinal === null ? 'none' : `1.5px solid ${notaFinal < 5 ? '#fca5a5' : notaFinal < 7 ? '#fcd34d' : '#86efac'}`,
+                          background: materiaSeminario ? gradeBg(materiaId, notaFinal) : notaFinal === null ? 'transparent' : notaFinal < 5 ? '#fee2e2' : notaFinal < 7 ? '#fef9c3' : '#f0fdf4',
+                          color: notaFinal === null ? '#d1d5db' : gradeColor(materiaId, notaFinal),
+                          border: notaFinal === null ? 'none' : materiaSeminario ? `1.5px solid ${qualitativeTone(notaFinal).border}` : `1.5px solid ${notaFinal < 5 ? '#fca5a5' : notaFinal < 7 ? '#fcd34d' : '#86efac'}`,
                         }}>
-                          {notaFinal !== null ? notaFinal.toFixed(2) : '—'}
+                          {materiaSeminario ? qualitativeLabel(notaFinal) : notaFinal !== null ? notaFinal.toFixed(2) : '—'}
                         </span>
                       </td>
                     </tr>
@@ -789,8 +840,8 @@ export default function Notas({ onVerEstudiante }) {
                   </th>
                   {componentes.map(c => (
                     <th key={c} style={{ ...s.th, minWidth: c === 'ac' ? 90 : 72 }} title={FULL_LABELS[c]}>
-                      {c === 'ac' ? `AC (${numActividades})` : LABELS[c]}
-                      <div style={{ fontSize: 9, opacity: 0.5, fontWeight: 400, marginTop: 2 }}>{PESOS[c]*100}%</div>
+                      {materiaSeminario ? LABELS[c] : c === 'ac' ? `AC (${numActividades})` : LABELS[c]}
+                      <div style={{ fontSize: 9, opacity: 0.5, fontWeight: 400, marginTop: 2 }}>{materiaSeminario ? 'criterio' : `${PESOS[c]*100}%`}</div>
                     </th>
                   ))}
                   <th style={{ ...s.th, background: '#2d1554', minWidth: 80 }}>
@@ -824,7 +875,7 @@ export default function Notas({ onVerEstudiante }) {
                         </div>
                       </td>
                       {componentes.map(c => {
-                        if (c === 'ac') {
+                        if (c === 'ac' && !materiaSeminario) {
                           const acVal = getAC(est.id, materiaId, periodoTab)
                           const expanded = expandAC[`${est.id}-${periodoTab}`]
                           return (
@@ -847,7 +898,7 @@ export default function Notas({ onVerEstudiante }) {
                                   {Array.from({ length: numActividades }, (_, j) => {
                                     const num = j + 1
                                     const actKey = `${est.id}|${materiaId}|${periodoTab}|${num}`
-                                    const dbKey  = `${est.id}-${materiaId}-${periodoTab}-${num}`
+                                    const dbKey  = `${est.id}|${materiaId}|${periodoTab}|${num}`
                                     const actVal = pendingActs[actKey] !== undefined ? pendingActs[actKey] : (actividades[dbKey] ?? null)
                                     return (
                                       <div key={num} style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}>
@@ -864,12 +915,20 @@ export default function Notas({ onVerEstudiante }) {
                         }
                         return (
                           <td key={c} style={{ padding: '8px 6px', textAlign: 'center' }}>
-                            <NotaInput
-                              value={getVal(est.id, materiaId, periodoTab, c)}
-                              disabled={!puedeEdit}
-                              onPreview={() => {}}
-                              onChange={v => setPreviewVal(est.id, materiaId, periodoTab, c, v)}
-                            />
+                            {materiaSeminario ? (
+                              <QualitativeInput
+                                value={getVal(est.id, materiaId, periodoTab, c)}
+                                disabled={!puedeEdit}
+                                onChange={v => setPreviewVal(est.id, materiaId, periodoTab, c, v)}
+                              />
+                            ) : (
+                              <NotaInput
+                                value={getVal(est.id, materiaId, periodoTab, c)}
+                                disabled={!puedeEdit}
+                                onPreview={() => {}}
+                                onChange={v => setPreviewVal(est.id, materiaId, periodoTab, c, v)}
+                              />
+                            )}
                           </td>
                         )
                       })}
@@ -878,12 +937,12 @@ export default function Notas({ onVerEstudiante }) {
                         <span style={{
                           display: 'inline-block', padding: '4px 10px', borderRadius: 8,
                           fontSize: 13, fontWeight: 800,
-                          background: nft === null ? 'transparent' : nft < 5 ? '#fee2e2' : nft < 7 ? '#fef9c3' : '#f0fdf4',
-                          color: nft === null ? '#e5e7eb' : colorNota(nft),
+                          background: materiaSeminario ? gradeBg(materiaId, nft) : nft === null ? 'transparent' : nft < 5 ? '#fee2e2' : nft < 7 ? '#fef9c3' : '#f0fdf4',
+                          color: nft === null ? '#e5e7eb' : gradeColor(materiaId, nft),
                           border: nft === null ? '1px dashed #e5e7eb' : 'none',
-                          minWidth: 52,
+                          minWidth: materiaSeminario ? 86 : 52,
                         }}>
-                          {nft !== null ? nft.toFixed(2) : '—'}
+                          {materiaSeminario ? qualitativeLabel(nft) : nft !== null ? nft.toFixed(2) : '—'}
                         </span>
                       </td>
                       {/* Estado solicitud desbloqueo — solo lectura, se gestiona desde Solicitudes */}
@@ -926,7 +985,7 @@ export default function Notas({ onVerEstudiante }) {
     function getComp(estId, periodo, compId) {
       const key = `${estId}|${periodo}|${compId}`
       if (pendingComp[key] !== undefined) return pendingComp[key]
-      return compCiudadanas[`${estId}-${periodo}-${compId}`]?.valor ?? ''
+      return compCiudadanas[`${estId}|${periodo}|${compId}`]?.valor ?? ''
     }
 
     function setComp(estId, periodo, compId, valor) {
@@ -1069,6 +1128,7 @@ export default function Notas({ onVerEstudiante }) {
       </div>
     )
     const periodos = Array.from({ length: numPeriodos }, (_, i) => i + 1)
+    const materiaSeminario = isSeminarioMateria(mat)
     return (
       <div>
         {hayPendientes && (
@@ -1101,13 +1161,15 @@ export default function Notas({ onVerEstudiante }) {
                   <div style={{ fontWeight: 700, color: '#3d1f61', fontSize: 14 }}>{est.apellido}, {est.nombre}</div>
                   <div style={{ textAlign: 'center', minWidth: 52 }}>
                     <div style={{ fontSize: 10, fontWeight: 700, color: '#b0a8c0', textTransform: 'uppercase', marginBottom: 2 }}>NFT</div>
-                    <div style={{ fontSize: 18, fontWeight: 900, color: colorNota(nft) }}>{nft !== null ? nft.toFixed(2) : '—'}</div>
+                    <div style={{ fontSize: materiaSeminario ? 14 : 18, fontWeight: 900, color: materiaSeminario ? qualitativeTone(nft).color : colorNota(nft) }}>
+                      {materiaSeminario ? qualitativeLabel(nft) : nft !== null ? nft.toFixed(2) : '—'}
+                    </div>
                   </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: `repeat(${componentes.length}, 1fr)`, gap: 8 }}>
                   {componentes.map(c => {
                     const puedeEdit = puedeEditarPeriodo(materiaId, periodoMovil, est.id)
-                    if (c === 'ac') {
+                    if (c === 'ac' && !materiaSeminario) {
                       const acVal = getAC(est.id, materiaId, periodoMovil)
                       const expanded = expandAC[`${est.id}-${periodoMovil}`]
                       return (
@@ -1129,7 +1191,7 @@ export default function Notas({ onVerEstudiante }) {
                               {Array.from({ length: numActividades }, (_, j) => {
                                 const num = j + 1
                                 const actKey = `${est.id}|${materiaId}|${periodoMovil}|${num}`
-                                const dbKey  = `${est.id}-${materiaId}-${periodoMovil}-${num}`
+                                const dbKey  = `${est.id}|${materiaId}|${periodoMovil}|${num}`
                                 const actVal = pendingActs[actKey] !== undefined ? pendingActs[actKey] : (actividades[dbKey] ?? null)
                                 return (
                                   <div key={num} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1147,12 +1209,20 @@ export default function Notas({ onVerEstudiante }) {
                     return (
                       <div key={c} style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: 10, fontWeight: 700, color: '#5B2D8E', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>{LABELS[c]}</div>
-                        <NotaInput
-                          value={getVal(est.id, materiaId, periodoMovil, c)}
-                          disabled={!puedeEdit}
-                          onPreview={() => {}}
-                          onChange={v => setPreviewVal(est.id, materiaId, periodoMovil, c, v)}
-                        />
+                        {materiaSeminario ? (
+                          <QualitativeInput
+                            value={getVal(est.id, materiaId, periodoMovil, c)}
+                            disabled={!puedeEdit}
+                            onChange={v => setPreviewVal(est.id, materiaId, periodoMovil, c, v)}
+                          />
+                        ) : (
+                          <NotaInput
+                            value={getVal(est.id, materiaId, periodoMovil, c)}
+                            disabled={!puedeEdit}
+                            onPreview={() => {}}
+                            onChange={v => setPreviewVal(est.id, materiaId, periodoMovil, c, v)}
+                          />
+                        )}
                       </div>
                     )
                   })}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
+import { useYearEscolar } from '../hooks/useYearEscolar'
 import toast from 'react-hot-toast'
 
 // ── SVG Icons ────────────────────────────────────────────────
@@ -1087,6 +1088,7 @@ function FichaTabs({ estudiante, onUpdate, onDelete, esRecepcion, perfil }) {
 
 export default function Estudiantes({ estudianteIdInicial, onVolver }) {
   const { perfil } = useAuth()
+  const yearEscolar = useYearEscolar()
   const esRecepcion = perfil?.rol === 'recepcion'
   const esDocente   = perfil?.rol === 'docente'
   const [estudianteDetalle, setEstudianteDetalle] = useState(null)
@@ -1170,6 +1172,8 @@ export default function Estudiantes({ estudianteIdInicial, onVolver }) {
       direccion: form.direccion || null,
       grado_id: parseInt(form.grado_id),
       tipo_ingreso: form.tipo_ingreso,
+      estado: 'activo',
+      year_escolar: yearEscolar || new Date().getFullYear(),
     }])
     if (error) { setError('Error al guardar: ' + error.message) }
     else { setModalAbierto(false); resetForm(); toast.success('Estudiante registrado exitosamente'); cargarDatos() }
@@ -1312,7 +1316,7 @@ export default function Estudiantes({ estudianteIdInicial, onVolver }) {
       }
 
       // Construir registros con todos los campos
-      const yearActual = new Date().getFullYear()
+      const yearActual = yearEscolar || new Date().getFullYear()
       const registros = datos.map(e => ({
         nombre:                e.nombre,
         apellido:              e.apellido,

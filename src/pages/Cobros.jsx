@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
+import { useYearEscolar } from '../hooks/useYearEscolar'
 import { FieldGroup, ModuleHero, ModuleToolbar } from '../components/ui/ModuleChrome'
 import toast from 'react-hot-toast'
 
@@ -74,6 +75,8 @@ function TicketTérmico({ cobro, pago, onClose }) {
 
 export default function Cobros() {
   const { perfil } = useAuth()
+  const yearEscolar = useYearEscolar()
+  const year = yearEscolar || new Date().getFullYear()
   const esRecepcion = perfil?.rol === 'recepcion'
   const [estudiantes, setEstudiantes] = useState([])
   const [conceptos, setConceptos] = useState([])
@@ -93,11 +96,12 @@ export default function Cobros() {
   const [cobrosSeleccionados, setCobrosSeleccionados] = useState([])
   const [modalPagoMultiple, setModalPagoMultiple] = useState(false)
   const [error, setError] = useState('')
-  const [form, setForm] = useState({ estudiante_id: '', concepto_id: '', monto: '', mes: '', year_escolar: new Date().getFullYear() })
+  const [form, setForm] = useState({ estudiante_id: '', concepto_id: '', monto: '', mes: '', year_escolar: year })
 
   const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 
-  useEffect(() => { cargarDatos() }, [])
+  useEffect(() => { cargarDatos() }, [year])
+  useEffect(() => { setForm(f => ({ ...f, year_escolar: year })) }, [year])
   useEffect(() => { setCobrosSeleccionados([]) }, [estudianteSeleccionado])
 
   async function cargarDatos() {
@@ -105,7 +109,7 @@ export default function Cobros() {
     const [{ data: est }, { data: con }, { data: cob }] = await Promise.all([
       supabase.from('estudiantes').select('id, nombre, apellido, grado_id, grados(nombre)').eq('estado', 'activo').order('apellido'),
       supabase.from('conceptos_cobro').select('*').eq('activo', true).order('tipo'),
-      supabase.from('cobros').select(`*, estudiantes(nombre, apellido, grados(nombre)), conceptos_cobro(nombre, tipo)`).order('fecha_vencimiento', { ascending: true })
+      supabase.from('cobros').select(`*, estudiantes(nombre, apellido, grados(nombre)), conceptos_cobro(nombre, tipo)`).eq('year_escolar', year).order('fecha_vencimiento', { ascending: true })
     ])
     setEstudiantes(est || []); setConceptos(con || []); setCobros(cob || [])
     setLoading(false)
@@ -185,7 +189,7 @@ export default function Cobros() {
     await cargarDatos(); setGuardando(false)
   }
 
-  function resetForm() { setForm({ estudiante_id: '', concepto_id: '', monto: '', mes: '', year_escolar: new Date().getFullYear() }); setError('') }
+  function resetForm() { setForm({ estudiante_id: '', concepto_id: '', monto: '', mes: '', year_escolar: year }); setError('') }
   function abrirNuevoCobro() { resetForm(); if (estudianteSeleccionado) { setForm(f => ({ ...f, estudiante_id: estudianteSeleccionado.id })) }; setModalCobro(true) }
 
   const estadoColor = {

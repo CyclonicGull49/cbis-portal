@@ -40,7 +40,7 @@ const CON_RETIRANTE = ['retiro_anticipado']  // requieren nombre+DUI de quien re
 export default function PadreSolicitudes() {
   const { perfil }    = useAuth()
   const { hijoActual } = usePadreHijo()
-  const { yearEscolar } = useYearEscolar()
+  const yearEscolar = useYearEscolar()
 
   const [solicitudes, setSolicitudes] = useState([])
   const [loading,     setLoading]     = useState(true)
@@ -48,18 +48,21 @@ export default function PadreSolicitudes() {
   const [guardando,   setGuardando]   = useState(false)
   const [form, setForm] = useState({
     tipo: 'permiso_ausencia', motivo: '', fecha_evento: '',
-    retira_nombre: '', retira_dui: '',
+    retira_nombre: '', retira_dui: '', retira_hora: '',
   })
 
-  useEffect(() => { if (perfil) cargar() }, [perfil])
+  useEffect(() => { if (perfil) cargar() }, [perfil, hijoActual?.id, yearEscolar])
 
   async function cargar() {
     if (!perfil?.id) return
     setLoading(true)
-    const { data } = await supabase.from('solicitudes')
-      .select('id, tipo, estado, motivo, respuesta, fecha_cita, creado_en')
+    let q = supabase.from('solicitudes')
+      .select('id, tipo, estado, motivo, respuesta, fecha_cita, fecha_asistencia, creado_en')
       .eq('solicitante_id', perfil.id)
+      .eq('año_escolar', yearEscolar || new Date().getFullYear())
       .order('creado_en', { ascending: false })
+    if (hijoActual?.id) q = q.eq('estudiante_id', hijoActual.id)
+    const { data } = await q
     setSolicitudes(data || [])
     setLoading(false)
   }
@@ -69,6 +72,7 @@ export default function PadreSolicitudes() {
     if (CON_FECHA_EVT.includes(form.tipo) && !form.fecha_evento) { toast.error('Indica la fecha'); return }
     if (CON_RETIRANTE.includes(form.tipo) && !form.retira_nombre.trim()) { toast.error('Indica el nombre de quien retirará al estudiante'); return }
     if (CON_RETIRANTE.includes(form.tipo) && !form.retira_dui.trim())    { toast.error('Indica el DUI de quien retirará al estudiante'); return }
+    if (CON_RETIRANTE.includes(form.tipo) && !form.retira_hora)           { toast.error('Indica la hora aproximada del retiro'); return }
     setGuardando(true)
 
     const esConstancia = CONSTANCIAS.includes(form.tipo)
@@ -84,7 +88,7 @@ export default function PadreSolicitudes() {
 
     // Retiro: nombre y DUI van al motivo como respaldo
     const motivoFinal = esRetiro
-      ? `${form.motivo.trim()}\n[RETIRO] Retira: ${form.retira_nombre.trim()} · DUI: ${form.retira_dui.trim()}`
+      ? `${form.motivo.trim()}\n[RETIRO] Retira: ${form.retira_nombre.trim()} · DUI: ${form.retira_dui.trim()} · Hora: ${form.retira_hora}`
       : form.motivo.trim()
 
     const { error: solError } = await supabase.from('solicitudes').insert({
@@ -144,7 +148,7 @@ export default function PadreSolicitudes() {
       esRetiro     ? 'Solicitud de retiro enviada — esperando aprobación del encargado' :
                      'Solicitud enviada correctamente'
     )
-    setForm({ tipo:'permiso_ausencia', motivo:'', fecha_evento:'', retira_nombre:'', retira_dui:'' })
+    setForm({ tipo:'permiso_ausencia', motivo:'', fecha_evento:'', retira_nombre:'', retira_dui:'', retira_hora:'' })
     setModo('lista')
     cargar()
   }
@@ -222,6 +226,7 @@ export default function PadreSolicitudes() {
                 <IcoCal />
                 <input type="date" value={form.fecha_evento}
                   onChange={e => setForm(f => ({ ...f, fecha_evento: e.target.value }))}
+                  min={new Date().toISOString().split('T')[0]}
                   style={{ flex:1, border:'none', outline:'none', background:'transparent', fontSize:14, fontWeight:500, color:'#0f1d40', fontFamily:'inherit' }} />
               </div>
             </div>
@@ -231,7 +236,7 @@ export default function PadreSolicitudes() {
           {conRetirante && (
             <div style={{ marginBottom:20, padding:'16px 14px', background:'#fff7ed', border:'1.5px solid #fed7aa', borderRadius:11 }}>
               <div style={{ fontSize:11, fontWeight:700, color:'#c2410c', textTransform:'uppercase', letterSpacing:'1px', marginBottom:12 }}>Datos de quien retira</div>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))', gap:10 }}>
                 <div>
                   <label style={{ display:'block', fontSize:11, fontWeight:600, color:'#6b7280', marginBottom:6 }}>Nombre completo</label>
                   <input type="text" placeholder="Ej: María García" value={form.retira_nombre}
@@ -242,6 +247,12 @@ export default function PadreSolicitudes() {
                   <label style={{ display:'block', fontSize:11, fontWeight:600, color:'#6b7280', marginBottom:6 }}>DUI</label>
                   <input type="text" placeholder="00000000-0" value={form.retira_dui}
                     onChange={e => setForm(f => ({ ...f, retira_dui: e.target.value }))}
+                    style={{ width:'100%', padding:'10px 12px', background:'#fff', border:'1.5px solid #fed7aa', borderRadius:9, fontSize:13, fontFamily:'inherit', outline:'none', boxSizing:'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ display:'block', fontSize:11, fontWeight:600, color:'#6b7280', marginBottom:6 }}>Hora aproximada</label>
+                  <input type="time" value={form.retira_hora}
+                    onChange={e => setForm(f => ({ ...f, retira_hora: e.target.value }))}
                     style={{ width:'100%', padding:'10px 12px', background:'#fff', border:'1.5px solid #fed7aa', borderRadius:9, fontSize:13, fontFamily:'inherit', outline:'none', boxSizing:'border-box' }} />
                 </div>
               </div>
@@ -284,6 +295,7 @@ export default function PadreSolicitudes() {
                       <div style={{ fontSize:12, color:'#6b7280', marginBottom:4, lineHeight:1.5 }}>{s.motivo}</div>
                       <div style={{ fontSize:11, color:'#c4b5fd' }}>
                         {new Date(s.creado_en).toLocaleDateString('es-SV', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}
+                        {s.fecha_asistencia && ` · Evento: ${new Date(s.fecha_asistencia + 'T12:00:00').toLocaleDateString('es-SV', { day:'numeric', month:'short' })}`}
                         {s.fecha_cita && ` · Cita: ${new Date(s.fecha_cita + 'T00:00:00').toLocaleDateString('es-SV', { day:'numeric', month:'short' })}`}
                       </div>
                     </div>

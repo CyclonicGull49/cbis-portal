@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { useNotificaciones } from '../hooks/useNotificaciones'
+import { useYearEscolar } from '../hooks/useYearEscolar'
 
 // ── Iconos ────────────────────────────────────
 const IcoBell = ({ size = 18 }) => (
@@ -61,6 +62,7 @@ const TIPOS_ENVIO = [
 
 // Destinatarios según rol
 function useDestinatarios(perfil) {
+  const yearEscolar = useYearEscolar()
   const [grados, setGrados] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -71,7 +73,7 @@ function useDestinatarios(perfil) {
     if (rol === 'docente') {
       // Grados donde tiene asignaciones
       supabase.from('asignaciones').select('grado_id, grados(id, nombre)')
-        .eq('docente_id', perfil.id).eq('año_escolar', new Date().getFullYear())
+        .eq('docente_id', perfil.id).eq('año_escolar', yearEscolar || new Date().getFullYear())
         .then(({ data }) => {
           const vistos = new Set(); const lista = []
           for (const a of (data || [])) {
@@ -83,7 +85,7 @@ function useDestinatarios(perfil) {
       supabase.from('grados').select('id, nombre').order('orden')
         .then(({ data }) => { setGrados(data || []); setLoading(false) })
     }
-  }, [perfil?.id])
+  }, [perfil?.id, yearEscolar])
 
   const rol = perfil?.rol
   const opciones = []

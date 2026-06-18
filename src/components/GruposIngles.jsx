@@ -8,7 +8,7 @@ const GRADOS_INGLES = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
 
 export default function GruposIngles() {
   const { perfil } = useAuth()
-  const { yearEscolar } = useYearEscolar()
+  const yearEscolar = useYearEscolar()
   const year = yearEscolar || new Date().getFullYear()
 
   const isAdmin = perfil?.rol === 'admin'

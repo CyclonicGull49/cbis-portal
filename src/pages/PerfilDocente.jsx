@@ -27,7 +27,7 @@ const IcoAnecdotario = () => (
 
 export default function PerfilDocente({ onNavigate = () => {} }) {
   const { perfil } = useAuth()
-  const { yearEscolar } = useYearEscolar()
+  const yearEscolar = useYearEscolar()
   const year = yearEscolar || new Date().getFullYear()
   const [loading, setLoading] = useState(true)
   const [asignaciones, setAsignaciones] = useState([])

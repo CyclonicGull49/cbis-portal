@@ -93,6 +93,16 @@ const TIPOS = {
   constancia_estudio:   { label: 'Constancia de estudio',  color: '#16a34a', bg: '#f0fdf4' },
 }
 
+const TIPOS_DOCENTE = ['modificar_asistencia', 'desbloqueo_notas', 'permiso_personal', 'cita_padres']
+const TIPOS_ACADEMICOS = ['modificar_asistencia', 'desbloqueo_notas']
+const TIPOS_FAMILIA = ['permiso_ausencia', 'llegada_tardia', 'retiro_anticipado', 'reunion_encargado', 'reunion_direccion', 'constancia_pago', 'constancia_estudio']
+const TIPOS_PERSONALES = ['permiso_personal', 'cita_padres']
+const TIPOS_RECEPCION = ['constancia_pago','constancia_estudio','llegada_tardia','retiro_anticipado']
+const TIPOS_ENCARGADO = ['permiso_ausencia', 'llegada_tardia', 'retiro_anticipado', 'reunion_encargado']
+const TIPOS_RECEPCION_APRUEBA = ['constancia_pago', 'constancia_estudio', 'llegada_tardia']
+
+const SOLICITUD_SELECT = `*, solicitante:perfiles!solicitudes_solicitante_id_fkey(nombre, apellido), materias(nombre), grados(nombre, nivel), estudiantes(nombre, apellido), respondedor:perfiles!solicitudes_respondido_por_fkey(nombre, apellido)`
+
 const ESTADOS = {
   pendiente: { label: 'Pendiente',  bg: '#fef9c3', color: '#92400e' },
   aprobado:  { label: 'Aprobado',   bg: '#dcfce7', color: '#16a34a' },
@@ -124,18 +134,16 @@ async function notificar(usuarioIds, tipo, titulo, mensaje, link) {
 
 export default function Solicitudes() {
   const { perfil } = useAuth()
-  const { yearEscolar } = useYearEscolar()
+  const yearEscolar = useYearEscolar()
   const year = yearEscolar || new Date().getFullYear()
   const location = useLocation()
 
   const esDocente   = perfil?.rol === 'docente'
   const esDireccion = ['admin', 'direccion_academica'].includes(perfil?.rol)
   const esRegistro  = ['admin', 'registro_academico'].includes(perfil?.rol)
+  const esRegistroSolo = perfil?.rol === 'registro_academico'
   const esRecepcion = perfil?.rol === 'recepcion'
   const canManage   = esDireccion || esRegistro || esRecepcion
-
-  // Tipos que recepción gestiona
-  const TIPOS_RECEPCION = ['constancia_pago','constancia_estudio','llegada_tardia','retiro_anticipado']
 
   const [solicitudes,    setSolicitudes]    = useState([])
   const [loading,        setLoading]        = useState(true)
@@ -144,6 +152,7 @@ export default function Solicitudes() {
   const [modalNueva,     setModalNueva]     = useState(false)
   const [modalDetalle,   setModalDetalle]   = useState(null)
   const [modalRespuesta, setModalRespuesta] = useState(null)
+  const [tipoPrellenado, setTipoPrellenado] = useState(false)
   const [respuesta,      setRespuesta]      = useState('')
   const [reunionFecha,   setReunionFecha]   = useState('')
   const [reunionHora,    setReunionHora]    = useState('')
@@ -151,6 +160,7 @@ export default function Solicitudes() {
   const [materias,       setMaterias]       = useState([])
   const [grados,         setGrados]         = useState([])
   const [estudiantes,    setEstudiantes]    = useState([])
+  const [gradosEncargado, setGradosEncargado] = useState([])
   const [form, setForm] = useState({
     tipo: 'desbloqueo_notas', motivo: '', materia_id: '',
     grado_id: '', periodo: '', estudiante_id: '', fecha_asistencia: '', fecha_permiso: '',
@@ -170,6 +180,7 @@ export default function Solicitudes() {
       return null
     })()
     if (!st || !perfil) return
+    setTipoPrellenado(Boolean(st.tipo))
     setForm(f => ({
       ...f,
       tipo:             st.tipo             || 'desbloqueo_notas',
@@ -186,14 +197,49 @@ export default function Solicitudes() {
 
   async function cargar() {
     setLoading(true)
+    if (esDocente) {
+      const { data: gradosEnc } = await supabase
+        .from('grados')
+        .select('id')
+        .eq('encargado_id', perfil.id)
+
+      const gradoIds = new Set((gradosEnc || []).map(g => g.id))
+      if (perfil?.grado_id) gradoIds.add(perfil.grado_id)
+      const gradoIdsList = Array.from(gradoIds)
+      setGradosEncargado(gradoIdsList)
+
+      const propiasQuery = supabase.from('solicitudes')
+        .select(SOLICITUD_SELECT)
+        .eq('año_escolar', year)
+        .eq('solicitante_id', perfil.id)
+        .order('creado_en', { ascending: false })
+
+      const familiaQuery = gradoIdsList.length
+        ? supabase.from('solicitudes')
+            .select(SOLICITUD_SELECT)
+            .eq('año_escolar', year)
+            .in('tipo', TIPOS_ENCARGADO)
+            .in('grado_id', gradoIdsList)
+            .order('creado_en', { ascending: false })
+        : Promise.resolve({ data: [] })
+
+      const [{ data: propias }, { data: familia }] = await Promise.all([propiasQuery, familiaQuery])
+      const merged = [...(propias || []), ...(familia || [])]
+      const unicas = [...new Map(merged.map(s => [s.id, s])).values()]
+        .sort((a, b) => new Date(b.creado_en) - new Date(a.creado_en))
+      setSolicitudes(unicas)
+      setLoading(false)
+      return
+    }
+
     let q = supabase.from('solicitudes')
-      .select(`*, solicitante:perfiles!solicitudes_solicitante_id_fkey(nombre, apellido), materias(nombre), grados(nombre, nivel), estudiantes(nombre, apellido), respondedor:perfiles!solicitudes_respondido_por_fkey(nombre, apellido)`)
-      .eq('año_escolar', year).order('creado_en', { ascending: false })
-    if (esDocente)   q = q.eq('solicitante_id', perfil.id)
+      .select(SOLICITUD_SELECT)
+      .eq('año_escolar', year)
+      .order('creado_en', { ascending: false })
     if (esRecepcion) q = q.in('tipo', TIPOS_RECEPCION)
-    // Dirección y registro ven solicitudes de otros, no las propias (para evitar auto-aprobación)
-    // Las propias (permiso personal) se filtran aparte si las necesitan ver
+    if (esRegistroSolo) q = q.in('tipo', ['desbloqueo_notas'])
     const { data } = await q
+    setGradosEncargado([])
     setSolicitudes(data || [])
     setLoading(false)
   }
@@ -203,27 +249,47 @@ export default function Solicitudes() {
       supabase.from('materias').select('id, nombre').order('nombre'),
       supabase.from('grados').select('id, nombre, nivel').order('orden'),
     ])
-    setGrados(gra || [])
+    let gradosDisponibles = gra || []
     if (esDocente) {
-      const { data: gradoEnc } = await supabase.from('grados').select('id').eq('encargado_id', perfil.id).single()
+      const { data: asigs } = await supabase
+        .from('asignaciones')
+        .select('materia_id, grado_id, materias(id, nombre)')
+        .eq('docente_id', perfil.id)
+        .eq('año_escolar', year)
+      const gradoIds = new Set((asigs || []).map(a => a.grado_id).filter(Boolean))
+      if (perfil?.grado_id) gradoIds.add(perfil.grado_id)
+      gradosDisponibles = gradosDisponibles.filter(g => gradoIds.size === 0 || gradoIds.has(g.id))
+
+      const { data: gradoEnc } = await supabase.from('grados').select('id').eq('encargado_id', perfil.id).maybeSingle()
       if (gradoEnc) {
-        const { data: ests } = await supabase.from('estudiantes').select('id, nombre, apellido').eq('grado_id', gradoEnc.id).eq('estado', 'activo').order('apellido')
-        setEstudiantes(ests || [])
         // Solo pre-llenar grado si no viene ya desde navigate (location.state)
         setForm(f => ({ ...f, grado_id: f.grado_id || String(gradoEnc.id) }))
       }
-      const { data: asigs } = await supabase.from('asignaciones').select('materia_id, materias(id, nombre)').eq('docente_id', perfil.id).eq('año_escolar', year)
       const unicas = [...new Map((asigs || []).map(a => [a.materia_id, { id: a.materia_id, nombre: a.materias?.nombre }])).values()]
       setMaterias(unicas)
     } else {
       setMaterias(mat || [])
     }
+    setGrados(gradosDisponibles)
   }
+
+  useEffect(() => {
+    if (!modalNueva || !form.grado_id) {
+      if (modalNueva) setEstudiantes([])
+      return
+    }
+    supabase.from('estudiantes')
+      .select('id, nombre, apellido')
+      .eq('grado_id', parseInt(form.grado_id))
+      .eq('estado', 'activo')
+      .order('apellido')
+      .then(({ data }) => setEstudiantes(data || []))
+  }, [modalNueva, form.grado_id])
 
   async function crearSolicitud() {
     if (!form.motivo.trim()) { toast.error('El motivo es obligatorio'); return }
     if (form.tipo === 'desbloqueo_notas' && (!form.materia_id || !form.grado_id || !form.periodo)) { toast.error('Completa materia, grado y periodo'); return }
-    if (form.tipo === 'modificar_asistencia' && !form.fecha_asistencia) { toast.error('Indica la fecha de asistencia'); return }
+    if (form.tipo === 'modificar_asistencia' && (!form.grado_id || !form.fecha_asistencia)) { toast.error('Indica grado y fecha de asistencia'); return }
     if (form.tipo === 'permiso_personal') {
       if (!form.fecha_permiso) { toast.error('Indica la fecha del permiso'); return }
       const diasAnticipacion = Math.ceil((new Date(form.fecha_permiso) - new Date()) / (1000 * 60 * 60 * 24))
@@ -238,7 +304,7 @@ export default function Solicitudes() {
       fecha_asistencia: form.fecha_asistencia || null,
       fecha_permiso: form.fecha_permiso || null,
     })
-    if (error) { toast.error('Error al crear solicitud'); setGuardando(false); return }
+    if (error) { toast.error(error.message || 'Error al crear solicitud'); setGuardando(false); return }
 
     // Notificar según tipo — routing correcto por destinatario
     let rolesDestino = []
@@ -273,6 +339,64 @@ export default function Solicitudes() {
     setGuardando(false)
   }
 
+  function extraerDatosRetiro(motivo = '') {
+    const linea = motivo.split('\n').find(l => l.startsWith('[RETIRO]')) || ''
+    return {
+      quien_retira: linea.match(/Retira:\s*(.*?)(?:\s*·|$)/)?.[1]?.trim() || null,
+      hora_retiro:  linea.match(/Hora:\s*([^·]+)/)?.[1]?.trim() || null,
+    }
+  }
+
+  async function asegurarPermisoOperativo(s, estado = 'aprobado') {
+    const subtipoMap = {
+      permiso_ausencia: 'ausencia',
+      llegada_tardia: 'llegada_tarde',
+      retiro_anticipado: 'retiro_anticipado',
+    }
+    const subtipo = subtipoMap[s.tipo]
+    if (!subtipo || !s.estudiante_id || !s.fecha_asistencia) return null
+
+    let gradoId = s.grado_id
+    if (!gradoId) {
+      const { data: est } = await supabase.from('estudiantes').select('grado_id').eq('id', s.estudiante_id).maybeSingle()
+      gradoId = est?.grado_id
+    }
+    if (!gradoId) return null
+
+    const retiro = s.tipo === 'retiro_anticipado' ? extraerDatosRetiro(s.motivo || '') : {}
+    const payload = {
+      estudiante_id: s.estudiante_id,
+      grado_id: gradoId,
+      subtipo,
+      tipo: subtipo,
+      fecha: s.fecha_asistencia,
+      motivo: s.motivo || `Generado desde solicitud #${s.id}`,
+      quien_retira: retiro.quien_retira,
+      hora_retiro: retiro.hora_retiro,
+      estado,
+      registrado_por: s.solicitante_id || perfil.id,
+      aprobado_por: perfil.id,
+      aprobado_en: new Date().toISOString(),
+      año_escolar: s.año_escolar || year,
+    }
+
+    const { data: existente } = await supabase.from('permisos')
+      .select('id')
+      .eq('estudiante_id', s.estudiante_id)
+      .eq('fecha', s.fecha_asistencia)
+      .eq('subtipo', subtipo)
+      .eq('año_escolar', s.año_escolar || year)
+      .maybeSingle()
+
+    if (existente?.id) {
+      await supabase.from('permisos').update(payload).eq('id', existente.id)
+      return existente.id
+    }
+
+    const { data: creado } = await supabase.from('permisos').insert(payload).select('id').single()
+    return creado?.id || null
+  }
+
   async function responder(accion) {
     const s = modalRespuesta?.solicitud
     if (!s) return
@@ -288,13 +412,21 @@ export default function Solicitudes() {
       : respuesta.trim() || null
 
     setProcesando(s.id)
-    const { error } = await supabase.from('solicitudes').update({
+    const updatePayload = {
       estado: accion === 'aprobar' ? 'aprobado' : 'rechazado',
       respuesta: respuestaFinal, respondido_por: perfil.id, respondido_en: new Date().toISOString(),
-    }).eq('id', s.id)
+    }
+    if (accion === 'aprobar' && s.tipo === 'modificar_asistencia') {
+      updatePayload.abierto_por = perfil.id
+      updatePayload.abierto_en = new Date().toISOString()
+      updatePayload.cierre_en = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    }
+    const { error } = await supabase.from('solicitudes').update(updatePayload).eq('id', s.id)
     if (error) { toast.error('Error'); setProcesando(null); return }
 
     if (accion === 'aprobar') {
+      await asegurarPermisoOperativo(s, 'aprobado')
+
       // permiso_ausencia → marcar asistencia como justificado
       if (s.tipo === 'permiso_ausencia' && s.estudiante_id && s.fecha_asistencia) {
         await supabase.from('asistencia').upsert({
@@ -305,7 +437,20 @@ export default function Solicitudes() {
           año_escolar:   s.año_escolar,
           registrado_por: perfil.id,
           observacion:   `Permiso aprobado por ${perfil.nombre} ${perfil.apellido}`,
-        }, { onConflict: 'estudiante_id,fecha,grado_id' })
+        }, { onConflict: 'estudiante_id,fecha,grado_id,año_escolar' })
+      }
+
+      // llegada_tardia → marcar asistencia como tardanza cuando aplique
+      if (s.tipo === 'llegada_tardia' && s.estudiante_id && s.fecha_asistencia) {
+        await supabase.from('asistencia').upsert({
+          estudiante_id: s.estudiante_id,
+          grado_id:      s.grado_id,
+          fecha:         s.fecha_asistencia,
+          estado:        'tardanza',
+          año_escolar:   s.año_escolar,
+          registrado_por: perfil.id,
+          observacion:   `Llegada tardía aprobada por ${perfil.nombre} ${perfil.apellido}`,
+        }, { onConflict: 'estudiante_id,fecha,grado_id,año_escolar' })
       }
 
       // retiro_anticipado → notificar recepción con detalle
@@ -348,7 +493,7 @@ export default function Solicitudes() {
     const cierre = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString()
     const { error } = await supabase.from('solicitudes').update({ abierto_por: perfil.id, abierto_en: new Date().toISOString(), cierre_en: cierre }).eq('id', s.id)
     if (error) toast.error('Error al abrir')
-    else { toast.success('Materia abierta por 12 horas'); cargar() }
+    else { toast.success('Edición abierta por 12 horas'); cargar() }
     setProcesando(null)
   }
 
@@ -362,6 +507,7 @@ export default function Solicitudes() {
     setProcesando(s.id)
     const horaRetiro = new Date().toLocaleTimeString('es-SV', { hour:'2-digit', minute:'2-digit' })
     const respActual = s.respuesta || ''
+    await asegurarPermisoOperativo(s, 'salida_confirmada')
     const { error } = await supabase.from('solicitudes').update({
       estado:         'cerrado',
       respuesta:      `${respActual ? respActual + ' | ' : ''}Retiro confirmado por recepción a las ${horaRetiro}`,
@@ -382,21 +528,40 @@ export default function Solicitudes() {
   }
 
   function resetForm() {
+    setTipoPrellenado(false)
+    sessionStorage.removeItem('solicitudes_hint')
     setForm({ tipo: 'desbloqueo_notas', motivo: '', materia_id: '', grado_id: '', periodo: '', estudiante_id: '', fecha_asistencia: '', fecha_permiso: '' })
   }
 
   const tabs = [
     { id: 'todas', label: 'Todas' },
+    { id: 'academicas', label: 'Académicas' },
+    { id: 'familias', label: 'Familias' },
+    { id: 'personal', label: 'Personal' },
     { id: 'pendiente', label: 'Pendientes' },
-    { id: 'aprobado', label: 'Aprobadas' },
     { id: 'historial', label: 'Historial' },
   ]
   const filtradas = solicitudes.filter(s => {
     if (tabActiva === 'todas') return true
+    if (tabActiva === 'academicas') return TIPOS_ACADEMICOS.includes(s.tipo)
+    if (tabActiva === 'familias') return TIPOS_FAMILIA.includes(s.tipo)
+    if (tabActiva === 'personal') return TIPOS_PERSONALES.includes(s.tipo)
     if (tabActiva === 'historial') return ['rechazado','cerrado'].includes(s.estado)
     return s.estado === tabActiva
   })
   const pendientesCount = solicitudes.filter(s => s.estado === 'pendiente').length
+  const tiposParaCrear = esDocente ? TIPOS_DOCENTE : Object.keys(TIPOS)
+  const hintSolicitud = location.state?._hint || sessionStorage.getItem('solicitudes_hint')
+  const puedeResponderSolicitud = (s) => {
+    if (!s || s.solicitante_id === perfil?.id) return false
+    if (esDireccion) return true
+    if (esRecepcion) return TIPOS_RECEPCION_APRUEBA.includes(s.tipo)
+    if (esDocente) return TIPOS_ENCARGADO.includes(s.tipo) && gradosEncargado.includes(s.grado_id)
+    return false
+  }
+  const puedeConfirmarRetiro = (s) =>
+    s?.tipo === 'retiro_anticipado' && s.estado === 'aprobado' && (esRecepcion || esDireccion)
+  const puedeVerSolicitante = (s) => canManage || (esDocente && s?.solicitante_id !== perfil?.id)
 
   function TarjetaSolicitud({ s }) {
     const tipo   = TIPOS[s.tipo]   || TIPOS.desbloqueo_notas
@@ -430,11 +595,11 @@ export default function Solicitudes() {
                 {s.grados && <span style={{ fontWeight: 500, color: '#6b7280' }}> · {s.grados.nombre}</span>}
               </div>
             )}
-            {s.tipo === 'permiso_ausencia' && (
+            {['permiso_ausencia', 'llegada_tardia', 'retiro_anticipado', 'constancia_pago', 'constancia_estudio'].includes(s.tipo) && (
               <div style={{ fontSize: 13, fontWeight: 700, color: '#3d1f61', marginBottom: 4 }}>
                 {s.estudiantes ? `${s.estudiantes.apellido}, ${s.estudiantes.nombre}` : ''}
                 {s.fecha_asistencia && <span style={{ fontWeight: 500, color: '#6b7280' }}> · {new Date(s.fecha_asistencia + 'T12:00:00').toLocaleDateString('es-SV', { day: 'numeric', month: 'short' })}</span>}
-                {s.motivo?.includes('[RETIRO]') && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, color: '#c2410c', background: '#fff7ed', padding: '1px 7px', borderRadius: 6 }}>Retiro</span>}
+                {s.tipo === 'retiro_anticipado' && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, color: '#c2410c', background: '#fff7ed', padding: '1px 7px', borderRadius: 6 }}>Retiro</span>}
               </div>
             )}
             {s.tipo === 'cita_padres' && (
@@ -453,7 +618,7 @@ export default function Solicitudes() {
               {s.motivo}
             </div>
             <div style={{ fontSize: 11, color: '#b0a8c0', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              {canManage && <span>{s.solicitante?.nombre} {s.solicitante?.apellido}</span>}
+              {puedeVerSolicitante(s) && <span>{s.solicitante?.nombre} {s.solicitante?.apellido}</span>}
               <span>{formatFecha(s.creado_en)}</span>
             </div>
             {tiempoRestante && (
@@ -465,7 +630,7 @@ export default function Solicitudes() {
 
           {/* Acciones rápidas */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-            {(esDireccion || (esRecepcion && TIPOS_RECEPCION.includes(s.tipo))) && s.estado === 'pendiente' && s.solicitante_id !== perfil?.id && (
+            {puedeResponderSolicitud(s) && s.estado === 'pendiente' && (
               <div style={{ display: 'flex', gap: 6 }}>
                 <button onClick={() => { setModalRespuesta({ solicitud: s, accion: 'aprobar' }); setRespuesta('') }} disabled={procesando === s.id}
                   style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 12px', borderRadius: 8, border: 'none', background: '#dcfce7', color: '#16a34a', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
@@ -483,7 +648,7 @@ export default function Solicitudes() {
                 <IcoUnlock /> Abrir 12h
               </button>
             )}
-            {(esRegistro || esRecepcion) && s.tipo === 'retiro_anticipado' && s.estado === 'aprobado' && (
+            {puedeConfirmarRetiro(s) && (
               <button onClick={() => confirmarRetiro(s)} disabled={procesando === s.id}
                 style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 14px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #c2410c, #ea580c)', color: '#fff', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
                 <IcoCheck /> Confirmar retiro
@@ -559,32 +724,34 @@ export default function Solicitudes() {
 
       {/* Modal nueva solicitud */}
       {modalNueva && (
-        <div style={s.modalBg} onClick={() => { setModalNueva(false); resetForm(); sessionStorage.removeItem('solicitudes_hint') }}>
+        <div style={s.modalBg} onClick={() => { setModalNueva(false); resetForm() }}>
           <div style={{ ...s.modalBox, maxWidth: 520 }} onClick={e => e.stopPropagation()}>
-            <h2 style={{ color: '#3d1f61', fontSize: 17, fontWeight: 800, marginBottom: location.state?._hint ? 8 : 20 }}>Nueva solicitud</h2>
+            <h2 style={{ color: '#3d1f61', fontSize: 17, fontWeight: 800, marginBottom: hintSolicitud ? 8 : 20 }}>Nueva solicitud</h2>
 
-            {(location.state?._hint || sessionStorage.getItem('solicitudes_hint')) && (
+            {hintSolicitud && (
               <div style={{ background: '#f3eeff', borderRadius: 8, padding: '7px 12px', marginBottom: 16, fontSize: 12, fontWeight: 600, color: '#5B2D8E' }}>
-                {location.state?._hint || sessionStorage.getItem('solicitudes_hint')}
+                {hintSolicitud}
               </div>
             )}
 
             {/* Selector de tipo — oculto si viene pre-llenado desde otra página */}
-            {!location.state?.tipo && (
+            {!tipoPrellenado && (
               <div style={s.field}>
                 <label style={s.label}>Tipo de solicitud</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
-                  {Object.entries(TIPOS).map(([k, v]) => (
+                  {tiposParaCrear.map(k => {
+                    const v = TIPOS[k]
+                    return (
                     <button key={k} onClick={() => setForm(f => ({ ...f, tipo: k }))}
                       style={{ padding: '10px 12px', borderRadius: 10, border: `2px solid ${form.tipo === k ? v.color : '#e5e7eb'}`, background: form.tipo === k ? v.bg : '#fff', color: form.tipo === k ? v.color : '#6b7280', fontWeight: form.tipo === k ? 700 : 500, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
                       <span style={{ color: form.tipo === k ? v.color : '#b0a8c0' }}><TipoIcono tipo={k} size={18} /></span>
                       {v.label}
                     </button>
-                  ))}
+                  )})}
                 </div>
               </div>
             )}
-            {location.state?.tipo && (
+            {tipoPrellenado && (
               <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 10, background: TIPOS[form.tipo]?.bg || '#f3eeff', border: `1.5px solid ${TIPOS[form.tipo]?.color || '#5B2D8E'}` }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: TIPOS[form.tipo]?.color || '#5B2D8E' }}>
                   {TIPOS[form.tipo]?.label || form.tipo}
@@ -594,6 +761,13 @@ export default function Solicitudes() {
 
             {form.tipo === 'desbloqueo_notas' && (
               <>
+                <div style={s.field}>
+                  <label style={s.label}>Grado</label>
+                  <select style={s.inputFull} value={form.grado_id} onChange={e => setForm(f => ({ ...f, grado_id: e.target.value, estudiante_id: '' }))}>
+                    <option value="">Selecciona grado...</option>
+                    {grados.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
+                  </select>
+                </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div style={s.field}>
                     <label style={s.label}>Materia</label>
@@ -624,11 +798,24 @@ export default function Solicitudes() {
             )}
 
             {form.tipo === 'modificar_asistencia' && (
-              <div style={s.field}>
-                <label style={s.label}>Fecha a modificar</label>
-                <input type="date" style={s.inputFull} value={form.fecha_asistencia}
-                  max={new Date().toISOString().split('T')[0]}
-                  onChange={e => setForm(f => ({ ...f, fecha_asistencia: e.target.value }))} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div style={s.field}>
+                  <label style={s.label}>Grado</label>
+                  <select style={s.inputFull} value={form.grado_id} onChange={e => setForm(f => ({ ...f, grado_id: e.target.value }))}>
+                    <option value="">Selecciona grado...</option>
+                    {grados.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
+                  </select>
+                </div>
+                <div style={s.field}>
+                  <label style={s.label}>Fecha a modificar</label>
+                  <input type="date" style={s.inputFull} value={form.fecha_asistencia}
+                    max={new Date().toISOString().split('T')[0]}
+                    onChange={e => setForm(f => ({ ...f, fecha_asistencia: e.target.value }))} />
+                </div>
+                <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', borderRadius: 12, background: '#f0fdfa', color: '#0f766e', fontSize: 12, fontWeight: 700, lineHeight: 1.5 }}>
+                  <TipoIcono tipo="modificar_asistencia" size={15} />
+                  Puedes registrar o ajustar hoy y el día anterior sin solicitud. Para fechas anteriores, dirección habilita una ventana de edición de 24 horas.
+                </div>
               </div>
             )}
 
@@ -715,7 +902,7 @@ export default function Solicitudes() {
                         </div>
                       ) : null
                     })()}
-                    {canManage && <div style={{ fontSize: 12, marginBottom: 4 }}><b>Solicitado por:</b> {modalDetalle.solicitante?.nombre} {modalDetalle.solicitante?.apellido}</div>}
+                    {puedeVerSolicitante(modalDetalle) && <div style={{ fontSize: 12, marginBottom: 4 }}><b>Solicitado por:</b> {modalDetalle.solicitante?.nombre} {modalDetalle.solicitante?.apellido}</div>}
                     <div style={{ fontSize: 12 }}><b>Fecha:</b> {formatFecha(modalDetalle.creado_en)}</div>
                   </div>
 
@@ -735,13 +922,13 @@ export default function Solicitudes() {
 
                   {abierta && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#dcfce7', borderRadius: 12, padding: '10px 16px', marginBottom: 12, fontSize: 12, fontWeight: 700, color: '#16a34a' }}>
-                      <IcoClock /> {formatHoras(modalDetalle.cierre_en)} — materia abierta para edición
+                      <IcoClock /> {formatHoras(modalDetalle.cierre_en)} — edición abierta
                     </div>
                   )}
 
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                     <button onClick={() => setModalDetalle(null)} style={s.btnSecondary}>Cerrar</button>
-                    {(esDireccion || (esRecepcion && TIPOS_RECEPCION.includes(modalDetalle.tipo))) && modalDetalle.estado === 'pendiente' && modalDetalle.solicitante_id !== perfil?.id && (
+                    {puedeResponderSolicitud(modalDetalle) && modalDetalle.estado === 'pendiente' && (
                       <>
                         <button onClick={() => { setModalRespuesta({ solicitud: modalDetalle, accion: 'aprobar' }); setRespuesta('') }}
                           style={{ ...s.btnSecondary, color: '#16a34a', borderColor: '#86efac', display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -759,7 +946,7 @@ export default function Solicitudes() {
                         <IcoUnlock /> Abrir 12h
                       </button>
                     )}
-                    {(esRegistro || esRecepcion) && modalDetalle.tipo === 'retiro_anticipado' && modalDetalle.estado === 'aprobado' && (
+                    {puedeConfirmarRetiro(modalDetalle) && (
                       <button onClick={() => confirmarRetiro(modalDetalle)}
                         style={{ ...s.btnPrimary, background: 'linear-gradient(135deg, #c2410c, #ea580c)', display: 'flex', alignItems: 'center', gap: 4 }}>
                         <IcoCheck /> Confirmar retiro
