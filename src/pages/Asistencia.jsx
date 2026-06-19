@@ -72,8 +72,11 @@ const TIPO_PERMISO = {
 function estadoInfo(val) { return ESTADOS.find(e => e.value === val) || ESTADOS[0] }
 function hoy() { return new Date().toISOString().split('T')[0] }
 
+const ASISTENCIA_ABIERTA_TEMPORAL = true
+
 function puedeEditarFecha(fecha, esAdmin) {
   if (esAdmin) return true
+  if (ASISTENCIA_ABIERTA_TEMPORAL) return true
   if (!fecha) return false
   const hoyDate = new Date()
   hoyDate.setHours(0, 0, 0, 0)
@@ -284,7 +287,7 @@ export default function Asistencia({ onIrASolicitudes }) {
 
   async function guardar() {
     if (!gradoId || estudiantes.length === 0) return
-    if (!puedeEditar) { toast.error('La asistencia solo puede editarse hoy o al día siguiente. Para fechas anteriores solicita desbloqueo.'); return }
+    if (!puedeEditar) { toast.error('La asistencia está bloqueada para esta fecha. Solicita desbloqueo para modificarla.'); return }
     setGuardando(true)
     const toastId = toast.loading('Guardando asistencia...')
     try {
